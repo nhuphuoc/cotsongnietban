@@ -566,27 +566,41 @@ export default function LandingPage() {
                 Ba phase — chi tiết lộ trình
               </h3>
               <p className="max-w-md font-sans text-xs leading-relaxed text-csnb-muted">
-                Đọc lần lượt I → II → III; mỗi ô tóm tắt đúng nội dung chương trình gốc.
+                Nhấn từng mục để đọc đầy đủ nội dung chương trình (I → II → III).
               </p>
             </div>
-            <div className="grid gap-5 lg:grid-cols-3">
+            <Accordion
+              defaultValue={[]}
+              multiple
+              className="flex flex-col gap-3 sm:gap-4"
+            >
               {trainingPhases.map((phase) => (
-                <article
+                <AccordionItem
                   key={phase.step}
-                  className="flex h-full flex-col rounded-xl border border-csnb-border bg-csnb-surface/95 p-5 shadow-sm ring-1 ring-white/5 transition-colors hover:border-csnb-orange/35"
+                  value={`phase-${phase.step}`}
+                  className="overflow-hidden rounded-xl border border-csnb-border bg-csnb-surface/95 shadow-sm ring-1 ring-white/5 not-last:border-b-0 [&:has(button[aria-expanded='true'])]:border-csnb-orange/40"
                 >
-                  <div className="mb-3 flex items-center gap-3">
-                    <span className="font-sans text-2xl font-black leading-none text-csnb-orange/40">
-                      {phase.step}
+                  <AccordionTrigger className="items-center gap-3 px-4 py-4 hover:no-underline sm:px-5 sm:py-[1.125rem] [&_[data-slot=accordion-trigger-icon]]:shrink-0 [&_[data-slot=accordion-trigger-icon]]:text-csnb-orange-bright">
+                    <span className="flex min-w-0 flex-1 items-center gap-3">
+                      <span
+                        className="font-sans text-2xl font-black leading-none text-csnb-orange/40"
+                        aria-hidden
+                      >
+                        {phase.step}
+                      </span>
+                      <span className="min-w-0 font-sans text-sm font-bold uppercase tracking-wide text-white sm:text-[0.8125rem]">
+                        {phase.title}
+                      </span>
                     </span>
-                    <h4 className="font-sans text-sm font-bold uppercase tracking-wide text-white">{phase.title}</h4>
-                  </div>
-                  <p className="whitespace-pre-line font-sans text-[13px] leading-relaxed text-csnb-muted sm:text-sm sm:leading-relaxed">
-                    {phase.text}
-                  </p>
-                </article>
+                  </AccordionTrigger>
+                  <AccordionContent className="border-t border-csnb-border/60 bg-csnb-bg/40">
+                    <p className="whitespace-pre-line px-4 pb-4 pt-3 font-sans text-[13px] leading-relaxed text-csnb-muted sm:px-5 sm:pb-5 sm:text-sm sm:leading-relaxed">
+                      {phase.text}
+                    </p>
+                  </AccordionContent>
+                </AccordionItem>
               ))}
-            </div>
+            </Accordion>
           </Reveal>
 
           <Reveal className="mt-12" y={18}>
@@ -597,24 +611,50 @@ export default function LandingPage() {
               <h3 className="mt-2 font-sans text-lg font-bold text-white sm:text-xl">
                 Ba chu kỳ luân phiên xen kẽ
               </h3>
-              <div className="mt-6 grid gap-5 md:grid-cols-3">
-                {trainingCycles.map((c) => (
-                  <div
-                    key={c.name}
-                    className="rounded-xl border border-csnb-border bg-csnb-bg/80 p-4 sm:p-5"
-                  >
-                    <h4 className="font-sans text-sm font-bold uppercase tracking-wide text-csnb-orange-bright">
-                      {c.name}
-                    </h4>
-                    <p className="mt-2 font-sans text-[13px] leading-relaxed text-csnb-muted sm:text-sm">
-                      {c.desc}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-6 border-t border-csnb-border/80 pt-6 font-sans text-[13px] leading-relaxed text-csnb-muted sm:text-sm">
-                {trainingProgressNote}
+              <p className="mt-3 max-w-2xl font-sans text-[13px] leading-relaxed text-csnb-muted sm:text-sm">
+                <span className="font-medium text-csnb-orange-bright">Mobilization</span>
+                {" · "}
+                <span className="font-medium text-csnb-orange-bright">Activation</span>
+                {" · "}
+                <span className="font-medium text-csnb-orange-bright">Integration</span>
+                {" "}
+                — mỗi phase lặp ba chu kỳ; mở rộng bên dưới để đọc định nghĩa đầy đủ và tiến trình tăng tải.
               </p>
+
+              <Accordion defaultValue={[]} className="mt-5">
+                <AccordionItem
+                  value="cycles-detail"
+                  className="not-last:border-b-0 overflow-hidden rounded-xl border border-csnb-border bg-csnb-bg/50"
+                >
+                  <AccordionTrigger className="items-center px-4 py-3.5 hover:no-underline sm:px-5 sm:py-4 [&_[data-slot=accordion-trigger-icon]]:text-csnb-orange-bright">
+                    <span className="font-sans text-sm font-semibold text-white">
+                      Đọc chi tiết ba chu kỳ &amp; lộ trình tập
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="border-t border-csnb-border/60 px-4 pb-5 pt-4 sm:px-5">
+                      <div className="grid gap-5 md:grid-cols-3">
+                        {trainingCycles.map((c) => (
+                          <div
+                            key={c.name}
+                            className="rounded-xl border border-csnb-border bg-csnb-bg/80 p-4 sm:p-5"
+                          >
+                            <h4 className="font-sans text-sm font-bold uppercase tracking-wide text-csnb-orange-bright">
+                              {c.name}
+                            </h4>
+                            <p className="mt-2 font-sans text-[13px] leading-relaxed text-csnb-muted sm:text-sm">
+                              {c.desc}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-6 border-t border-csnb-border/80 pt-6 font-sans text-[13px] leading-relaxed text-csnb-muted sm:text-sm">
+                        {trainingProgressNote}
+                      </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
           </Reveal>
         </div>
