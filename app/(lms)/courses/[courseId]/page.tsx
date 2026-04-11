@@ -43,7 +43,13 @@ export default function CourseDetailPage({ params }: { params: { courseId: strin
         <div className="lg:col-span-2">
           {/* Thumbnail */}
           <div className="relative aspect-video rounded-sm overflow-hidden mb-6">
-            <Image src={course.thumbnail} alt={course.title} fill className="object-cover" />
+            <Image
+              src={course.thumbnail}
+              alt={course.title}
+              fill
+              sizes="(max-width: 1023px) 100vw, 66vw"
+              className="object-cover"
+            />
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
               {nextLesson && (
                 <Link

@@ -63,11 +63,23 @@ export default function ResultsPage() {
                   <div key={i} className="bg-[#111] border border-[#222] rounded-sm overflow-hidden hover:border-[#c0392b]/30 transition-colors">
                     <div className="grid grid-cols-2 divide-x divide-[#222]">
                       <div className="relative aspect-[3/4]">
-                        <Image src={item.before} alt="Before" fill className="object-cover" />
+                        <Image
+                          src={item.before}
+                          alt="Before"
+                          fill
+                          sizes="(max-width: 639px) 50vw, (max-width: 1023px) 25vw, 17vw"
+                          className="object-cover"
+                        />
                         <div className="absolute bottom-2 left-2 bg-[#0a0a0a]/80 text-[#a0a0a0] text-xs px-2 py-1 rounded font-heading">TRƯỚC</div>
                       </div>
                       <div className="relative aspect-[3/4]">
-                        <Image src={item.after} alt="After" fill className="object-cover" />
+                        <Image
+                          src={item.after}
+                          alt="After"
+                          fill
+                          sizes="(max-width: 639px) 50vw, (max-width: 1023px) 25vw, 17vw"
+                          className="object-cover"
+                        />
                         <div className="absolute bottom-2 right-2 bg-[#c0392b] text-white text-xs px-2 py-1 rounded font-heading font-bold">SAU</div>
                       </div>
                     </div>
@@ -94,7 +106,7 @@ export default function ResultsPage() {
                     <p className="text-[#a0a0a0] text-sm leading-relaxed mb-5 italic">&ldquo;{t.text}&rdquo;</p>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full overflow-hidden relative">
-                        <Image src={t.avatar} alt={t.name} fill className="object-cover" />
+                        <Image src={t.avatar} alt={t.name} fill sizes="40px" className="object-cover" />
                       </div>
                       <div>
                         <div className="font-heading font-bold text-white text-sm">{t.name}</div>
@@ -111,7 +123,13 @@ export default function ResultsPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => (
                   <div key={n} className="relative aspect-[9/16] rounded-sm overflow-hidden border border-[#222] hover:border-[#c0392b]/40 transition-colors">
-                    <Image src={`/images/fb${n}.png`} alt={`Feedback ${n}`} fill className="object-cover" />
+                    <Image
+                      src={`/images/fb${n}.png`}
+                      alt={`Feedback ${n}`}
+                      fill
+                      sizes="(max-width: 639px) 50vw, (max-width: 1024px) 33vw, (max-width: 1279px) 25vw, 20vw"
+                      className="object-cover"
+                    />
                   </div>
                 ))}
               </div>

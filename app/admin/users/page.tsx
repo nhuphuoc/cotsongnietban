@@ -77,7 +77,7 @@ export default function AdminUsersPage() {
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full overflow-hidden relative shrink-0">
-                        <Image src={user.avatar} alt={user.name} fill className="object-cover" />
+                        <Image src={user.avatar} alt={user.name} fill sizes="36px" className="object-cover" />
                       </div>
                       <span className="font-semibold text-gray-900">{user.name}</span>
                     </div>

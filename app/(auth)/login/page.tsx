@@ -9,7 +9,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/landing" className="inline-flex flex-col items-center gap-2">
+          <Link href="/" className="inline-flex flex-col items-center gap-2">
             <div className="w-12 h-12 bg-[#c0392b] rounded flex items-center justify-center">
               <span className="text-white font-black text-xl font-heading">C</span>
             </div>
@@ -58,7 +58,7 @@ export default function LoginPage() {
 
         {/* Back link */}
         <div className="text-center mt-6">
-          <Link href="/landing" className="text-[#a0a0a0] text-sm hover:text-white transition-colors">
+          <Link href="/" className="text-[#a0a0a0] text-sm hover:text-white transition-colors">
             ← Quay lại trang chủ
           </Link>
         </div>

@@ -60,7 +60,13 @@ export default function BlogPage() {
             className="group grid lg:grid-cols-2 gap-0 bg-white rounded-sm overflow-hidden shadow-sm hover:shadow-md transition-shadow mb-8 border border-gray-100"
           >
             <div className="relative aspect-video lg:aspect-auto lg:min-h-[300px]">
-              <Image src={posts[0].image} alt={posts[0].title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+              <Image
+                src={posts[0].image}
+                alt={posts[0].title}
+                fill
+                sizes="(max-width: 1023px) 100vw, 50vw"
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+              />
             </div>
             <div className="p-8 flex flex-col justify-center">
               <span className="inline-block bg-[#c0392b] text-white text-xs font-heading font-bold px-2 py-1 rounded-sm uppercase tracking-wide mb-3 w-fit">
@@ -86,7 +92,13 @@ export default function BlogPage() {
                 className="group bg-white rounded-sm overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100"
               >
                 <div className="relative aspect-video overflow-hidden">
-                  <Image src={post.image} alt={post.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <Image
+                    src={post.image}
+                    alt={post.title}
+                    fill
+                    sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
                   <span className="absolute top-3 left-3 bg-[#c0392b] text-white text-xs font-heading font-bold px-2 py-1 rounded-sm uppercase tracking-wide">
                     {post.category}
                   </span>

@@ -4,14 +4,18 @@ import { ArrowLeft, Clock, Calendar } from "lucide-react";
 
 export default function BlogDetailPage({ params }: { params: { slug: string } }) {
   return (
-    <div className="bg-[#f5f5f5] min-h-screen pt-20">
+    <div className="min-h-screen bg-csnb-panel pt-20">
       {/* Breadcrumb */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3">
           <div className="flex items-center gap-2 text-xs text-gray-400">
-            <Link href="/landing" className="hover:text-[#c0392b] transition-colors">Trang Chủ</Link>
+            <Link href="/" className="transition-colors hover:text-csnb-orange">
+              Trang Chủ
+            </Link>
             <span>/</span>
-            <Link href="/blog" className="hover:text-[#c0392b] transition-colors">Blog</Link>
+            <Link href="/blog" className="transition-colors hover:text-csnb-orange">
+              Blog
+            </Link>
             <span>/</span>
             <span className="text-gray-600">Bài Viết</span>
           </div>
@@ -20,17 +24,20 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
 
       <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10 lg:py-14">
         {/* Back */}
-        <Link href="/blog" className="inline-flex items-center gap-2 text-[#c0392b] text-sm font-heading font-semibold uppercase tracking-wide mb-8 hover:gap-3 transition-all">
+        <Link
+          href="/blog"
+          className="mb-8 inline-flex items-center gap-2 font-heading text-sm font-semibold uppercase tracking-wide text-csnb-orange transition-all hover:gap-3"
+        >
           <ArrowLeft size={16} /> Quay Lại Blog
         </Link>
 
         {/* Category */}
-        <span className="inline-block bg-[#c0392b] text-white text-xs font-heading font-bold px-3 py-1 rounded-sm uppercase tracking-wide mb-4">
+        <span className="mb-4 inline-block rounded-sm bg-csnb-orange px-3 py-1 font-heading text-xs font-bold uppercase tracking-wide text-white">
           Liệu Pháp
         </span>
 
         {/* Title */}
-        <h1 className="font-heading font-black text-[#0a0a0a] text-3xl sm:text-4xl leading-tight mb-4">
+        <h1 className="mb-4 font-heading text-3xl font-black leading-tight text-csnb-ink sm:text-4xl">
           Thoát Vị Đĩa Đệm: Phương Pháp Phục Hồi Không Cần Phẫu Thuật
         </h1>
 
@@ -46,6 +53,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
             src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800&h=450&fit=crop"
             alt="Thoát vị đĩa đệm"
             fill
+            sizes="(max-width: 768px) 100vw, 768px"
             className="object-cover"
           />
         </div>
@@ -56,21 +64,21 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
             Thoát vị đĩa đệm là một trong những vấn đề cột sống phổ biến nhất hiện nay, ảnh hưởng đến hàng triệu người Việt Nam. Tuy nhiên, nhiều người vẫn nghĩ rằng phẫu thuật là giải pháp duy nhất — điều này hoàn toàn không đúng.
           </p>
 
-          <h2 className="font-heading font-black text-[#0a0a0a] text-xl uppercase tracking-wide mt-8 mb-4">
+          <h2 className="mt-8 mb-4 font-heading text-xl font-black uppercase tracking-wide text-csnb-ink">
             Thoát Vị Đĩa Đệm Là Gì?
           </h2>
           <p className="text-gray-600 text-base leading-relaxed mb-4">
             Đĩa đệm là các đệm nằm giữa các đốt sống, có chức năng hấp thụ lực tác động và cho phép cột sống chuyển động linh hoạt. Khi nhân nhầy bên trong đĩa đệm bị thoát ra ngoài vỏ sợi, nó có thể chèn ép các rễ thần kinh gây đau.
           </p>
 
-          <div className="bg-[#111] border-l-4 border-[#c0392b] rounded-sm p-5 my-6">
-            <p className="text-white text-sm leading-relaxed italic">
+          <div className="my-6 rounded-sm border-l-4 border-csnb-orange bg-csnb-surface p-5">
+            <p className="text-sm italic leading-relaxed text-white">
               &ldquo;95% các trường hợp thoát vị đĩa đệm có thể phục hồi mà không cần phẫu thuật nếu được điều trị đúng phương pháp.&rdquo;
             </p>
-            <span className="text-[#a0a0a0] text-xs mt-2 block">— Journal of Spine Surgery, 2023</span>
+            <span className="mt-2 block text-xs text-csnb-muted">— Journal of Spine Surgery, 2023</span>
           </div>
 
-          <h2 className="font-heading font-black text-[#0a0a0a] text-xl uppercase tracking-wide mt-8 mb-4">
+          <h2 className="mt-8 mb-4 font-heading text-xl font-black uppercase tracking-wide text-csnb-ink">
             3 Giai Đoạn Phục Hồi
           </h2>
           {[
@@ -79,16 +87,16 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
             { phase: "Giai Đoạn 3 (Từ tuần 12)", title: "Duy Trì & Ngăn Ngừa", desc: "Tích hợp vào lối sống hàng ngày, ngăn ngừa tái phát thông qua vận động đúng cách." },
           ].map((item, i) => (
             <div key={i} className="flex gap-4 mb-4">
-              <div className="w-2 bg-[#c0392b] rounded-full shrink-0" />
+              <div className="w-2 shrink-0 rounded-full bg-csnb-orange" />
               <div>
-                <span className="text-[#c0392b] text-xs font-heading font-bold uppercase tracking-wide">{item.phase}</span>
-                <h3 className="font-heading font-bold text-[#0a0a0a] text-base mt-1 mb-1">{item.title}</h3>
+                <span className="font-heading text-xs font-bold uppercase tracking-wide text-csnb-orange">{item.phase}</span>
+                <h3 className="mt-1 mb-1 font-heading text-base font-bold text-csnb-ink">{item.title}</h3>
                 <p className="text-gray-600 text-sm leading-relaxed">{item.desc}</p>
               </div>
             </div>
           ))}
 
-          <h2 className="font-heading font-black text-[#0a0a0a] text-xl uppercase tracking-wide mt-8 mb-4">
+          <h2 className="mt-8 mb-4 font-heading text-xl font-black uppercase tracking-wide text-csnb-ink">
             Kết Luận
           </h2>
           <p className="text-gray-600 text-base leading-relaxed mb-6">
@@ -97,16 +105,16 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
         </div>
 
         {/* CTA */}
-        <div className="mt-10 bg-[#c0392b] rounded-sm p-6 text-center">
-          <h3 className="font-heading font-black text-white text-xl uppercase mb-2">
-            Bắt Đầu Hành Trình Phục Hồi
-          </h3>
-          <p className="text-white/70 text-sm mb-4">Đăng ký tư vấn miễn phí để nhận lộ trình cá nhân hóa cho bạn.</p>
+        <div className="mt-10 rounded-sm bg-csnb-orange p-6 text-center">
+          <h3 className="mb-2 font-heading text-xl font-black uppercase text-white">Bắt Đầu Hành Trình Phục Hồi</h3>
+          <p className="mb-4 text-sm text-white/85">
+            Xem bảng giá và chọn gói phù hợp — hoặc nhắn Zalo để team hỗ trợ định hướng lộ trình.
+          </p>
           <Link
-            href="#consult"
-            className="inline-block bg-white text-[#c0392b] font-heading font-bold text-sm uppercase tracking-wide px-6 py-3 rounded-sm hover:bg-gray-100 transition-colors"
+            href="/#pricing"
+            className="inline-block rounded-sm bg-white px-6 py-3 font-heading text-sm font-bold uppercase tracking-wide text-csnb-orange-deep transition-colors hover:bg-csnb-panel"
           >
-            Tư Vấn Miễn Phí →
+            Xem khóa học →
           </Link>
         </div>
       </article>

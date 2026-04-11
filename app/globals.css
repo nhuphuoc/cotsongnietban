@@ -55,6 +55,22 @@
   --color-brand-dark: var(--brand-dark);
   --color-brand-muted: var(--brand-muted);
   --color-brand-border: var(--brand-border);
+  --color-brand-offwhite: var(--brand-offwhite);
+  --color-brand-nearblack: var(--brand-nearblack);
+  --color-brand-divider: var(--brand-divider);
+  --color-brand-muted-light: var(--brand-muted-light);
+
+  /* Marketing: orange + dark teal (summer palette) */
+  --color-csnb-bg: #041f24;
+  --color-csnb-surface: #072a30;
+  --color-csnb-raised: #0b343c;
+  --color-csnb-border: #1c5c68;
+  --color-csnb-muted: #8eb9c1;
+  --color-csnb-orange: #ff9f43;
+  --color-csnb-orange-bright: #ffb86b;
+  --color-csnb-orange-deep: #e87010;
+  --color-csnb-panel: #e5f3f5;
+  --color-csnb-ink: #06262c;
 }
 
 :root {
@@ -99,6 +115,21 @@
   --brand-dark: #111111;
   --brand-muted: #a0a0a0;
   --brand-border: #222222;
+  --brand-offwhite: #f8f8f8;
+  --brand-nearblack: #1a1a1a;
+  --brand-divider: #e5e5e5;
+  --brand-muted-light: #6b6b6b;
+
+  --csnb-bg: #041f24;
+  --csnb-surface: #072a30;
+  --csnb-raised: #0b343c;
+  --csnb-border: #1c5c68;
+  --csnb-muted: #8eb9c1;
+  --csnb-orange: #ff9f43;
+  --csnb-orange-bright: #ffb86b;
+  --csnb-orange-deep: #e87010;
+  --csnb-panel: #e5f3f5;
+  --csnb-ink: #06262c;
 }
 
 .dark {

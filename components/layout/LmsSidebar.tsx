@@ -16,7 +16,7 @@ export default function LmsSidebar() {
     <aside className="w-64 bg-[#111] border-r border-[#222] flex flex-col h-full">
       {/* Logo */}
       <div className="p-5 border-b border-[#222]">
-        <Link href="/landing" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="w-7 h-7 bg-[#c0392b] rounded flex items-center justify-center">
             <span className="text-white font-black text-xs font-heading">C</span>
           </div>

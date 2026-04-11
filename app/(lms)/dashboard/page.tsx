@@ -72,7 +72,13 @@ export default function DashboardPage() {
         {courses.map((course) => (
           <div key={course.id} className="bg-[#111] border border-[#222] rounded-sm overflow-hidden hover:border-[#c0392b]/30 transition-colors">
             <div className="relative aspect-video">
-              <Image src={course.thumbnail} alt={course.title} fill className="object-cover" />
+              <Image
+                src={course.thumbnail}
+                alt={course.title}
+                fill
+                sizes="(max-width: 1023px) 100vw, 50vw"
+                className="object-cover"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-3 left-3 right-3">
                 <div className="flex items-center justify-between text-white text-xs">
