@@ -1,0 +1,2 @@
+{"timestamp":"00:49:43.504","source":"Browser","level":"ERROR","message":"Failed to fetch RSC payload for http://localhost:3000/landing?open_in_browser=1. Falling back to browser navigation. {}"}
+{"timestamp":"00:49:44.030","source":"Browser","level":"ERROR","message":"Failed to fetch RSC payload for http://localhost:3000/results. Falling back to browser navigation. {}"}
