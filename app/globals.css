@@ -178,9 +178,22 @@
   }
 }
 
-/* Smooth scroll */
+/* Smooth scroll (respect reduced motion) */
 html {
   scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Keyboard focus — public main (skip accordion trigger; it has its own ring) */
+main.flex-1 a:focus-visible,
+main.flex-1 button:not([data-slot="accordion-trigger"]):focus-visible {
+  outline: 2px solid var(--csnb-orange-bright);
+  outline-offset: 3px;
 }
 
 /* Video background helper */
@@ -212,4 +225,188 @@ html {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+}
+
+/* ── Marketing: richer teal + orange backgrounds ── */
+.csnb-ambient-noise {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.csnb-ambient-grid {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.038) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.038) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: radial-gradient(ellipse 95% 75% at 50% 25%, #000 15%, transparent 72%);
+}
+
+.csnb-ambient-mesh-dark {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 100% 85% at 8% 18%, rgba(28, 92, 104, 0.42), transparent 52%),
+    radial-gradient(ellipse 85% 75% at 96% 12%, rgba(255, 159, 67, 0.13), transparent 48%),
+    radial-gradient(ellipse 75% 60% at 78% 92%, rgba(4, 31, 36, 0.55), transparent 52%),
+    radial-gradient(ellipse 65% 55% at 15% 88%, rgba(255, 184, 107, 0.07), transparent 46%);
+}
+
+.csnb-ambient-mesh-surface {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 70% at 0% 50%, rgba(28, 92, 104, 0.22), transparent 55%),
+    radial-gradient(ellipse 80% 60% at 100% 30%, rgba(255, 159, 67, 0.08), transparent 50%);
+}
+
+.csnb-drift-orb {
+  pointer-events: none;
+  position: absolute;
+  width: min(72vw, 760px);
+  height: min(72vw, 760px);
+  border-radius: 50%;
+  filter: blur(64px);
+  animation: csnb-drift-orb 24s ease-in-out infinite alternate;
+}
+
+.csnb-drift-orb--warm {
+  left: -18%;
+  top: 5%;
+  background: radial-gradient(circle at 42% 42%, rgba(255, 184, 107, 0.22), transparent 58%);
+}
+
+.csnb-drift-orb--cool {
+  right: -20%;
+  bottom: -5%;
+  background: radial-gradient(circle at 50% 50%, rgba(28, 92, 104, 0.38), transparent 60%);
+  animation-duration: 30s;
+  animation-delay: -10s;
+}
+
+@keyframes csnb-drift-orb {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(7%, 5%) scale(1.14);
+  }
+}
+
+.csnb-panel-depth {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 55% at 15% 0%, rgba(255, 159, 67, 0.1), transparent 52%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, rgba(28, 92, 104, 0.14), transparent 55%);
+}
+
+.csnb-panel-grid {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(rgba(6, 38, 44, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 38, 44, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 100% 80% at 50% 0%, #000 0%, transparent 70%);
+}
+
+.csnb-cta-shine {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 42%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.06) 58%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  animation: csnb-cta-shine 9s ease-in-out infinite;
+}
+
+@keyframes csnb-cta-shine {
+  0%,
+  100% {
+    background-position: 120% 0;
+  }
+  50% {
+    background-position: -30% 0;
+  }
+}
+
+@keyframes csnb-gentle-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+.csnb-animate-bob {
+  animation: csnb-gentle-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes csnb-hero-highlight-pulse {
+  0%,
+  100% {
+    opacity: 0.32;
+    transform: scaleX(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scaleX(1.02);
+  }
+}
+
+.csnb-animate-highlight-bar {
+  transform-origin: left center;
+  animation: csnb-hero-highlight-pulse 3.5s ease-in-out infinite;
+}
+
+@keyframes csnb-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.csnb-animate-fade-in {
+  animation: csnb-fade-in-up 0.65s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .csnb-drift-orb,
+  .csnb-cta-shine,
+  .csnb-animate-bob,
+  .csnb-animate-highlight-bar,
+  .csnb-animate-fade-in {
+    animation: none;
+  }
+  .csnb-drift-orb {
+    transform: none;
+  }
+  .csnb-animate-fade-in {
+    opacity: 1;
+    transform: none;
+  }
 }

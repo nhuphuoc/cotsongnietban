@@ -14,7 +14,7 @@ const beforeAfterData = [
 ];
 
 const testimonials = [
-  { name: "Chị Lan Anh", role: "Nhân viên văn phòng, 34 tuổi", avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=80&h=80&fit=crop", text: "Sau 3 tháng học, cơn đau lưng mãn tính của tôi gần như biến mất hoàn toàn. Tôi có thể ngồi làm việc 8 tiếng mà không đau nữa. Phương pháp này thực sự thay đổi cuộc sống tôi!", rating: 5 },
+  { name: "Chị Lan Anh", role: "Nhân viên văn phòng, 34 tuổi", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop", text: "Sau 3 tháng học, cơn đau lưng mãn tính của tôi gần như biến mất hoàn toàn. Tôi có thể ngồi làm việc 8 tiếng mà không đau nữa. Phương pháp này thực sự thay đổi cuộc sống tôi!", rating: 5 },
   { name: "Anh Minh Tuấn", role: "Vận động viên, 28 tuổi", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop", text: "Tôi bị thoát vị đĩa đệm L5-S1 và đã không thể tập luyện 6 tháng. Sau khóa học, tôi đã quay lại thi đấu và thành tích còn tốt hơn trước.", rating: 5 },
   { name: "Chị Thu Hương", role: "Giáo viên, 42 tuổi", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop", text: "Tôi đứng dạy cả ngày và bị đau gót chân kinh niên. Chỉ 6 tuần với khóa học này, tôi đã đứng thoải mái và không cần uống thuốc giảm đau nữa.", rating: 5 },
   { name: "Anh Quốc Hùng", role: "Kỹ sư xây dựng, 38 tuổi", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop", text: "Công việc tôi phải đứng nhiều và mang vác nặng. Sau 2 tháng học, tôi hiểu cách bảo vệ cột sống và không còn về nhà với cơn đau lưng nữa.", rating: 5 },

@@ -8,8 +8,16 @@ export default function PublicLayout({
 }) {
   return (
     <>
+      <a
+        href="#main-content"
+        className="pointer-events-none fixed left-4 top-4 z-[100] -translate-y-20 rounded-md bg-csnb-orange px-4 py-2.5 text-sm font-semibold text-white opacity-0 shadow-lg transition-[opacity,transform] duration-200 focus:pointer-events-auto focus:translate-y-0 focus:opacity-100"
+      >
+        Bỏ qua menu, đến nội dung chính
+      </a>
       <Header />
-      <main className="flex-1">{children}</main>
+      <main id="main-content" className="flex-1 scroll-mt-20 outline-none" tabIndex={-1}>
+        {children}
+      </main>
       <Footer />
     </>
   );

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Phone, Mail, MapPin } from "lucide-react";
+import { SITE_CONTACT } from "@/lib/site-contact";
 
 export default function Footer() {
   return (
@@ -24,32 +25,37 @@ export default function Footer() {
               Hệ thống khóa học phục hồi chức năng và coaching fitness hàng đầu Việt Nam. Hơn 59,000 học viên đã thay
               đổi cuộc sống.
             </p>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <a
-                href="https://facebook.com"
+                href={SITE_CONTACT.facebookUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-sm border border-csnb-border bg-csnb-surface text-csnb-muted transition-colors hover:border-csnb-orange hover:text-csnb-orange"
+                aria-label="Facebook Cột Sống Niết Bàn"
+                className="flex h-11 w-11 items-center justify-center rounded-md border border-csnb-border bg-csnb-surface text-csnb-muted transition-colors hover:border-csnb-orange hover:text-csnb-orange focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-csnb-orange-bright"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
                 </svg>
               </a>
               <a
-                href="https://youtube.com"
+                href={SITE_CONTACT.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-sm border border-csnb-border bg-csnb-surface text-csnb-muted transition-colors hover:border-csnb-orange hover:text-csnb-orange"
+                aria-label={`Instagram @${SITE_CONTACT.instagramHandle}`}
+                className="flex h-11 w-11 items-center justify-center rounded-md border border-csnb-border bg-csnb-surface text-csnb-muted transition-colors hover:border-csnb-orange hover:text-csnb-orange focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-csnb-orange-bright"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58a2.78 2.78 0 0 0 1.95 1.95C5.12 20 12 20 12 20s6.88 0 8.59-.47a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z" />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
                 </svg>
               </a>
               <a
-                href="https://zalo.me"
+                href={SITE_CONTACT.zaloUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-sm border border-csnb-border bg-csnb-surface font-heading text-xs font-bold text-csnb-muted transition-colors hover:border-csnb-orange hover:text-csnb-orange"
+                aria-label="Zalo"
+                className="flex h-11 w-11 items-center justify-center rounded-md border border-csnb-border bg-csnb-surface font-heading text-xs font-bold text-csnb-muted transition-colors hover:border-csnb-orange hover:text-csnb-orange focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-csnb-orange-bright"
               >
                 Za
               </a>
@@ -64,12 +70,14 @@ export default function Footer() {
                 { href: "/results", label: "Kết Quả Học Viên" },
                 { href: "/blog", label: "Blog Kiến Thức" },
                 { href: "/#pricing", label: "Khóa Học" },
-                { href: "https://zalo.me", label: "Zalo" },
+                { href: SITE_CONTACT.facebookUrl, label: "Facebook" },
+                { href: SITE_CONTACT.instagramUrl, label: "Instagram" },
+                { href: SITE_CONTACT.zaloUrl, label: "Zalo" },
               ].map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-csnb-muted transition-colors hover:text-white"
+                    className="inline-block rounded-sm py-1 text-sm text-csnb-muted underline-offset-4 transition-colors hover:text-white hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-csnb-orange-bright"
                     {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                   >
                     {link.label}
@@ -84,11 +92,24 @@ export default function Footer() {
             <ul className="space-y-3">
               <li className="flex items-start gap-2.5">
                 <Phone size={14} className="mt-0.5 shrink-0 text-csnb-orange" />
-                <span className="text-sm text-csnb-muted">0909 xxx xxx</span>
+                <div className="text-sm">
+                  <a
+                    href={`tel:${SITE_CONTACT.phoneE164}`}
+                    className="block text-csnb-muted transition-colors hover:text-white"
+                  >
+                    {SITE_CONTACT.phoneDisplay}
+                  </a>
+                  <span className="mt-0.5 block text-xs text-csnb-muted/80">{SITE_CONTACT.phoneIntl}</span>
+                </div>
               </li>
               <li className="flex items-start gap-2.5">
                 <Mail size={14} className="mt-0.5 shrink-0 text-csnb-orange" />
-                <span className="text-sm text-csnb-muted">info@cotsongnietban.vn</span>
+                <a
+                  href={`mailto:${SITE_CONTACT.email}`}
+                  className="break-all text-sm text-csnb-muted transition-colors hover:text-white"
+                >
+                  {SITE_CONTACT.email}
+                </a>
               </li>
               <li className="flex items-start gap-2.5">
                 <MapPin size={14} className="mt-0.5 shrink-0 text-csnb-orange" />
@@ -99,12 +120,18 @@ export default function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-csnb-border pt-6 sm:flex-row">
-          <p className="text-xs text-csnb-muted">© 2024 Cột Sống Niết Bàn. Tất cả quyền được bảo lưu.</p>
+          <p className="text-xs text-csnb-muted">© 2026 Cột Sống Niết Bàn. Tất cả quyền được bảo lưu.</p>
           <div className="flex items-center gap-4">
-            <Link href="#" className="text-xs text-csnb-muted transition-colors hover:text-white">
+            <Link
+              href="#"
+              className="rounded-sm px-1 py-1 text-xs text-csnb-muted underline-offset-2 transition-colors hover:text-white hover:underline"
+            >
               Chính sách bảo mật
             </Link>
-            <Link href="#" className="text-xs text-csnb-muted transition-colors hover:text-white">
+            <Link
+              href="#"
+              className="rounded-sm px-1 py-1 text-xs text-csnb-muted underline-offset-2 transition-colors hover:text-white hover:underline"
+            >
               Điều khoản dịch vụ
             </Link>
           </div>

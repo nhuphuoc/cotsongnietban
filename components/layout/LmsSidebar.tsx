@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SITE_CONTACT } from "@/lib/site-contact";
 import { BookOpen, LayoutDashboard, MessageCircle, LogOut, ChevronRight, CheckCircle2 } from "lucide-react";
 
 const courses = [
@@ -75,7 +76,7 @@ export default function LmsSidebar() {
       {/* Bottom */}
       <div className="p-3 border-t border-[#222] space-y-1">
         <a
-          href="https://zalo.me"
+          href={SITE_CONTACT.zaloUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm text-[#a0a0a0] hover:text-white hover:bg-white/5 transition-colors font-heading font-semibold uppercase tracking-wide"

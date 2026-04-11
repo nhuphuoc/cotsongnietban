@@ -3,6 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { motion } from "framer-motion";
+import { Reveal, fadeUpVariants, staggerContainer } from "@/components/marketing/reveal";
+import { SITE_CONTACT } from "@/lib/site-contact";
 import {
   ChevronDown,
   ArrowRight,
@@ -12,11 +15,15 @@ import {
   AlertTriangle,
   Zap,
   Shield,
-  Target,
-  TrendingUp,
   Clock,
   MessageCircle,
   HelpCircle,
+  Activity,
+  Route,
+  HeartPulse,
+  BookOpen,
+  Fingerprint,
+  Sprout,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -34,64 +41,71 @@ import {
 
 /* ─── MOCK DATA ─────────────────────────────────────────── */
 const trustStats = [
-  { number: "59,000+", label: "Học Viên Tin Tưởng" },
-  { number: "8+", label: "Năm Kinh Nghiệm" },
-  { number: "95%", label: "Cải Thiện Sau 30 Ngày" },
-  { number: "12+", label: "Khóa Học Chuyên Sâu" },
-  { number: "4.9★", label: "Đánh Giá Trung Bình" },
-  { number: "24/7", label: "Hỗ Trợ Học Viên" },
+  { number: "200+", label: "Hơn 200 học viên" },
+  { number: "100%", label: "Có đánh giá tốt" },
+  { number: "10", label: "Năm kinh nghiệm" },
+  { number: "1:1", label: "Phương pháp cá nhân hóa" },
 ];
 
-const problems = [
+const targetAudience = [
   {
     icon: AlertTriangle,
-    title: "Đau Lưng Mãn Tính",
-    desc: "Đau âm ỉ kéo dài nhiều tháng, ảnh hưởng đến sinh hoạt và công việc hàng ngày.",
+    title: "Thoát vị & bệnh lý cột sống",
+    desc: "Đã khám/chụp film trên 6 tháng, thể nhẹ, thoát vị dưới 7mm.",
   },
   {
     icon: Zap,
-    title: "Thoát Vị Đĩa Đệm",
-    desc: "Đĩa đệm bị tổn thương gây chèn ép dây thần kinh, đau lan xuống chân tay.",
-  },
-  {
-    icon: Target,
-    title: "Sai Tư Thế Vận Động",
-    desc: "Thói quen ngồi, đứng, đi sai tư thế tích lũy dần gây ra chấn thương.",
-  },
-  {
-    icon: Shield,
-    title: "Vai Gáy Căng Cứng",
-    desc: "Ngồi máy tính nhiều giờ khiến vai, cổ, gáy bị co cứng và đau nhức.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Vận Động Kém Hiệu Quả",
-    desc: "Tập gym sai kỹ thuật làm chấn thương tái phát và không đạt kết quả.",
+    title: "Đau lưng sinh hoạt",
+    desc: "Cúi, ngồi, vận động… thể nhẹ; cần thì sẽ gợi ý chụp film.",
   },
   {
     icon: Clock,
-    title: "Phục Hồi Chậm",
-    desc: "Sau chấn thương hoặc phẫu thuật, cơ thể không phục hồi hoàn toàn.",
+    title: "Đau khớp mãn tính",
+    desc: "Đau trên 3 tháng, điều trị chưa hết — cần lộ trình chức năng.",
+  },
+  {
+    icon: Shield,
+    title: "Phòng ngừa",
+    desc: "Muốn khỏe cột sống và cơ–xương–khớp khi chưa đau.",
   },
 ];
 
-const solutions = [
+/** Nội dung tập — 3 phase + 3 chu kỳ (copy chuẩn chương trình) */
+const trainingPhases = [
   {
-    step: "01",
-    title: "Functional Patterns",
-    desc: "Phương pháp vận động chức năng theo chuỗi sinh học tự nhiên của cơ thể người.",
+    step: "I",
+    title: "Movement Restoration",
+    text: "Giai đoạn này tập trung vào khôi phục lại các cơ tham gia vào các chuyển động khớp bị tổn thương, việc này sẽ giúp các khớp được giảm tải và cơ lấy lại vai trò vốn có là nâng đỡ và di động khớp.\n\nVị trí tác động là vùng LPHC (phức hợp hông – chậu – thắt lưng).",
   },
   {
-    step: "02",
-    title: "Corrective Exercise",
-    desc: "Bài tập phục hồi có hệ thống, từ nền tảng đến nâng cao theo lộ trình cá nhân.",
+    step: "II",
+    title: "Accumulation",
+    text: "Đây là giai đoạn tập trung vào muscles memory (trí nhớ cơ bắp), tăng dần số lượng tải thông qua tăng mật độ lặp lại giúp cho các cơ tăng sức bền và hạn chế được yếu tố điện cơ yếu và máu lưu thông kém.\n\nVị trí tác động là các vùng lân cận và bên ngoài cột sống như nhóm T-spine (đốt sống ngực).",
   },
   {
-    step: "03",
-    title: "Movement Reprogramming",
-    desc: "Tái lập trình các mẫu vận động sai, xây dựng thói quen chuyển động khỏe mạnh.",
+    step: "III",
+    title: "Intensification",
+    text: "Giai đoạn tác động vào thẳng đốt sống thắt lưng với các chuyển động gập, duỗi và uốn cong đốt sống, đây là giai đoạn đòi hỏi cơ thể đã có nền tảng chuyển động từ 2 giai đoạn trước.\n\nTập trung vào lượng tải, khả năng tải, quãng đường di động khớp và sự phối hợp của toàn thân.",
   },
-];
+] as const;
+
+const trainingCycles = [
+  {
+    name: "Mobilization",
+    desc: "Khả năng cơ co và duỗi, khả năng khớp di động, ngưỡng kháng cự và khả năng cho phép khớp di chuyển để đạt tính hiệu quả.",
+  },
+  {
+    name: "Activation",
+    desc: "Khả năng cơ giữ tĩnh để ổn định tư thế, cơ thể bắt đầu học cách huy động contraction (sức căng cơ) để tham gia vào chuyển động.",
+  },
+  {
+    name: "Integration",
+    desc: "Những bài tập đòi hỏi mức độ phối hợp các khớp để thực hiện các chuyển động phức tạp hơn, đây là khối khó nhất, và khi cơ thể bạn thực hiện được các bài tập ở khối này thì tất cả các cơ sẽ lấy lại chức năng vốn có của chúng và cột sống của bạn luôn được bảo vệ.",
+  },
+] as const;
+
+const trainingProgressNote =
+  "Sau mỗi chu kỳ lặp lại bạn sẽ được tiếp cận các bài tập khó hơn, nặng hơn để cho cơ thể thích nghi liên tục về di động khớp cũng như lượng tải. Qua mỗi lần như thế, cơ thể của bạn được đào tạo mạnh mẽ và bền bỉ hơn, chống chọi đến các tác nhân bên trong dẫn đến các bệnh về cột sống hay viêm khớp.";
 
 const beforeAfterData = [
   {
@@ -121,22 +135,22 @@ const testimonials = [
   {
     name: "Chị Lan Anh",
     role: "Nhân viên văn phòng, 34 tuổi",
-    avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=80&h=80&fit=crop",
-    text: "Sau 3 tháng học, cơn đau lưng mãn tính của tôi gần như biến mất hoàn toàn. Tôi có thể ngồi làm việc 8 tiếng mà không đau nữa. Phương pháp này thực sự thay đổi cuộc sống tôi!",
+    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop",
+    text: "Đau lưng mãn tính giảm rõ sau 3 tháng; ngồi làm việc cả ngày đỡ mỏi hơn nhiều.",
     rating: 5,
   },
   {
     name: "Anh Minh Tuấn",
     role: "Vận động viên, 28 tuổi",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop",
-    text: "Tôi bị thoát vị đĩa đệm L5-S1 và đã không thể tập luyện 6 tháng. Sau khóa học, tôi đã quay lại thi đấu và thành tích còn tốt hơn trước.",
+    text: "Thoát vị L5-S1 từng phải nghỉ tập — giờ tập lại ổn và an tâm hơn về lưng.",
     rating: 5,
   },
   {
     name: "Chị Thu Hương",
     role: "Giáo viên, 42 tuổi",
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop",
-    text: "Tôi đứng dạy cả ngày và bị đau gót chân kinh niên. Chỉ 6 tuần với khóa học này, tôi đã đứng thoải mái và không cần uống thuốc giảm đau nữa.",
+    text: "Đứng lớp cả ngày đỡ đau chân; giảm dần thuốc giảm đau sau vài tuần.",
     rating: 5,
   },
 ];
@@ -174,7 +188,7 @@ const blogPosts = [
 const pricingPlans = [
   {
     id: "truc-tiep",
-    name: "Tập Trực Tiếp",
+    name: "Tập luyện trực tiếp",
     tag: "TRỰC TIẾP",
     priceFrom: "17TR+",
     tiers: [
@@ -182,19 +196,17 @@ const pricingPlans = [
       "60 BUỔI — 31.000.000đ (6 tháng)",
       "100 BUỔI — 45.000.000đ (10 tháng)",
     ],
-    desc: "Được hướng dẫn bởi coach có bề dày kinh nghiệm về khắc phục bệnh lý cột sống và đau khớp mãn tính.",
+    desc: "Coach kinh nghiệm cột sống & đau khớp mãn tính; theo sát 1-1.",
     features: [
-      "Coach theo sát 1-1 mỗi buổi tập",
-      "Buổi giải cơ trị liệu đi kèm",
-      "Điều chỉnh lộ trình theo tình trạng từng ngày",
-      "Ưu tiên xử lý trường hợp khẩn cấp",
-      "Hướng dẫn ăn uống hỗ trợ phục hồi",
+      "Có buổi giải cơ trị liệu kèm theo",
+      "Ưu tiên xử lý khẩn cấp và chỉnh lộ trình kịp thời",
+      "Chi phí trọn gói theo thời gian (không chỉ tính buổi): cố vấn, tập, hỗ trợ khi có sự cố ở nhà/công ty",
     ],
     popular: false,
   },
   {
     id: "zoom",
-    name: "Tập Trực Tuyến (Zoom)",
+    name: "Trực tuyến trực tiếp (Zoom)",
     tag: "ZOOM",
     priceFrom: "14TR+",
     tiers: [
@@ -202,91 +214,100 @@ const pricingPlans = [
       "60 BUỔI — 26.000.000đ",
       "100 BUỔI — 38.000.000đ",
     ],
-    desc: "Dành cho những ai ở xa, được hướng dẫn trực tiếp qua gọi điện trực tuyến. Không sợ tập sai.",
+    desc: "Ở xa vẫn được coach hướng dẫn trực tiếp qua Zoom.",
     features: [
-      "Gọi điện Zoom 1-1 với coach",
-      "Chương trình tập theo tình trạng từng ngày",
-      "Giải đáp thắc mắc bệnh lý trực tiếp",
-      "Theo sát tiến trình liên tục",
-      "Linh hoạt lịch tập",
+      "Chương trình theo tình trạng từng ngày của học viên",
+      "Giải đáp thắc mắc & thông tin bệnh lý trực tiếp",
+      "Học viên tập ngoài phòng hoặc tự chuẩn bị dụng cụ thuận tiện",
     ],
     popular: true,
   },
   {
     id: "online",
-    name: "Online Coaching",
+    name: "Online Coaching (gián tiếp)",
     tag: "ONLINE",
     priceFrom: "Liên hệ",
     tiers: [
-      "Đăng ký qua form tư vấn",
-      "Lộ trình cá nhân hóa hoàn toàn",
-      "Theo sát tiến trình không giới hạn",
+      "Đăng ký qua Google Form (thông tin liên hệ)",
+      "Lộ trình cá nhân hóa theo từng người, từng tình trạng",
+      "Theo sát & hướng dẫn cụ thể trong suốt quá trình",
     ],
-    desc: "Theo sát tiến trình và hướng dẫn cụ thể trong suốt quá trình. Không cần lo tìm phương pháp khác.",
+    desc: "Theo sát online, lộ trình rõ — không phải tự mò phương pháp.",
     features: [
-      "Lộ trình cá nhân hóa theo tình trạng",
-      "Hỗ trợ qua Zalo/tin nhắn mọi lúc",
-      "Video bài tập được chọn lọc riêng",
-      "Kiến thức bảo vệ cột sống lâu dài",
-      "Không giới hạn câu hỏi",
+      "Kết hợp kỹ thuật thể dục, trị liệu phục hồi & giáo dục tư thế",
+      "Sau khi đặt câu hỏi triệu chứng, sẽ gợi ý có nên chụp film khi cần",
+      "Ưu tiên kiến thức bệnh lý & tổ chức lối sống lành mạnh lâu dài",
     ],
     popular: false,
+    registrationUrl: SITE_CONTACT.onlineCoachingFormUrl,
   },
 ];
 
 const faqs = [
   {
-    q: "Tôi bị thoát vị 5 năm có tham gia được không?",
-    a: "Có. Lộ trình sẽ được điều chỉnh theo nền tảng chịu lực và mức độ đau hiện tại của bạn. Mục tiêu là giảm bù trừ và tăng khả năng vận động an toàn. Trường hợp cần thiết, sẽ tư vấn bạn chụp phim để xem tình trạng có nguy hiểm không.",
+    q: "Đối tượng đăng ký Online Coaching là ai?",
+    a: "Thoát vị/bệnh lý cột sống (đã film trên 6 tháng, thể nhẹ, dưới 7mm). Đau lưng sinh hoạt thể nhẹ — trao đổi triệu chứng rồi gợi ý film nếu cần. Đau khớp trên 3 tháng chưa hết. Người muốn khỏe cột sống và cơ–xương–khớp dù chưa đau.",
+  },
+  {
+    q: "Một tuần tập bao nhiêu buổi và một buổi kéo dài bao lâu?",
+    a: "Với những người mới bắt đầu, thông thường sẽ tập 3 buổi/tuần. Mỗi buổi kéo dài khoảng 60 phút.",
+  },
+  {
+    q: "Có cần tập cùng một khung thời gian cố định không?",
+    a: "VỚI ONLINE COACHING:\n\nNếu học viên tạo được một khung thời gian cố định thì quá tốt, như thế đồng hồ sinh học sẽ được thiết lập để phục vụ việc tập luyện tối ưu nhất, ngoài ra đừng để bất cứ yếu tố nào khác gây sao nhãng hoặc kéo dài buổi tập không cần thiết như gọi/ nhắn tin công việc, lướt điện thoại, làm việc khác...\n\nTrường hợp học viên không tạo được khung thời gian cố định cũng không sao, miễn thỏa điều kiện tập trung 100% tinh thần và tập trung vào buổi tập thì rất tốt rồi.\n\nVỚI TRỰC TIẾP VÀ FACETIME COACHING:\n\nSẽ có sự thảo luận giữa coach và học viên để đưa ra giờ tập hợp lý.\n\nNếu có sự thay đổi nào từ học viên nên có thông báo trước (2 - 7 ngày) để coach có thể sắp xếp cho học viên tập được trong cùng tuần đó tránh việc ngắt quãng làm chậm tiến trình.",
   },
   {
     q: "Tập bao lâu thì sẽ thấy rõ hiệu quả?",
-    a: "Bạn sẽ cảm thấy nhẹ nhàng hơn ngay sau tuần đầu tiên. Sau đó, giảm đau rõ rệt từ tuần thứ 5 trở đi (trường hợp nặng hơn thì tuần thứ 8). Đây là tập luyện phục hồi thực sự, không giống thuốc giảm đau tức thời. Kiên trì là chìa khóa.",
+    a: "Tuần đầu thường thấy nhẹ hơn. Giảm đau rõ hơn khoảng từ tuần 5 (case nặng có thể tuần 8). Giai đoạn đầu có thể mệt vì cơ “ngủ lâu” — là bình thường. Đây là đầu tư lâu dài, không phải giảm đau kiểu thuốc; cần kiên trì.",
+  },
+  {
+    q: "Chương trình tập này có phát triển cơ không?",
+    a: "Phát triển cơ là điều ưu tiên hàng đầu trong chương trình tập luyện này.\n\nKhác với khái niệm phì đại cơ — hypertrophy mọi người thường thấy những vận động viên với khối cơ khổng lồ. Tập luyện chức năng sẽ phát những nhóm cơ bên trong, cơ bám xương — LOCAL MUSCLES. Khi những cơ này khỏe mạnh, cơ thể mọi người sẽ được thiết lập lại cấu trúc vững vàng hơn và giảm đau. Bạn thử nghĩ khi bạn đã cho các cơ này tải khối lượng lớn thì việc chống đỡ khối lượng của khung xương thì đâu phải chuyện gì lớn.\n\nNgoài ra, tập luyện chức năng còn giúp hệ gân — dây chằng khỏe mạnh, đàn hồi, giúp cơ thể dẻo dai tự do di chuyển mà không cần phải lo lắng né tránh các cử động gây đau.",
+  },
+  {
+    q: "Chương trình tập này có giảm mỡ không?",
+    a: "Tùy mức độ. Giảm mỡ căn bản cần một hệ trao đổi chất tốt và thuận lợi diễn ra thâm hụt calories.\n\nTrong chương trình hướng dẫn ăn uống của Cột Sống Niết Bàn có gợi ý về cách ăn uống hỗ trợ cho việc ăn không tạo ra calories dư thừa.\n\nTuy nhiên nếu bạn là người thể chất kém và nhiều bệnh nền như đường huyết cao, men gan cao, mỡ máu, gan nhiễm mỡ,... và bệnh lý về thể lý nặng như thoát vị, quá lâu không vận động, lớn tuổi thì việc giảm mỡ sẽ diễn ra chậm hơn do giới hạn số bài tập tiếp cận ở thời gian đầu. Song khi cơ thể bạn khỏe mạnh hơn từng giai đoạn, chương trình tập được nâng cấp hơn và cơ thể bạn khỏe mạnh lên thì quá trình giảm mỡ diễn ra suôn sẻ hơn. => Cơ thể khỏe mạnh sẽ tạo ra một cơ thể đẹp.",
   },
   {
     q: "Tôi cần dụng cụ gì không?",
-    a: "Phần lớn bài tập tối giản và có biến thể phù hợp với người ở nhà. Khi cần thêm dụng cụ, chương trình sẽ hướng dẫn cụ thể.",
+    a: "Tại nhà: thường tối thiểu, coach sẽ gợi ý thay thế. Trực tiếp: phòng có sẵn dụng cụ.",
   },
   {
-    q: "Học online có hiệu quả không?",
-    a: "Có. Người học sẽ không sợ bị tập sai vì chương trình được xây dựng theo tình trạng và được theo sát tiến trình. Điều quan trọng là bạn tập trung 100% và làm đúng kỹ thuật.",
+    q: "Chi phí trực tiếp có phải chỉ tính theo số buổi không?",
+    a: "Không. Đó là chi phí trọn gói cho toàn bộ thời gian trị liệu, gồm cố vấn sức khỏe, tập luyện và ưu tiên xử lý khi có vấn đề bất ngờ ở nhà/nơi làm việc…",
   },
   {
-    q: "Chương trình có phát triển cơ không?",
-    a: "Có. Tập luyện chức năng phát triển nhóm cơ bên trong — cơ bám xương (LOCAL MUSCLES). Khi những cơ này khỏe mạnh, cơ thể được thiết lập lại cấu trúc vững vàng hơn, giảm đau và gân dây chằng cũng được tăng cường.",
-  },
-  {
-    q: "Tôi có được tư vấn trước khi đăng ký không?",
-    a: "Hoàn toàn có. Bạn có thể xem bảng giá và chọn gói phù hợp, hoặc nhắn Zalo để team hỗ trợ định hướng theo tình trạng của bạn — không ràng buộc.",
-  },
-  {
-    q: "Chương trình có giảm mỡ không?",
-    a: "Tùy mức độ. Trong chương trình có hướng dẫn ăn uống hỗ trợ để không tạo calories dư thừa. Khi cơ thể khỏe mạnh hơn từng giai đoạn, quá trình giảm mỡ diễn ra suôn sẻ hơn. Cơ thể khỏe mạnh sẽ tạo ra một cơ thể đẹp.",
+    q: "Đăng ký Online Coaching ở đâu?",
+    a: "Vui lòng điền form Google trong mục bảng giá (nút Đăng ký qua form) hoặc nhắn Zalo để được hỗ trợ.",
   },
 ];
 
-const differenceCards = [
+const benefitPillars = [
   {
-    title: "Dựa trên khoa học",
-    desc: "Functional Patterns & Corrective Exercise được áp dụng có hệ thống, phù hợp giải phẫu học.",
-    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=380&fit=crop",
+    Icon: Activity,
+    text: "Khắc phục triệt để các tình trạng cột sống, đau khớp hay các bệnh lý vật lý khác.",
   },
   {
-    title: "Lớp học tương tác",
-    desc: "Zoom 1-1 hoặc nhóm nhỏ — coach quan sát tư thế và điều chỉnh từng động tác của bạn.",
-    image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=380&fit=crop",
+    Icon: Route,
+    text: "Được hướng dẫn cụ thể trong suốt quá trình mà bạn không cần phải lo ngại về việc phải đi tìm phương pháp khác nữa.",
   },
   {
-    title: "Bắt đầu đúng mức của bạn",
-    desc: "Không ép tải — lộ trình theo từng giai đoạn, an toàn cho người đau mãn tính.",
-    image: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=380&fit=crop",
+    Icon: HeartPulse,
+    text: "Phương pháp tập luyện không dùng thuốc, không tác dụng phụ và mang tính đầu tư sức khỏe về lâu dài.",
   },
   {
-    title: "Theo dõi tiến trình",
-    desc: "Ghi nhận cải thiện đau, tư thế và sức bền để bạn thấy rõ từng bước tiến.",
-    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=380&fit=crop",
+    Icon: BookOpen,
+    text: "Cung cấp các kiến thức về tình trạng bệnh lý bạn đang mắc phải, sau khi tập luyện với chúng tôi, bạn sẽ không bị đau trở lại nữa.",
   },
-];
+  {
+    Icon: Fingerprint,
+    text: "Chương trình tập là CÁ NHÂN HÓA, phù hợp với từng người với từng tình trạng khác nhau.",
+  },
+  {
+    Icon: Sprout,
+    text: "Được cung cấp các kiến thức về tổ chức lối sống lành mạnh, vì các triệu chứng bạn mắc phải có thể là xuất phát từ nhiều bệnh lý tiềm ẩn trong cơ thể bạn do lối sống và sinh hoạt thiếu điều độ.",
+  },
+] as const;
 
 /* ─── COMPONENT ─────────────────────────────────────────── */
 export default function LandingPage() {
@@ -315,66 +336,92 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-csnb-bg via-csnb-bg/90 to-csnb-raised/95" />
           <div className="absolute inset-0 bg-gradient-to-t from-csnb-bg via-transparent to-csnb-bg/70" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_70%_20%,rgba(255,184,107,0.12),transparent_50%)]" />
+          <div className="csnb-ambient-mesh-dark absolute inset-0 opacity-[0.85]" />
+          <div className="csnb-ambient-grid absolute inset-0" />
+          <div className="csnb-ambient-noise absolute inset-0" />
         </div>
         <div className="pointer-events-none absolute -right-24 top-20 z-[1] h-80 w-80 rounded-full bg-csnb-orange/20 blur-3xl lg:right-10" />
         <div className="pointer-events-none absolute -left-20 bottom-10 z-[1] h-64 w-64 rounded-full bg-csnb-orange/15 blur-3xl" />
+        <div className="csnb-drift-orb csnb-drift-orb--warm z-[1]" aria-hidden />
+        <div className="csnb-drift-orb csnb-drift-orb--cool z-[1]" aria-hidden />
 
         <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 sm:pb-4 lg:grid-cols-2 lg:gap-16 lg:px-8">
-          <div className="text-center lg:text-left">
-            <p className="mb-4 font-heading text-xs font-bold uppercase tracking-[0.2em] text-csnb-orange">
-              Phục hồi chức năng · Online &amp; trực tiếp
-            </p>
-            <h1 className="font-heading text-4xl font-black leading-[1.08] text-white sm:text-5xl lg:text-[3.25rem] xl:text-6xl">
-              Chương trình tập &amp; phục hồi được thiết kế{" "}
-              <span className="relative inline-block text-csnb-orange">
-                <span className="relative z-10">dành riêng cho bạn.</span>
+          <motion.div
+            className="text-center lg:text-left"
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+          >
+            <motion.p
+              variants={fadeUpVariants}
+              className="mb-4 font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-csnb-orange sm:text-xs sm:tracking-[0.2em]"
+            >
+              Tin vui — thoát vị có thể được quản lý tốt hơn
+            </motion.p>
+            <motion.h1
+              variants={fadeUpVariants}
+              className="text-balance font-sans text-[1.65rem] font-extrabold leading-snug tracking-normal text-white sm:text-4xl sm:leading-tight lg:text-[2.65rem] lg:leading-[1.15]"
+            >
+              Cột Sống Niết Bàn —{" "}
+              <span className="relative inline-block text-csnb-orange-bright">
+                <span className="relative z-10">khôi phục &amp; phát triển cột sống toàn diện</span>
                 <span
-                  className="absolute -bottom-0.5 left-0 right-0 z-0 h-3 rounded-sm bg-csnb-orange/35 sm:h-3.5"
+                  className="csnb-animate-highlight-bar absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-sm bg-csnb-orange/35 sm:h-3"
                   aria-hidden
                 />
               </span>
-            </h1>
+            </motion.h1>
 
-            <div className="mx-auto mt-8 max-w-lg lg:mx-0">
-              <p className="font-heading text-5xl font-black tracking-tight text-csnb-orange-bright sm:text-6xl">
-                95<span className="text-3xl text-white sm:text-4xl">%</span>
+            <motion.div variants={fadeUpVariants} className="mx-auto mt-7 max-w-xl lg:mx-0">
+              <p className="text-pretty font-sans text-base font-semibold leading-relaxed text-white sm:text-lg">
+                Hãy tập trung vào chính bạn — sức khỏe là quan trọng nhất.
               </p>
-              <p className="mt-2 text-base leading-relaxed text-csnb-muted sm:text-lg">
-                học viên ghi nhận cải thiện rõ sau khi áp dụng đúng lộ trình —{" "}
-                <span className="border-b-[3px] border-csnb-orange-bright font-semibold text-white">
-                  hướng tới giảm đau bền vững
-                </span>
-                , không phụ thuộc phẫu thuật.
+              <p className="mt-4 text-pretty font-sans text-[0.9375rem] leading-[1.65] tracking-[0.01em] text-csnb-muted sm:text-base sm:leading-[1.7]">
+                Chương trình chăm sóc cột sống: thể dục, trị liệu phục hồi và giáo dục tư thế — giúp giảm đau, ổn
+                định vùng hông–chậu–lưng và vận động an toàn hơn.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
+            <motion.div
+              variants={fadeUpVariants}
+              className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start"
+            >
               <Link
                 href="/#pricing"
-                className="group inline-flex items-center gap-3 rounded-sm bg-csnb-orange px-7 py-3.5 font-heading text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-csnb-orange/30 transition-colors hover:bg-csnb-orange-deep"
+                className="group inline-flex min-h-11 items-center justify-center gap-3 rounded-md bg-csnb-orange px-7 py-3 font-sans text-sm font-semibold text-white shadow-lg shadow-csnb-orange/30 transition-all duration-200 hover:scale-[1.02] hover:bg-csnb-orange-deep active:scale-[0.99]"
               >
-                Xem khóa học
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition-transform group-hover:translate-x-0.5">
+                Bảng giá &amp; gói tập
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition-transform duration-200 group-hover:translate-x-0.5">
                   <ArrowRight size={18} strokeWidth={2.5} />
                 </span>
               </Link>
               <Link
                 href="/results"
-                className="inline-flex items-center gap-2 rounded-sm border border-white/25 bg-transparent px-6 py-3.5 font-heading text-sm font-semibold uppercase tracking-wide text-white transition-colors hover:border-white/50 hover:bg-white/5"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/25 bg-transparent px-6 py-3 font-sans text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:border-white/50 hover:bg-white/5 active:scale-[0.99]"
               >
                 <Play size={16} className="text-csnb-orange" />
                 Xem kết quả
               </Link>
-            </div>
+            </motion.div>
 
-            <div className="mt-14 hidden flex-col items-center gap-2 text-csnb-muted sm:flex lg:hidden">
-              <span className="font-heading text-[10px] uppercase tracking-widest">Cuộn để khám phá</span>
-              <ChevronDown size={20} />
-            </div>
-          </div>
+            <motion.div
+              variants={fadeUpVariants}
+              className="mt-14 hidden flex-col items-center gap-2 text-csnb-muted sm:flex lg:hidden"
+            >
+              <span className="font-heading text-xs uppercase tracking-widest text-csnb-muted/90">
+                Cuộn để khám phá
+              </span>
+              <ChevronDown size={20} className="csnb-animate-bob" strokeWidth={2.25} />
+            </motion.div>
+          </motion.div>
 
-          <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-sm shadow-2xl shadow-black/40 ring-1 ring-white/10">
+          <motion.div
+            className="relative mx-auto w-full max-w-md lg:max-w-none"
+            initial={{ opacity: 0, scale: 0.94, y: 28 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="relative aspect-[4/5] overflow-hidden rounded-lg shadow-2xl shadow-black/40 ring-1 ring-white/10">
               <Image
                 src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=900&h=1125&fit=crop"
                 alt="Học viên tập luyện an toàn"
@@ -384,12 +431,12 @@ export default function LandingPage() {
                 priority
               />
             </div>
-            <div className="absolute -bottom-6 left-4 right-4 rounded-sm border border-csnb-border bg-csnb-surface p-5 text-white shadow-xl sm:left-6 sm:right-auto sm:max-w-sm">
-              <p className="font-heading text-sm font-bold uppercase tracking-wide text-white">
-                Bắt đầu hành trình hôm nay
+            <div className="absolute -bottom-6 left-4 right-4 rounded-lg border border-csnb-border bg-csnb-surface/95 p-5 text-white shadow-xl backdrop-blur-sm sm:left-6 sm:right-auto sm:max-w-sm">
+              <p className="font-sans text-xs font-semibold uppercase tracking-wider text-white">
+                Bắt đầu hôm nay
               </p>
-              <p className="mt-1 text-sm text-csnb-muted">
-                Đồng hành cùng coach — lộ trình rõ ràng, tập đúng cách từ buổi đầu.
+              <p className="mt-1.5 font-sans text-sm leading-relaxed text-csnb-muted">
+                Coach đồng hành theo tình trạng của bạn.
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <div className="flex -space-x-2">
@@ -402,95 +449,198 @@ export default function LandingPage() {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-csnb-muted">Hàng chục nghìn người đã chọn phương pháp này.</p>
+                <p className="font-sans text-xs leading-snug text-csnb-muted">Học viên đồng hành cùng chúng tôi.</p>
               </div>
               <Link
                 href="/#pricing"
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-csnb-orange py-2.5 font-heading text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-csnb-orange-deep"
+                className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-csnb-orange py-2.5 font-sans text-sm font-semibold text-white transition-colors hover:bg-csnb-orange-deep"
               >
                 Bảng giá &amp; gói tập
                 <ArrowRight size={14} />
               </Link>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* ── TRUST BANNER ───────────────────────────── */}
-      <section className="border-y border-csnb-border bg-csnb-surface">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-6 lg:gap-0 lg:divide-x lg:divide-csnb-border">
+      <section className="relative overflow-hidden border-y border-csnb-border bg-csnb-surface">
+        <div className="csnb-ambient-mesh-surface pointer-events-none absolute inset-0 opacity-80" aria-hidden />
+        <div className="csnb-ambient-grid pointer-events-none absolute inset-0 opacity-40" aria-hidden />
+        <div className="csnb-ambient-noise pointer-events-none absolute inset-0 opacity-70" aria-hidden />
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 gap-8 sm:gap-10 md:grid-cols-4 md:gap-6 lg:gap-0 lg:divide-x lg:divide-csnb-border">
             {trustStats.map((stat, i) => (
-              <div key={i} className="text-center lg:px-4">
-                <div className="font-heading text-2xl font-black text-csnb-orange-bright lg:text-3xl">
-                  <span className="underline decoration-[3px] decoration-csnb-orange underline-offset-4">
-                    {stat.number}
-                  </span>
+              <motion.div
+                key={i}
+                className="text-center lg:px-5"
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-20px" }}
+                transition={{ delay: i * 0.07, duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <div className="font-sans text-2xl font-extrabold tabular-nums tracking-normal text-csnb-orange-bright sm:text-3xl lg:text-[1.85rem] xl:text-3xl">
+                  {stat.number}
                 </div>
-                <div className="mt-2 font-heading text-[10px] font-semibold uppercase tracking-wide text-csnb-muted">
+                <div className="mx-auto mt-2 max-w-[14rem] font-sans text-[11px] font-medium uppercase leading-snug tracking-wide text-csnb-muted sm:text-xs">
                   {stat.label}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── SPLIT HIGHLIGHT ────────────────────────── */}
-      <section className="bg-csnb-bg py-20 lg:py-28">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8">
-          <div>
-            <span className="font-heading text-xs font-bold uppercase tracking-widest text-csnb-orange">
-              Phương pháp riêng biệt
-            </span>
-            <h2 className="mt-3 font-heading text-3xl font-black uppercase leading-tight text-white sm:text-4xl lg:text-5xl">
-              Phục hồi chức năng
-              <br />
-              <span className="text-csnb-orange">theo chuỗi sinh học</span>
-            </h2>
-            <p className="mt-6 max-w-lg text-base leading-relaxed text-csnb-muted">
-              Chúng tôi không chỉ &ldquo;cho bài tập&rdquo; — mà tái thiết lập cách cơ thể chịu lực, giảm bù trừ và
-              giảm đau lưng, cổ, khớp theo hướng bền vững.
-            </p>
-            <Link
-              href="/#pricing"
-              className="mt-8 inline-flex items-center gap-2 rounded-sm bg-csnb-orange px-6 py-3 font-heading text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-csnb-orange-deep"
-            >
-              Xem khóa học
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-          <div className="relative">
-            <div className="relative aspect-[5/4] overflow-hidden rounded-sm shadow-xl ring-1 ring-white/10">
-              <Image
-                src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=900&h=720&fit=crop"
-                alt="Tập tại nhà cùng coach online"
-                fill
-                className="object-cover"
-                sizes="(max-width: 1023px) 100vw, 50vw"
-              />
-            </div>
-            <div className="absolute -bottom-4 right-4 max-w-[240px] rounded-sm border border-csnb-border bg-csnb-surface p-4 shadow-lg sm:right-6">
-              <p className="font-heading text-3xl font-black text-csnb-orange-bright">
-                +25<span className="text-xl text-white">%</span>
+      {/* ── NỘI DUNG TẬP: phase + chu kỳ (gộp một section) ─ */}
+      <section
+        id="noi-dung-tap"
+        className="relative scroll-mt-24 overflow-hidden bg-csnb-bg py-20 lg:py-28"
+      >
+        <div className="pointer-events-none absolute inset-0 z-0">
+          <Image
+            src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1400&h=900&fit=crop&q=70"
+            alt=""
+            fill
+            className="object-cover opacity-[0.22] blur-3xl saturate-[1.08]"
+            sizes="100vw"
+            aria-hidden
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-csnb-bg via-csnb-bg/88 to-csnb-bg" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_100%_50%,rgba(28,92,104,0.25),transparent_55%)]" />
+          <div className="csnb-ambient-mesh-dark absolute inset-0 opacity-60" />
+          <div className="csnb-ambient-grid absolute inset-0 opacity-80" />
+          <div className="csnb-ambient-noise absolute inset-0" />
+        </div>
+
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <Reveal className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16" y={28}>
+            <div>
+              <span className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange">
+                Nội dung tập luyện
+              </span>
+              <h2 className="mt-3 font-sans text-2xl font-extrabold leading-snug tracking-normal text-white sm:text-3xl lg:text-4xl">
+                Phục hồi chức năng{" "}
+                <span className="text-csnb-orange-bright">cơ – xương – khớp</span>
+              </h2>
+              <p className="mt-5 max-w-xl font-sans text-[0.9375rem] leading-[1.65] text-csnb-muted sm:text-base sm:leading-[1.7]">
+                Chương trình tập luyện phục hồi chức năng cơ – xương – khớp của Cột Sống Niết Bàn được chia làm{" "}
+                <strong className="text-white/95">3 phase</strong>. Mỗi phase có{" "}
+                <strong className="text-white/95">3 chu kỳ</strong> được luân phiên xen kẽ:{" "}
+                <span className="text-csnb-orange-bright">Mobilization</span>,{" "}
+                <span className="text-csnb-orange-bright">Activation</span>,{" "}
+                <span className="text-csnb-orange-bright">Integration</span> — tăng dần độ khó để khớp và tải thích
+                nghi, hướng tới cơ thể bền hơn trước đau cột sống và khớp.
               </p>
-              <p className="mt-1 text-xs leading-snug text-csnb-muted">
-                cải thiện sức bền &amp; giữ tư thế theo khảo sát nội bộ học viên sau 8 tuần.
+              <Link
+                href="/#pricing"
+                className="mt-8 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-csnb-orange px-6 py-3 font-sans text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] hover:bg-csnb-orange-deep active:scale-[0.99]"
+              >
+                Bảng giá &amp; gói tập
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+            <div className="relative">
+              <div className="relative aspect-[5/4] overflow-hidden rounded-sm shadow-xl ring-1 ring-white/10">
+                <Image
+                  src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=900&h=720&fit=crop"
+                  alt="Tập luyện cùng coach"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1023px) 100vw, 50vw"
+                />
+              </div>
+              <div className="absolute -bottom-4 right-4 max-w-[260px] rounded-sm border border-csnb-border bg-csnb-surface p-4 shadow-lg sm:right-6">
+                <p className="font-sans text-xl font-extrabold leading-tight text-csnb-orange-bright sm:text-2xl">
+                  Tuần 1 · Tuần 5+
+                </p>
+                <p className="mt-1 font-sans text-xs leading-relaxed text-csnb-muted">
+                  Nhẹ hơn sau tuần đầu; giảm đau rõ hơn quanh tuần 5 (nặng có thể tuần 8).
+                </p>
+              </div>
+            </div>
+          </Reveal>
+
+          <Reveal className="mt-16 lg:mt-20" y={22}>
+            <div className="mb-6 flex flex-col gap-2 border-b border-csnb-border/80 pb-6 lg:flex-row lg:items-end lg:justify-between">
+              <h3 className="font-sans text-lg font-bold text-white sm:text-xl">
+                Ba phase — chi tiết lộ trình
+              </h3>
+              <p className="max-w-md font-sans text-xs leading-relaxed text-csnb-muted">
+                Đọc lần lượt I → II → III; mỗi ô tóm tắt đúng nội dung chương trình gốc.
               </p>
             </div>
-          </div>
+            <div className="grid gap-5 lg:grid-cols-3">
+              {trainingPhases.map((phase) => (
+                <article
+                  key={phase.step}
+                  className="flex h-full flex-col rounded-xl border border-csnb-border bg-csnb-surface/95 p-5 shadow-sm ring-1 ring-white/5 transition-colors hover:border-csnb-orange/35"
+                >
+                  <div className="mb-3 flex items-center gap-3">
+                    <span className="font-sans text-2xl font-black leading-none text-csnb-orange/40">
+                      {phase.step}
+                    </span>
+                    <h4 className="font-sans text-sm font-bold uppercase tracking-wide text-white">{phase.title}</h4>
+                  </div>
+                  <p className="whitespace-pre-line font-sans text-[13px] leading-relaxed text-csnb-muted sm:text-sm sm:leading-relaxed">
+                    {phase.text}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </Reveal>
+
+          <Reveal className="mt-12" y={18}>
+            <div className="rounded-2xl border border-csnb-orange/25 bg-csnb-surface/70 p-6 shadow-lg shadow-black/20 backdrop-blur-sm sm:p-8">
+              <p className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange">
+                Trong mỗi phase
+              </p>
+              <h3 className="mt-2 font-sans text-lg font-bold text-white sm:text-xl">
+                Ba chu kỳ luân phiên xen kẽ
+              </h3>
+              <div className="mt-6 grid gap-5 md:grid-cols-3">
+                {trainingCycles.map((c) => (
+                  <div
+                    key={c.name}
+                    className="rounded-xl border border-csnb-border bg-csnb-bg/80 p-4 sm:p-5"
+                  >
+                    <h4 className="font-sans text-sm font-bold uppercase tracking-wide text-csnb-orange-bright">
+                      {c.name}
+                    </h4>
+                    <p className="mt-2 font-sans text-[13px] leading-relaxed text-csnb-muted sm:text-sm">
+                      {c.desc}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-6 border-t border-csnb-border/80 pt-6 font-sans text-[13px] leading-relaxed text-csnb-muted sm:text-sm">
+                {trainingProgressNote}
+              </p>
+            </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ── CTA STRIP ──────────────────────────────── */}
-      <section className="border-y border-csnb-border bg-csnb-orange py-12 text-white lg:py-14">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 px-4 sm:flex-row sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden border-y border-csnb-border bg-csnb-orange py-12 text-white lg:py-14">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_120%_at_0%_50%,rgba(255,255,255,0.12),transparent_50%),radial-gradient(ellipse_60%_100%_at_100%_0%,rgba(232,112,16,0.35),transparent_45%)]"
+          aria-hidden
+        />
+        <div className="csnb-cta-shine pointer-events-none absolute inset-0" aria-hidden />
+        <div className="csnb-ambient-noise pointer-events-none absolute inset-0 opacity-50 mix-blend-overlay" aria-hidden />
+        <motion.div
+          className="relative z-10 mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 px-4 sm:flex-row sm:px-6 lg:px-8"
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        >
           <div>
-            <h3 className="font-heading text-2xl font-black uppercase tracking-tight sm:text-3xl">
+            <h3 className="font-sans text-xl font-extrabold leading-snug tracking-normal text-white sm:text-2xl">
               Trở thành học viên Cột Sống Niết Bàn
             </h3>
-            <p className="mt-2 max-w-xl text-sm text-white/85">
-              Chọn gói phù hợp hoặc nhắn Zalo — team đồng hành định hướng lộ trình theo tình trạng của bạn.
+            <p className="mt-2 max-w-xl font-sans text-sm leading-relaxed text-white/85">
+              Xem bảng giá hoặc nhắn Zalo — team tư vấn theo tình trạng của bạn.
             </p>
           </div>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
@@ -505,174 +655,198 @@ export default function LandingPage() {
               ))}
             </div>
             <Link
-              href="https://zalo.me"
+              href={SITE_CONTACT.zaloUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-sm border border-white/30 bg-csnb-bg px-6 py-3 font-heading text-xs font-black uppercase tracking-wide text-white shadow-md transition-colors hover:bg-csnb-raised"
+              className="inline-flex items-center gap-2 rounded-sm border border-white/30 bg-csnb-bg px-6 py-3 font-heading text-xs font-black uppercase tracking-wide text-white shadow-md transition-all duration-200 hover:scale-[1.03] hover:bg-csnb-raised active:scale-[0.98]"
             >
-              Chat Zalo
+              Liên hệ ngay
               <ArrowRight size={16} />
             </Link>
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      {/* ── DIFFERENCE GRID ────────────────────────── */}
-      <section className="bg-csnb-panel py-20 text-csnb-ink lg:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <h2 className="max-w-lg font-heading text-3xl font-black uppercase sm:text-4xl">
-              Điều gì tạo nên sự khác biệt?
+      {/* ── LỢI ÍCH ───────────────────────────────── */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-csnb-panel via-white to-[#e8f4f6] py-20 text-csnb-ink lg:py-28">
+        <div className="csnb-panel-depth pointer-events-none absolute inset-0 opacity-80" aria-hidden />
+        <div className="csnb-panel-grid pointer-events-none absolute inset-0 opacity-50" aria-hidden />
+        <div
+          className="pointer-events-none absolute -right-24 top-1/4 h-72 w-72 rounded-full bg-csnb-orange/[0.11] blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-csnb-border/[0.12] blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(255,159,67,0.08),transparent_55%)]"
+          aria-hidden
+        />
+
+        <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <Reveal className="mx-auto mb-14 max-w-3xl text-center" y={22}>
+            <span className="font-sans text-xs font-semibold uppercase tracking-[0.22em] text-csnb-orange">
+              Lợi ích
+            </span>
+            <h2 className="mt-4 font-sans text-2xl font-extrabold leading-snug tracking-normal text-csnb-ink sm:text-3xl lg:text-[2rem] lg:leading-tight">
+              Lợi ích khi tập luyện với{" "}
+              <span className="bg-gradient-to-r from-csnb-orange-deep via-csnb-orange to-csnb-orange-bright bg-clip-text text-transparent">
+                Cột Sống Niết Bàn
+              </span>
             </h2>
-            <p className="max-w-md text-sm leading-relaxed text-neutral-600 lg:text-right">
-              Kết hợp kiến thức phục hồi chức năng với theo sát thực tế — để bạn tự tin vận động mỗi ngày.
+            <div
+              className="mx-auto mt-5 h-1 w-14 rounded-full bg-gradient-to-r from-csnb-orange to-csnb-border/40"
+              aria-hidden
+            />
+            <p className="mx-auto mt-5 max-w-2xl font-sans text-sm leading-relaxed text-neutral-600">
+              Sáu trụ cột đồng hành cùng bạn — từ giảm đau, hiểu bệnh lý đến lối sống bền vững.
             </p>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {differenceCards.map((card) => (
-              <div
-                key={card.title}
-                className="group overflow-hidden rounded-sm border border-neutral-200 bg-white shadow-sm transition-shadow hover:border-csnb-orange/30 hover:shadow-md"
-              >
-                <div className="relative aspect-[16/10] overflow-hidden">
-                  <Image
-                    src={card.image}
-                    alt={card.title}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 25vw"
+          </Reveal>
+
+          <div className="grid gap-4 sm:gap-5 lg:grid-cols-2">
+            {benefitPillars.map((item, i) => {
+              const Icon = item.Icon;
+              return (
+                <motion.article
+                  key={i}
+                  className="group relative overflow-hidden rounded-2xl border border-neutral-200/90 bg-white/95 p-6 shadow-[0_4px_28px_-10px_rgba(6,38,44,0.1)] backdrop-blur-[2px] transition-all duration-300 hover:-translate-y-0.5 hover:border-csnb-orange/30 hover:shadow-[0_14px_40px_-12px_rgba(255,159,67,0.14)] sm:p-7"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-24px" }}
+                  transition={{ delay: i * 0.06, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <div
+                    className="absolute inset-x-0 top-0 h-[3px] origin-left scale-x-0 bg-gradient-to-r from-csnb-orange-deep via-csnb-orange to-csnb-orange-bright transition-transform duration-300 group-hover:scale-x-100"
+                    aria-hidden
                   />
-                </div>
-                <div className="p-5">
-                  <h3 className="font-heading text-sm font-bold uppercase tracking-wide text-csnb-ink">
-                    {card.title}
-                  </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-neutral-600">{card.desc}</p>
-                </div>
-              </div>
-            ))}
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+                    <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-csnb-orange/14 via-white to-csnb-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-csnb-border/35">
+                      <Icon className="text-csnb-orange" size={26} strokeWidth={2} aria-hidden />
+                    </div>
+                    <p className="min-w-0 text-pretty font-sans text-[0.9375rem] font-medium leading-[1.65] text-neutral-800 sm:text-base sm:leading-[1.7]">
+                      {item.text}
+                    </p>
+                  </div>
+                </motion.article>
+              );
+            })}
           </div>
-          <div className="mt-10 rounded-sm border border-neutral-200 bg-white px-6 py-5 text-center sm:px-10">
-            <p className="font-heading text-lg font-black sm:text-xl">
-              <span className="text-2xl text-csnb-orange-bright sm:text-3xl">+12%</span>{" "}
-              <span className="underline decoration-csnb-orange decoration-4 underline-offset-4">
-                cải thiện linh hoạt cột sống
-              </span>{" "}
-              trung bình sau 6 tuần theo báo cáo tự đánh giá học viên.
+
+          <Reveal
+            className="mt-12 flex flex-col items-stretch justify-between gap-5 rounded-2xl border border-csnb-orange/20 bg-gradient-to-br from-white via-csnb-panel/40 to-white px-6 py-6 shadow-sm sm:flex-row sm:items-center sm:px-8"
+            delay={0.1}
+            y={18}
+          >
+            <p className="max-w-xl text-pretty text-center font-sans text-sm leading-relaxed text-neutral-700 sm:text-left">
+              Sẵn sàng bắt đầu với lộ trình phù hợp tình trạng của bạn — xem gói tập hoặc nhắn team để được tư
+              vấn.
             </p>
-          </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:shrink-0">
+              <Link
+                href="/#pricing"
+                className="inline-flex min-h-11 items-center justify-center rounded-full bg-csnb-orange px-6 font-sans text-sm font-semibold text-white shadow-md shadow-csnb-orange/20 transition hover:bg-csnb-orange-deep"
+              >
+                Bảng giá &amp; gói tập
+              </Link>
+              <Link
+                href={SITE_CONTACT.zaloUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-csnb-border/60 bg-white px-6 font-sans text-sm font-semibold text-csnb-ink transition hover:border-csnb-orange/40 hover:bg-csnb-panel/50"
+              >
+                Liên hệ Zalo
+              </Link>
+            </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ── PROBLEM ────────────────────────────────── */}
-      <section className="bg-csnb-bg py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-14 text-center">
-            <span className="font-heading text-xs font-bold uppercase tracking-widest text-csnb-orange">
-              Vấn đề bạn đang gặp
+      <section className="relative overflow-hidden bg-csnb-bg py-20 lg:py-28">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="csnb-ambient-mesh-dark absolute inset-0 opacity-70" />
+          <div className="csnb-ambient-grid absolute inset-0 opacity-50" />
+          <div className="csnb-ambient-noise absolute inset-0" />
+          <div className="csnb-drift-orb csnb-drift-orb--cool opacity-55" aria-hidden />
+        </div>
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <Reveal className="mb-14 text-center" y={22}>
+            <span className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange">
+              Đối tượng phù hợp
             </span>
-            <h2 className="mt-3 font-heading text-3xl font-black uppercase text-white sm:text-4xl lg:text-5xl">
-              Bạn có đang chịu đựng
-              <br />
-              <span className="text-csnb-orange">những điều này?</span>
+            <h2 className="mt-3 font-sans text-2xl font-extrabold leading-snug tracking-normal text-white sm:text-3xl lg:text-4xl">
+              Ai nên đăng ký{" "}
+              <span className="text-csnb-orange-bright">Online Coaching?</span>
             </h2>
-          </div>
+          </Reveal>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {problems.map((p, i) => (
-              <div
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
+            {targetAudience.map((p, i) => (
+              <motion.div
                 key={i}
-                className="group rounded-sm border border-csnb-border bg-csnb-surface p-6 transition-all duration-300 hover:border-csnb-orange/40"
+                className="group rounded-sm border border-csnb-border bg-csnb-surface p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-csnb-orange/40 hover:shadow-md hover:shadow-csnb-orange/5"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-24px" }}
+                transition={{ delay: i * 0.06, duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
               >
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-sm bg-csnb-orange/10 transition-colors group-hover:bg-csnb-orange/20">
                   <p.icon size={20} className="text-csnb-orange" />
                 </div>
-                <h3 className="mb-2 font-heading text-base font-bold uppercase tracking-wide text-white">
+                <h3 className="mb-2 font-sans text-base font-semibold leading-snug tracking-normal text-white">
                   {p.title}
                 </h3>
-                <p className="text-sm leading-relaxed text-csnb-muted">{p.desc}</p>
-              </div>
+                <p className="font-sans text-sm leading-relaxed text-csnb-muted">{p.desc}</p>
+              </motion.div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── SOLUTION ───────────────────────────────── */}
-      <section className="border-y border-csnb-border bg-csnb-surface py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <span className="font-heading text-xs font-bold uppercase tracking-widest text-csnb-orange">
-                Giải pháp của chúng tôi
-              </span>
-              <h2 className="mb-6 mt-3 font-heading text-3xl font-black uppercase text-white sm:text-4xl lg:text-5xl">
-                Phương pháp khoa học
-                <br />
-                <span className="text-csnb-orange">đã được kiểm chứng</span>
-              </h2>
-              <p className="mb-8 max-w-lg text-base leading-relaxed text-csnb-muted">
-                Không phải thuốc giảm đau, không phải phẫu thuật. Chúng tôi đào tạo bạn cách di chuyển đúng — giải
-                quyết tận gốc nguyên nhân gây đau.
-              </p>
-              <Link
-                href="/#pricing"
-                className="inline-flex items-center gap-2 rounded-sm bg-csnb-orange px-6 py-3 font-heading text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-csnb-orange-deep"
-              >
-                Bắt đầu hành trình <ArrowRight size={16} />
-              </Link>
-            </div>
-
-            <div className="space-y-4">
-              {solutions.map((s, i) => (
-                <div
-                  key={i}
-                  className="flex gap-5 rounded-sm border border-csnb-border bg-csnb-bg p-5 transition-colors hover:border-csnb-orange/30"
-                >
-                  <div className="w-10 shrink-0 font-heading text-3xl font-black leading-none text-csnb-orange/30">
-                    {s.step}
-                  </div>
-                  <div>
-                    <h3 className="mb-1.5 font-heading text-sm font-bold uppercase tracking-wide text-white">
-                      {s.title}
-                    </h3>
-                    <p className="text-sm leading-relaxed text-csnb-muted">{s.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
 
       {/* ── RESULTS ────────────────────────────────── */}
-      <section className="bg-csnb-bg py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 text-center">
-            <span className="font-heading text-xs font-bold uppercase tracking-widest text-csnb-orange">
-              Minh chứng thực tế
+      <section className="relative overflow-hidden bg-csnb-bg py-20 lg:py-28">
+        <div className="pointer-events-none absolute inset-0">
+          <Image
+            src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200&h=800&fit=crop&q=65"
+            alt=""
+            fill
+            className="object-cover opacity-[0.14] blur-3xl"
+            sizes="100vw"
+            aria-hidden
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-csnb-bg via-csnb-bg/92 to-csnb-bg" />
+          <div className="csnb-ambient-mesh-dark absolute inset-0 opacity-55" />
+          <div className="csnb-ambient-grid absolute inset-0 opacity-45" />
+          <div className="csnb-ambient-noise absolute inset-0" />
+        </div>
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <Reveal className="mb-12 text-center" y={20}>
+            <span className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange">
+              Một số feedbacks
             </span>
-            <h2 className="mt-3 font-heading text-3xl font-black uppercase text-white sm:text-4xl lg:text-5xl">
-              Kết quả học viên
+            <h2 className="mt-3 font-sans text-2xl font-extrabold leading-snug tracking-normal text-white sm:text-3xl lg:text-4xl">
+              Kết quả &amp; phản hồi học viên
             </h2>
-          </div>
+          </Reveal>
 
           <Tabs defaultValue="before-after" className="w-full">
             <TabsList className="mx-auto mb-8 flex w-full max-w-md rounded-sm border border-csnb-border bg-csnb-surface p-1">
               <TabsTrigger
                 value="before-after"
-                className="flex-1 rounded-sm font-heading text-[10px] font-bold uppercase tracking-wide text-csnb-muted data-[state=active]:bg-csnb-orange data-[state=active]:text-white sm:text-xs"
+                className="flex-1 rounded-sm font-sans text-[10px] font-semibold uppercase tracking-wide text-csnb-muted data-[state=active]:bg-csnb-orange data-[state=active]:text-white sm:text-xs"
               >
                 Before & After
               </TabsTrigger>
               <TabsTrigger
                 value="testimonials"
-                className="flex-1 rounded-sm font-heading text-[10px] font-bold uppercase tracking-wide text-csnb-muted data-[state=active]:bg-csnb-orange data-[state=active]:text-white sm:text-xs"
+                className="flex-1 rounded-sm font-sans text-[10px] font-semibold uppercase tracking-wide text-csnb-muted data-[state=active]:bg-csnb-orange data-[state=active]:text-white sm:text-xs"
               >
-                Testimonials
+                Phản hồi
               </TabsTrigger>
               <TabsTrigger
                 value="comments"
-                className="flex-1 rounded-sm font-heading text-[10px] font-bold uppercase tracking-wide text-csnb-muted data-[state=active]:bg-csnb-orange data-[state=active]:text-white sm:text-xs"
+                className="flex-1 rounded-sm font-sans text-[10px] font-semibold uppercase tracking-wide text-csnb-muted data-[state=active]:bg-csnb-orange data-[state=active]:text-white sm:text-xs"
               >
                 Comments
               </TabsTrigger>
@@ -729,7 +903,9 @@ export default function LandingPage() {
                         <Star key={j} size={14} className="fill-csnb-orange-bright text-csnb-orange-bright" />
                       ))}
                     </div>
-                    <p className="mb-5 text-sm italic leading-relaxed text-csnb-muted">&ldquo;{t.text}&rdquo;</p>
+                    <p className="mb-5 font-sans text-sm not-italic leading-relaxed text-csnb-muted">
+                      &ldquo;{t.text}&rdquo;
+                    </p>
                     <div className="flex items-center gap-3">
                       <div className="relative h-10 w-10 overflow-hidden rounded-full">
                         <Image src={t.avatar} alt={t.name} fill sizes="40px" className="object-cover" />
@@ -774,24 +950,26 @@ export default function LandingPage() {
       </section>
 
       {/* ── BLOG PREVIEW ───────────────────────────── */}
-      <section className="bg-csnb-panel py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 flex items-end justify-between">
+      <section className="relative overflow-hidden bg-csnb-panel py-20 lg:py-28">
+        <div className="csnb-panel-depth pointer-events-none absolute inset-0 opacity-90" aria-hidden />
+        <div className="csnb-panel-grid pointer-events-none absolute inset-0" aria-hidden />
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <Reveal className="mb-12 flex items-end justify-between" y={18}>
             <div>
-              <span className="font-heading text-xs font-bold uppercase tracking-widest text-csnb-orange">
+              <span className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange">
                 Kiến thức nền tảng
               </span>
-              <h2 className="mt-2 font-heading text-3xl font-black uppercase text-csnb-ink sm:text-4xl">
+              <h2 className="mt-2 font-sans text-2xl font-extrabold leading-snug tracking-normal text-csnb-ink sm:text-3xl">
                 Bài viết mới nhất
               </h2>
             </div>
             <Link
               href="/blog"
-              className="hidden items-center gap-1 font-heading text-sm font-semibold uppercase tracking-wide text-csnb-orange transition-all hover:gap-2 sm:flex"
+              className="hidden items-center gap-1 font-sans text-sm font-semibold text-csnb-orange transition-all hover:gap-2 sm:flex"
             >
               Tất cả bài viết <ArrowRight size={16} />
             </Link>
-          </div>
+          </Reveal>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {blogPosts.map((post, i) => (
@@ -835,7 +1013,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── PRICING ────────────────────────────────── */}
-      <section id="pricing" className="relative overflow-hidden bg-csnb-bg py-20 lg:py-28">
+      <section id="pricing" className="relative scroll-mt-24 overflow-hidden bg-csnb-bg py-20 lg:py-28">
         <div className="pointer-events-none absolute inset-0 z-0">
           <Image
             src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&h=900&fit=crop&q=70"
@@ -847,26 +1025,37 @@ export default function LandingPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-csnb-bg via-csnb-bg/92 to-csnb-bg" />
           <div className="absolute inset-0 bg-[radial-gradient(800px_circle_at_50%_0%,rgba(28,92,104,0.35),transparent_65%)]" />
+          <div className="csnb-ambient-mesh-dark absolute inset-0 opacity-75" />
+          <div className="csnb-ambient-grid absolute inset-0" />
+          <div className="csnb-ambient-noise absolute inset-0" />
+          <div className="csnb-drift-orb csnb-drift-orb--warm z-[1] opacity-45" aria-hidden />
         </div>
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-14 text-center">
-            <span className="font-heading text-xs font-bold uppercase tracking-widest text-csnb-orange">
+          <Reveal className="mb-14 text-center" y={18}>
+            <span className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange">
               Đầu tư cho sức khỏe
             </span>
-            <h2 className="mt-3 font-heading text-3xl font-black uppercase text-white sm:text-4xl lg:text-5xl">
-              Chọn gói phù hợp
+            <h2 className="mt-3 font-sans text-2xl font-extrabold leading-snug tracking-normal text-white sm:text-3xl lg:text-4xl">
+              Các hình thức tập luyện
             </h2>
-          </div>
+            <p className="mx-auto mt-4 max-w-xl text-pretty font-sans text-sm leading-relaxed text-csnb-muted">
+              Trực tiếp tại phòng · Online Coaching · Zoom — chọn theo lịch và khoảng cách của bạn.
+            </p>
+          </Reveal>
 
           <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
-            {pricingPlans.map((plan) => (
-              <div
+            {pricingPlans.map((plan, i) => (
+              <motion.div
                 key={plan.id}
-                className={`relative flex flex-col rounded-sm border bg-csnb-surface p-6 ${
+                className={`relative flex flex-col rounded-sm border bg-csnb-surface p-6 transition-transform duration-300 hover:-translate-y-1 ${
                   plan.popular
                     ? "border-csnb-orange shadow-lg shadow-csnb-orange/20"
                     : "border-csnb-border"
                 }`}
+                initial={{ opacity: 0, y: 28 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ delay: i * 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-csnb-orange px-3 py-1 font-heading text-[10px] font-bold uppercase tracking-wide text-white">
@@ -878,13 +1067,15 @@ export default function LandingPage() {
                   <span className="font-heading text-[10px] font-bold uppercase tracking-widest text-csnb-muted">
                     {plan.tag}
                   </span>
-                  <h3 className="mt-1 font-heading text-lg font-black uppercase tracking-wide text-white">
+                  <h3 className="mt-1 font-sans text-lg font-bold leading-snug tracking-normal text-white">
                     {plan.name}
                   </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-csnb-muted">{plan.desc}</p>
+                  <p className="mt-2 font-sans text-xs leading-relaxed text-csnb-muted">{plan.desc}</p>
                 </div>
 
-                <div className="mb-3 font-heading text-3xl font-black text-csnb-orange-bright">{plan.priceFrom}</div>
+                <div className="mb-3 font-sans text-3xl font-extrabold tabular-nums text-csnb-orange-bright">
+                  {plan.priceFrom}
+                </div>
 
                 <div className="mb-4 rounded-sm border border-csnb-border bg-csnb-bg p-3">
                   <div className="mb-2 font-heading text-[10px] font-bold uppercase tracking-wide text-csnb-muted">
@@ -894,7 +1085,7 @@ export default function LandingPage() {
                     {plan.tiers.map((tier, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <span className="mt-1 shrink-0 text-csnb-orange">›</span>
-                        <span className="font-heading text-xs text-white">{tier}</span>
+                        <span className="font-sans text-xs leading-snug text-white">{tier}</span>
                       </li>
                     ))}
                   </ul>
@@ -904,96 +1095,185 @@ export default function LandingPage() {
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <CheckCircle2 size={13} className="mt-0.5 shrink-0 text-csnb-orange" />
-                      <span className="text-xs text-csnb-muted">{feature}</span>
+                      <span className="font-sans text-xs leading-relaxed text-csnb-muted">{feature}</span>
                     </li>
                   ))}
                 </ul>
 
-                <button
-                  type="button"
-                  onClick={() => handleOpenPricing(plan)}
-                  className={`block w-full rounded-sm py-3 text-center font-heading text-sm font-bold uppercase tracking-wider transition-colors ${
-                    plan.popular
-                      ? "bg-csnb-orange text-white hover:bg-csnb-orange-deep"
-                      : "border border-csnb-border/70 text-white hover:border-csnb-orange"
-                  }`}
-                >
-                  Nhận QR thanh toán
-                </button>
-              </div>
+                {"registrationUrl" in plan && plan.registrationUrl ? (
+                  <Link
+                    href={plan.registrationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex min-h-11 w-full items-center justify-center rounded-md px-3 py-3 text-center font-sans text-sm font-semibold transition-colors ${
+                      plan.popular
+                        ? "bg-csnb-orange text-white hover:bg-csnb-orange-deep"
+                        : "border border-csnb-border/70 text-white hover:border-csnb-orange"
+                    }`}
+                  >
+                    Đăng ký qua form
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPricing(plan)}
+                    className={`flex min-h-11 w-full items-center justify-center rounded-md px-3 py-3 text-center font-sans text-sm font-semibold transition-colors ${
+                      plan.popular
+                        ? "bg-csnb-orange text-white hover:bg-csnb-orange-deep"
+                        : "border border-csnb-border/70 text-white hover:border-csnb-orange"
+                    }`}
+                  >
+                    Thanh toán ngay
+                  </button>
+                )}
+              </motion.div>
             ))}
           </div>
 
-          <div className="mx-auto mt-8 max-w-2xl rounded-sm border border-csnb-border bg-csnb-surface p-5 text-center">
+          <Reveal className="mx-auto mt-8 max-w-2xl rounded-sm border border-csnb-border bg-csnb-surface p-5 text-center" y={14} delay={0.08}>
             <div className="mb-2 font-heading text-[10px] font-bold uppercase tracking-widest text-csnb-muted">
               Lịch tập gợi ý
             </div>
-            <p className="text-sm text-white/70">
-              Người mới thường tập <strong className="text-white">3 buổi/tuần</strong>, mỗi buổi khoảng{" "}
-              <strong className="text-white">60 phút</strong>. Online Coaching: linh hoạt theo lịch của bạn.
+            <p className="font-sans text-sm leading-relaxed text-white/70">
+              Gợi ý: <strong className="text-white">3 buổi/tuần</strong>, mỗi buổi ~{" "}
+              <strong className="text-white">60 phút</strong>. Online: cố định giờ nếu được; không thì cứ tập
+              trung 100%. Trực tiếp &amp; Zoom: báo đổi lịch trước 2–7 ngày.
             </p>
-          </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* ── FAQ ────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-y border-csnb-border py-20 lg:py-28">
-        <div className="pointer-events-none absolute inset-0 z-0">
-          <Image
-            src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1600&h=1000&fit=crop&q=70"
-            alt=""
-            fill
-            className="scale-105 object-cover opacity-[0.2] blur-3xl saturate-[1.05]"
-            sizes="100vw"
-            aria-hidden
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-csnb-surface via-csnb-bg/94 to-csnb-surface" />
-          <div className="absolute inset-0 bg-[radial-gradient(1000px_circle_at_50%_-10%,rgba(255,159,67,0.1),transparent_55%)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(105deg,transparent_40%,rgba(11,52,60,0.5)_100%)]" />
+      {/* ── FAQ ───────────────────────────────────── */}
+      <section
+        id="faq"
+        className="relative scroll-mt-24 overflow-hidden border-y border-csnb-border/25 py-20 lg:py-28"
+      >
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white via-[#eef8f9] to-csnb-panel"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -left-32 top-0 h-[420px] w-[420px] rounded-full bg-csnb-orange/[0.09] blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -right-24 bottom-0 h-[380px] w-[380px] rounded-full bg-csnb-border/[0.14] blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(255,159,67,0.06),transparent_58%)]"
+          aria-hidden
+        />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.45]" aria-hidden>
+          <div className="csnb-panel-grid absolute inset-0" />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-3xl px-4 sm:px-6 lg:max-w-4xl lg:px-8">
-          <div className="mb-14 text-center">
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-csnb-orange/30 bg-csnb-orange/10 shadow-lg shadow-csnb-orange/10 backdrop-blur-sm">
-              <HelpCircle className="text-csnb-orange-bright" size={28} strokeWidth={2} />
-            </div>
-            <span className="font-heading text-xs font-bold uppercase tracking-[0.2em] text-csnb-orange">
-              Câu hỏi thường gặp
-            </span>
-            <h2 className="mt-3 font-heading text-3xl font-black uppercase tracking-tight text-white sm:text-4xl lg:text-5xl">
-              Giải đáp{" "}
-              <span className="bg-gradient-to-r from-csnb-orange-bright to-csnb-orange bg-clip-text text-transparent">
-                thắc mắc
-              </span>
-            </h2>
-            <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-csnb-muted">
-              Những điều học viên thường hỏi trước khi bắt đầu — bấm từng mục để xem chi tiết.
-            </p>
-          </div>
-
-          <Accordion className="flex flex-col gap-3">
-            {faqs.map((faq, i) => (
-              <AccordionItem
-                key={i}
-                value={`item-${i}`}
-                className="not-last:border-b-0 overflow-hidden rounded-2xl border border-csnb-border/60 bg-csnb-bg/45 shadow-[0_8px_32px_rgba(0,0,0,0.2)] backdrop-blur-md transition-[border-color,box-shadow,background-color] duration-300 hover:border-csnb-orange/35 hover:bg-csnb-bg/60 hover:shadow-[0_12px_40px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,159,67,0.08)]"
-              >
-                <AccordionTrigger className="items-center gap-4 px-5 py-5 text-left font-heading text-sm font-bold uppercase leading-snug tracking-wide text-white hover:no-underline [&_[data-slot=accordion-trigger-icon]]:shrink-0 [&_[data-slot=accordion-trigger-icon]]:text-csnb-orange-bright">
-                  <span className="flex min-w-0 flex-1 items-start gap-4">
-                    <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-csnb-border/80 bg-csnb-raised/80 font-heading text-[11px] font-black tabular-nums text-csnb-orange-bright">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className="min-w-0 pt-0.5">{faq.q}</span>
+        <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-12 lg:items-start lg:gap-x-12 lg:gap-y-0">
+            {/* Intro — Montserrat for readability (Anton is too condensed for long Vietnamese) */}
+            <Reveal className="text-center lg:col-span-5 lg:max-w-md lg:justify-self-start lg:text-left" y={20}>
+              <div className="flex flex-col lg:sticky lg:top-28">
+                <motion.div
+                  className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-csnb-orange/20 bg-gradient-to-br from-white to-csnb-panel shadow-md shadow-csnb-orange/10 ring-1 ring-csnb-border/20 lg:mx-0"
+                  initial={{ scale: 0.92, opacity: 0 }}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ type: "spring", stiffness: 220, damping: 18 }}
+                >
+                  <HelpCircle className="text-csnb-orange" size={26} strokeWidth={2} />
+                </motion.div>
+                <span className="font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-csnb-orange">
+                  Câu hỏi thường gặp
+                </span>
+                <h2 className="mt-3 text-balance font-sans text-[1.65rem] font-extrabold leading-snug tracking-normal text-csnb-ink sm:text-3xl sm:leading-tight">
+                  Giải đáp{" "}
+                  <span className="bg-gradient-to-r from-csnb-orange-deep via-csnb-orange to-csnb-orange-bright bg-clip-text text-transparent">
+                    thắc mắc
                   </span>
-                </AccordionTrigger>
-                <AccordionContent className="border-t border-white/5 bg-gradient-to-b from-csnb-raised/30 to-transparent">
-                  <div className="mx-5 mb-5 border-l-2 border-csnb-orange/45 py-1 pl-5 text-sm leading-relaxed text-csnb-muted">
-                    {faq.a}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+                </h2>
+                <div
+                  className="mx-auto mt-4 h-1 w-14 rounded-full bg-gradient-to-r from-csnb-orange via-csnb-orange-bright to-csnb-border/50 lg:mx-0"
+                  aria-hidden
+                />
+                <p className="mx-auto mt-4 max-w-sm text-pretty font-sans text-sm leading-relaxed text-neutral-600 lg:mx-0 lg:max-w-none">
+                  Những điều học viên hay hỏi trước khi bắt đầu. Mở từng mục để xem chi tiết — nếu chưa đủ, nhắn team
+                  để được giải đáp thêm.
+                </p>
+
+                <ul className="mx-auto mt-7 flex max-w-md flex-col gap-2 text-left sm:max-w-lg lg:mx-0">
+                  {[
+                    { t: "Gợi ý lịch", d: "3 buổi/tuần · ~60 phút/buổi" },
+                    { t: "Hình thức", d: "Trực tiếp · Online · Zoom" },
+                    { t: "Lộ trình", d: "Cá nhân hóa theo tình trạng" },
+                  ].map((row) => (
+                    <li
+                      key={row.t}
+                      className="flex items-start gap-3 rounded-xl border border-csnb-border/20 bg-white/80 px-3.5 py-2.5 shadow-sm backdrop-blur-sm"
+                    >
+                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-csnb-panel">
+                        <CheckCircle2 className="text-csnb-orange" size={15} strokeWidth={2.25} />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block font-sans text-sm font-semibold leading-snug tracking-normal text-csnb-ink">
+                          {row.t}
+                        </span>
+                        <span className="mt-0.5 block font-sans text-xs leading-relaxed text-neutral-600">{row.d}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href={SITE_CONTACT.zaloUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mx-auto mt-7 inline-flex min-h-11 w-full max-w-xs items-center justify-center gap-2 rounded-full border border-csnb-border/40 bg-csnb-ink px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-csnb-raised hover:shadow-lg lg:mx-0 lg:max-w-none"
+                >
+                  <MessageCircle size={17} className="shrink-0 text-csnb-orange-bright" />
+                  Nhắn Zalo hỏi nhanh
+                  <ArrowRight size={15} className="shrink-0 opacity-80" />
+                </Link>
+              </div>
+            </Reveal>
+
+            {/* Accordion — questions in sans, wider column */}
+            <div className="min-w-0 lg:col-span-7">
+              <Accordion className="flex flex-col gap-3.5 sm:gap-4">
+                {faqs.map((faq, i) => (
+                  <AccordionItem
+                    key={i}
+                    value={`item-${i}`}
+                    className="not-last:border-b-0 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white/95 shadow-[0_2px_28px_-12px_rgba(6,38,44,0.12)] backdrop-blur-[2px] transition-[border-color,box-shadow] duration-300 hover:border-csnb-orange/25 hover:shadow-[0_12px_40px_-16px_rgba(255,159,67,0.14)] [&:has(button[aria-expanded='true'])]:border-csnb-orange/40 [&:has(button[aria-expanded='true'])]:shadow-[0_14px_44px_-14px_rgba(255,159,67,0.18)]"
+                  >
+                    <AccordionTrigger className="items-center gap-3 px-4 py-[1.125rem] text-left hover:bg-neutral-50/70 hover:no-underline focus-visible:ring-offset-white sm:gap-4 sm:px-5 sm:py-5 aria-expanded:bg-gradient-to-r aria-expanded:from-csnb-orange/[0.04] aria-expanded:to-transparent [&_[data-slot=accordion-trigger-icon]]:shrink-0 [&_[data-slot=accordion-trigger-icon]]:rounded-full [&_[data-slot=accordion-trigger-icon]]:border [&_[data-slot=accordion-trigger-icon]]:border-csnb-orange/25 [&_[data-slot=accordion-trigger-icon]]:bg-gradient-to-br [&_[data-slot=accordion-trigger-icon]]:from-white [&_[data-slot=accordion-trigger-icon]]:to-csnb-panel [&_[data-slot=accordion-trigger-icon]]:p-2 [&_[data-slot=accordion-trigger-icon]]:text-csnb-orange aria-expanded:[&_[data-slot=accordion-trigger-icon]]:border-csnb-orange/50 aria-expanded:[&_[data-slot=accordion-trigger-icon]]:bg-csnb-orange/12">
+                      <span className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+                        <span
+                          className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-csnb-panel font-sans text-xs font-bold tabular-nums text-csnb-ink ring-1 ring-csnb-border/30 sm:size-10 sm:text-sm"
+                          aria-hidden
+                        >
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <span className="min-w-0 font-sans text-[0.9375rem] font-semibold leading-relaxed tracking-normal text-csnb-ink sm:text-base sm:leading-relaxed">
+                          {faq.q}
+                        </span>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="border-t border-neutral-100/80 bg-gradient-to-br from-csnb-panel/45 via-white to-white">
+                      <div className="relative mx-4 mb-5 mt-1 pl-4 sm:mx-5 sm:mb-6 sm:pl-5">
+                        <div
+                          className="absolute top-1 bottom-1 left-0 w-0.5 rounded-full bg-gradient-to-b from-csnb-orange-deep via-csnb-orange to-csnb-border/45"
+                          aria-hidden
+                        />
+                        <p className="text-pretty whitespace-pre-line font-sans text-sm leading-relaxed text-neutral-700 sm:text-[15px] sm:leading-[1.7]">
+                          {faq.a}
+                        </p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1061,11 +1341,11 @@ export default function LandingPage() {
                 Đóng
               </button>
               <Link
-                href="https://zalo.me"
+                href={SITE_CONTACT.zaloUrl}
                 target="_blank"
                 className="flex-1 rounded-sm bg-csnb-orange py-2.5 text-center font-heading text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-csnb-orange-deep"
               >
-                Liên hệ Zalo
+                Liên hệ ngay
               </Link>
             </div>
           </div>
@@ -1073,15 +1353,20 @@ export default function LandingPage() {
       </Dialog>
 
       {/* Floating Zalo Button */}
-      <a
-        href="https://zalo.me"
+      <motion.a
+        href={SITE_CONTACT.zaloUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-csnb-orange text-white shadow-lg shadow-csnb-orange/30 transition-colors hover:bg-csnb-orange-deep"
-        title="Chat Zalo"
+        title="Liên hệ ngay"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.9, type: "spring", stiffness: 280, damping: 19 }}
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.92 }}
       >
         <MessageCircle size={24} />
-      </a>
+      </motion.a>
     </div>
   );
 }

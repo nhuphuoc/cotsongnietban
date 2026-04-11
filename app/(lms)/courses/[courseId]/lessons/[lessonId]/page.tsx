@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { SITE_CONTACT } from "@/lib/site-contact";
 import { ArrowLeft, CheckCircle2, Circle, Lock, Clock, ChevronRight, MessageCircle } from "lucide-react";
 
 const lessons = [
@@ -183,7 +184,7 @@ export default function LessonViewPage({
         </div>
         <div className="p-4 border-t border-[#222]">
           <a
-            href="https://zalo.me"
+            href={SITE_CONTACT.zaloUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full bg-[#0068FF] hover:bg-[#0051CC] text-white text-xs font-heading font-bold py-2.5 rounded-sm uppercase tracking-wide transition-colors"
@@ -195,7 +196,7 @@ export default function LessonViewPage({
 
       {/* Floating Zalo */}
       <a
-        href="https://zalo.me"
+        href={SITE_CONTACT.zaloUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 bg-[#0068FF] hover:bg-[#0051CC] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors lg:hidden"

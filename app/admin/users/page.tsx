@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Search, Shield, User } from "lucide-react";
 
 const users = [
-  { id: "1", name: "Nguyễn Thị Lan", email: "lan@gmail.com", avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop", role: "student", courses: ["Phục Hồi Lưng Cơ Bản"], joinedAt: "10/01/2024" },
+  { id: "1", name: "Nguyễn Thị Lan", email: "lan@gmail.com", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=40&h=40&fit=crop", role: "student", courses: ["Phục Hồi Lưng Cơ Bản"], joinedAt: "10/01/2024" },
   { id: "2", name: "Trần Minh Tuấn", email: "tuan@gmail.com", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop", role: "student", courses: ["Corrective Exercise Nâng Cao", "Phục Hồi Lưng Cơ Bản"], joinedAt: "15/01/2024" },
   { id: "3", name: "Lê Thu Hương", email: "huong@gmail.com", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop", role: "student", courses: ["VIP Coach 1-1"], joinedAt: "20/01/2024" },
   { id: "4", name: "Phạm Quốc Hùng", email: "hung@gmail.com", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop", role: "student", courses: ["Phục Hồi Lưng Cơ Bản"], joinedAt: "25/01/2024" },

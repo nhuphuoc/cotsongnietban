@@ -31,7 +31,10 @@ export default function Header() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
-          <Link href="/" className="group flex items-center gap-2">
+          <Link
+            href="/"
+            className="group flex items-center gap-2 rounded-sm p-1 -m-1 ring-csnb-orange-bright/0 transition-[box-shadow] focus-visible:ring-2 focus-visible:ring-csnb-orange-bright focus-visible:ring-offset-2 focus-visible:ring-offset-csnb-bg"
+          >
             <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-csnb-orange transition-colors group-hover:bg-csnb-orange-deep">
               <span className="font-heading text-sm font-black text-white">C</span>
             </div>
@@ -50,7 +53,7 @@ export default function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="font-heading text-sm font-medium uppercase tracking-wide text-csnb-muted transition-colors duration-200 hover:text-white"
+                className="rounded-sm px-1 py-2 font-heading text-sm font-medium uppercase tracking-wide text-csnb-muted transition-colors duration-200 hover:text-white"
               >
                 {link.label}
               </Link>
@@ -60,13 +63,13 @@ export default function Header() {
           <div className="hidden lg:flex items-center gap-3">
             <Link
               href="/login"
-              className="text-sm font-medium text-csnb-muted transition-colors hover:text-white"
+              className="rounded-sm px-2 py-2 text-sm font-medium text-csnb-muted transition-colors hover:text-white"
             >
               Đăng Nhập
             </Link>
             <Link
               href="/#pricing"
-              className="inline-flex items-center gap-2 rounded-sm bg-csnb-orange px-5 py-2.5 font-heading text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-csnb-orange-deep"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-csnb-orange px-5 py-2.5 font-heading text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-csnb-orange-deep"
             >
               Chọn khóa học
               <ArrowRight size={14} />
@@ -75,8 +78,10 @@ export default function Header() {
 
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden text-white p-2"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-white lg:hidden"
             type="button"
+            aria-expanded={isOpen}
+            aria-controls="site-mobile-nav"
             aria-label={isOpen ? "Đóng menu" : "Mở menu"}
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -85,32 +90,35 @@ export default function Header() {
       </div>
 
       {isOpen && (
-        <div className="border-t border-csnb-border bg-csnb-surface lg:hidden">
-          <div className="px-4 py-4 space-y-3">
+        <div id="site-mobile-nav" className="border-t border-csnb-border bg-csnb-surface lg:hidden">
+          <nav className="space-y-1 px-4 py-4" aria-label="Menu chính">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
-                className="block py-2 font-heading text-sm font-semibold uppercase tracking-wider text-csnb-muted transition-colors hover:text-white"
+                className="block rounded-md py-3 font-heading text-sm font-semibold uppercase tracking-wider text-csnb-muted transition-colors hover:bg-white/5 hover:text-white"
               >
                 {link.label}
               </Link>
             ))}
-            <div className="flex flex-col gap-3 border-t border-csnb-border pt-3">
-              <Link href="/login" className="py-2 text-center text-sm text-csnb-muted hover:text-white">
+            <div className="mt-3 flex flex-col gap-2 border-t border-csnb-border pt-4">
+              <Link
+                href="/login"
+                className="rounded-md py-3 text-center text-sm text-csnb-muted hover:bg-white/5 hover:text-white"
+              >
                 Đăng Nhập
               </Link>
               <Link
                 href="/#pricing"
                 onClick={() => setIsOpen(false)}
-                className="inline-flex items-center justify-center gap-2 rounded-sm bg-csnb-orange px-5 py-3 text-center font-heading text-sm font-bold uppercase tracking-wider text-white hover:bg-csnb-orange-deep"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-csnb-orange px-5 py-3 text-center font-heading text-sm font-bold uppercase tracking-wider text-white hover:bg-csnb-orange-deep"
               >
                 Chọn khóa học
                 <ArrowRight size={14} />
               </Link>
             </div>
-          </div>
+          </nav>
         </div>
       )}
     </header>
