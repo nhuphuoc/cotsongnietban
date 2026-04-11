@@ -5,7 +5,8 @@ import { CheckCircle2, Circle, Lock, Play, Clock, ArrowLeft } from "lucide-react
 const course = {
   id: "1",
   title: "Phục Hồi Lưng Cơ Bản",
-  description: "Lộ trình khoa học 12 bài giảng từ nền tảng đến nâng cao. Bạn sẽ hiểu nguyên nhân đau lưng, cách vận động đúng và xây dựng thói quen chuyển động khỏe mạnh lâu dài.",
+  description:
+    "Lộ trình khoa học 12 bài giảng từ nền tảng đến nâng cao. Bạn sẽ hiểu nguyên nhân đau lưng, cách vận động đúng và xây dựng thói quen chuyển động khỏe mạnh lâu dài.",
   thumbnail: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop",
   progress: 75,
   completedLessons: 9,
@@ -34,15 +35,16 @@ export default function CourseDetailPage({ params }: { params: { courseId: strin
 
   return (
     <div className="p-6 lg:p-8">
-      <Link href="/dashboard" className="inline-flex items-center gap-2 text-[#a0a0a0] hover:text-white text-sm mb-6 transition-colors">
+      <Link
+        href="/dashboard"
+        className="mb-6 inline-flex items-center gap-2 font-sans text-sm text-csnb-muted transition-colors hover:text-white"
+      >
         <ArrowLeft size={16} /> Quay lại Dashboard
       </Link>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Main */}
+      <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          {/* Thumbnail */}
-          <div className="relative aspect-video rounded-sm overflow-hidden mb-6">
+          <div className="relative mb-6 aspect-video overflow-hidden rounded-xl border border-csnb-border ring-1 ring-white/5">
             <Image
               src={course.thumbnail}
               alt={course.title}
@@ -50,67 +52,71 @@ export default function CourseDetailPage({ params }: { params: { courseId: strin
               sizes="(max-width: 1023px) 100vw, 66vw"
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center bg-csnb-bg/55">
               {nextLesson && (
                 <Link
                   href={`/courses/${course.id}/lessons/${nextLesson.id}`}
-                  className="flex items-center gap-3 bg-[#c0392b] hover:bg-[#96281b] text-white font-heading font-bold text-sm px-6 py-3 rounded-sm uppercase tracking-wide transition-colors"
+                  className="flex items-center gap-3 rounded-md bg-csnb-orange px-6 py-3 font-heading text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-csnb-orange-deep"
                 >
-                  <Play size={18} /> Tiếp Tục Học
+                  <Play size={18} /> Tiếp tục học
                 </Link>
               )}
             </div>
           </div>
 
-          <h1 className="font-heading font-black text-white text-2xl uppercase mb-2">{course.title}</h1>
-          <p className="text-[#a0a0a0] text-sm leading-relaxed mb-6">{course.description}</p>
+          <h1 className="mb-2 font-heading text-2xl font-black uppercase text-white">{course.title}</h1>
+          <p className="mb-6 font-sans text-sm leading-relaxed text-csnb-muted">{course.description}</p>
 
-          {/* Progress */}
-          <div className="bg-[#111] border border-[#222] rounded-sm p-4 mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-white font-heading font-bold text-sm">Tiến Độ Học Tập</span>
-              <span className="text-[#e67e22] font-heading font-black">{course.progress}%</span>
+          <div className="mb-6 rounded-xl border border-csnb-border bg-csnb-surface/95 p-4 ring-1 ring-white/5">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-heading text-sm font-bold text-white">Tiến độ học tập</span>
+              <span className="font-heading font-black text-csnb-orange-bright">{course.progress}%</span>
             </div>
-            <div className="h-2 bg-[#222] rounded-full overflow-hidden">
-              <div className="h-full bg-[#c0392b] rounded-full" style={{ width: `${course.progress}%` }} />
+            <div className="h-2 overflow-hidden rounded-full bg-csnb-border">
+              <div className="h-full rounded-full bg-csnb-orange" style={{ width: `${course.progress}%` }} />
             </div>
-            <div className="flex items-center justify-between mt-2 text-xs text-[#a0a0a0]">
-              <span>{course.completedLessons}/{course.totalLessons} bài hoàn thành</span>
-              <span>Hết hạn: {course.expiresAt} (còn {course.daysLeft} ngày)</span>
+            <div className="mt-2 flex items-center justify-between font-sans text-xs text-csnb-muted">
+              <span>
+                {course.completedLessons}/{course.totalLessons} bài hoàn thành
+              </span>
+              <span>
+                Hết hạn: {course.expiresAt} (còn {course.daysLeft} ngày)
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Lesson List */}
         <div>
-          <h2 className="font-heading font-bold text-white text-sm uppercase tracking-wider mb-3">
-            Danh Sách Bài Giảng
-          </h2>
-          <div className="bg-[#111] border border-[#222] rounded-sm overflow-hidden">
+          <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wider text-white">Danh sách bài giảng</h2>
+          <div className="overflow-hidden rounded-xl border border-csnb-border bg-csnb-surface/95 ring-1 ring-white/5">
             {lessons.map((lesson, i) => (
-              <div key={lesson.id} className={`${i < lessons.length - 1 ? "border-b border-[#222]" : ""}`}>
+              <div key={lesson.id} className={i < lessons.length - 1 ? "border-b border-csnb-border" : ""}>
                 {lesson.locked ? (
                   <div className="flex items-center gap-3 px-4 py-3 opacity-40">
-                    <Lock size={14} className="text-[#a0a0a0] shrink-0" />
-                    <span className="text-[#a0a0a0] text-xs flex-1">{lesson.title}</span>
-                    <span className="text-[#a0a0a0] text-xs flex items-center gap-1">
+                    <Lock size={14} className="shrink-0 text-csnb-muted" />
+                    <span className="flex-1 font-sans text-xs text-csnb-muted">{lesson.title}</span>
+                    <span className="flex items-center gap-1 font-sans text-xs text-csnb-muted">
                       <Clock size={10} /> {lesson.duration}
                     </span>
                   </div>
                 ) : (
                   <Link
                     href={`/courses/${course.id}/lessons/${lesson.id}`}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors group"
+                    className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/5"
                   >
                     {lesson.completed ? (
-                      <CheckCircle2 size={14} className="text-green-400 shrink-0" />
+                      <CheckCircle2 size={14} className="shrink-0 text-emerald-400" />
                     ) : (
-                      <Circle size={14} className="text-[#c0392b] shrink-0" />
+                      <Circle size={14} className="shrink-0 text-csnb-orange" />
                     )}
-                    <span className={`text-xs flex-1 group-hover:text-white transition-colors ${lesson.completed ? "text-[#a0a0a0]" : "text-white"}`}>
+                    <span
+                      className={`flex-1 font-sans text-xs transition-colors group-hover:text-white ${
+                        lesson.completed ? "text-csnb-muted" : "text-white"
+                      }`}
+                    >
                       {lesson.title}
                     </span>
-                    <span className="text-[#a0a0a0] text-xs flex items-center gap-1 shrink-0">
+                    <span className="flex shrink-0 items-center gap-1 font-sans text-xs text-csnb-muted">
                       <Clock size={10} /> {lesson.duration}
                     </span>
                   </Link>

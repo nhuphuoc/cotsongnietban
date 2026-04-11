@@ -31,103 +31,91 @@ export default function LessonViewPage({
   const nextLesson = lessons[currentIndex + 1];
 
   return (
-    <div className="flex flex-col lg:flex-row h-full">
-      {/* Main Video Area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Back */}
-        <div className="px-6 py-3 border-b border-[#222] flex items-center gap-3">
+    <div className="flex h-full flex-col lg:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex items-center gap-3 border-b border-csnb-border px-6 py-3">
           <Link
             href={`/courses/${params.courseId}`}
-            className="flex items-center gap-1.5 text-[#a0a0a0] hover:text-white text-xs transition-colors font-heading"
+            className="flex items-center gap-1.5 font-heading text-xs text-csnb-muted transition-colors hover:text-white"
           >
             <ArrowLeft size={14} /> Phục Hồi Lưng Cơ Bản
           </Link>
-          <ChevronRight size={12} className="text-[#333]" />
-          <span className="text-white text-xs font-heading truncate">{currentLesson.title}</span>
+          <ChevronRight size={12} className="text-csnb-border" />
+          <span className="truncate font-heading text-xs text-white">{currentLesson.title}</span>
         </div>
 
-        {/* Video Player */}
-        <div className="relative bg-black" style={{ aspectRatio: "16/9", maxHeight: "calc(100vh - 200px)" }}>
-          {/* Bunny.net placeholder */}
-          <div
-            className="w-full h-full flex items-center justify-center"
-            onContextMenu={(e) => e.preventDefault()}
-          >
+        <div
+          className="relative bg-csnb-bg"
+          style={{ aspectRatio: "16/9", maxHeight: "calc(100vh - 200px)" }}
+        >
+          <div className="flex h-full w-full items-center justify-center" onContextMenu={(e) => e.preventDefault()}>
             <div className="text-center">
-              <div className="w-20 h-20 border-2 border-[#c0392b]/30 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:border-[#c0392b] transition-colors group">
-                <div className="w-0 h-0 border-t-[14px] border-t-transparent border-l-[24px] border-l-[#c0392b] border-b-[14px] border-b-transparent ml-1 group-hover:border-l-white transition-colors" />
+              <div className="group mx-auto mb-4 flex h-20 w-20 cursor-pointer items-center justify-center rounded-full border-2 border-csnb-orange/35 transition-colors hover:border-csnb-orange">
+                <div className="ml-1 h-0 w-0 border-b-[14px] border-l-[24px] border-t-[14px] border-b-transparent border-l-csnb-orange border-t-transparent transition-colors group-hover:border-l-white" />
               </div>
-              <div className="text-[#a0a0a0] text-sm">
-                Bunny.net Video Player
-              </div>
-              <div className="text-[#333] text-xs mt-1">
-                Video ID: bunny-video-placeholder
-              </div>
+              <div className="font-sans text-sm text-csnb-muted">Bunny.net Video Player</div>
+              <div className="mt-1 font-sans text-xs text-csnb-border">Video ID: bunny-video-placeholder</div>
             </div>
           </div>
-
-          {/* Transparent overlay to prevent right-click download */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ userSelect: "none" }}
-          />
+          <div className="pointer-events-none absolute inset-0" style={{ userSelect: "none" }} />
         </div>
 
-        {/* Lesson Info & CTA */}
-        <div className="px-6 py-4 border-t border-[#222] bg-[#111]">
+        <div className="border-t border-csnb-border bg-csnb-surface/95 px-6 py-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="font-heading font-bold text-white text-base">{currentLesson.title}</h1>
-              <div className="flex items-center gap-3 mt-1 text-[#a0a0a0] text-xs">
-                <span className="flex items-center gap-1"><Clock size={11} /> {currentLesson.duration}</span>
-                <span>Bài {currentIndex + 1} / {lessons.length}</span>
+              <h1 className="font-heading text-base font-bold text-white">{currentLesson.title}</h1>
+              <div className="mt-1 flex items-center gap-3 font-sans text-xs text-csnb-muted">
+                <span className="flex items-center gap-1">
+                  <Clock size={11} /> {currentLesson.duration}
+                </span>
+                <span>
+                  Bài {currentIndex + 1} / {lessons.length}
+                </span>
               </div>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex shrink-0 items-center gap-3">
               {nextLesson && !nextLesson.locked && (
                 <Link
                   href={`/courses/${params.courseId}/lessons/${nextLesson.id}`}
-                  className="text-xs text-[#a0a0a0] hover:text-white transition-colors font-heading"
+                  className="font-heading text-xs text-csnb-muted transition-colors hover:text-white"
                 >
                   Bài tiếp →
                 </Link>
               )}
               <button
+                type="button"
                 onClick={() => setCompleted(true)}
                 disabled={completed}
-                className={`flex items-center gap-2 text-sm font-heading font-bold px-4 py-2 rounded-sm uppercase tracking-wide transition-colors ${
+                className={`flex items-center gap-2 rounded-md px-4 py-2 font-heading text-sm font-bold uppercase tracking-wide transition-colors ${
                   completed
-                    ? "bg-green-600/20 text-green-400 border border-green-600/30 cursor-default"
-                    : "bg-[#c0392b] hover:bg-[#96281b] text-white"
+                    ? "cursor-default border border-emerald-600/30 bg-emerald-600/20 text-emerald-400"
+                    : "bg-csnb-orange text-white hover:bg-csnb-orange-deep"
                 }`}
               >
                 <CheckCircle2 size={15} />
-                {completed ? "Đã Hoàn Thành" : "Đánh Dấu Hoàn Thành"}
+                {completed ? "Đã hoàn thành" : "Đánh dấu hoàn thành"}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Notes */}
-        <div className="px-6 py-5 flex-1">
-          <h2 className="font-heading font-bold text-white text-sm uppercase tracking-wide mb-3">
-            Ghi Chú Bài Học
-          </h2>
-          <div className="bg-[#111] border border-[#222] rounded-sm p-4 text-[#a0a0a0] text-sm leading-relaxed">
+        <div className="flex-1 px-6 py-5">
+          <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-white">Ghi chú bài học</h2>
+          <div className="rounded-xl border border-csnb-border bg-csnb-surface/95 p-4 font-sans text-sm leading-relaxed text-csnb-muted ring-1 ring-white/5">
             <p className="mb-2">
               <strong className="text-white">Corrective Hip Hinge</strong> là một trong những chuyển động cơ bản quan trọng nhất để bảo vệ cột sống thắt lưng.
             </p>
             <ul className="space-y-1 text-sm">
               <li className="flex items-start gap-2">
-                <span className="text-[#c0392b] mt-1">•</span>
+                <span className="mt-1 text-csnb-orange">•</span>
                 Giữ lưng thẳng, không cong vẹo
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-[#c0392b] mt-1">•</span>
+                <span className="mt-1 text-csnb-orange">•</span>
                 Tập trung vào việc gấp hông, không gấp lưng
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-[#c0392b] mt-1">•</span>
+                <span className="mt-1 text-csnb-orange">•</span>
                 Hít thở đúng nhịp: hít vào khi xuống, thở ra khi lên
               </li>
             </ul>
@@ -135,46 +123,42 @@ export default function LessonViewPage({
         </div>
       </div>
 
-      {/* Lesson List Sidebar */}
-      <div className="w-full lg:w-72 border-t lg:border-t-0 lg:border-l border-[#222] bg-[#111] flex flex-col">
-        <div className="p-4 border-b border-[#222]">
-          <h2 className="font-heading font-bold text-white text-xs uppercase tracking-wider">
-            Nội Dung Khóa Học
-          </h2>
-          <div className="text-[#a0a0a0] text-xs mt-1">9/12 bài hoàn thành</div>
+      <div className="flex w-full flex-col border-t border-csnb-border bg-csnb-surface/95 lg:w-72 lg:border-t-0 lg:border-l">
+        <div className="border-b border-csnb-border p-4">
+          <h2 className="font-heading text-xs font-bold uppercase tracking-wider text-white">Nội dung khóa học</h2>
+          <div className="mt-1 font-sans text-xs text-csnb-muted">9/12 bài hoàn thành</div>
         </div>
         <div className="flex-1 overflow-y-auto">
           {lessons.map((lesson, i) => (
-            <div
-              key={lesson.id}
-              className={`${i < lessons.length - 1 ? "border-b border-[#222]" : ""}`}
-            >
+            <div key={lesson.id} className={i < lessons.length - 1 ? "border-b border-csnb-border" : ""}>
               {lesson.locked ? (
                 <div className="flex items-center gap-3 px-4 py-3 opacity-40">
-                  <Lock size={12} className="text-[#a0a0a0] shrink-0" />
-                  <span className="text-[#a0a0a0] text-xs flex-1 line-clamp-2">{lesson.title}</span>
+                  <Lock size={12} className="shrink-0 text-csnb-muted" />
+                  <span className="line-clamp-2 flex-1 font-sans text-xs text-csnb-muted">{lesson.title}</span>
                 </div>
               ) : (
                 <Link
                   href={`/courses/${params.courseId}/lessons/${lesson.id}`}
-                  className={`flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors group ${
-                    lesson.id === params.lessonId ? "bg-[#c0392b]/10 border-r-2 border-[#c0392b]" : ""
+                  className={`group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/5 ${
+                    lesson.id === params.lessonId ? "border-r-2 border-csnb-orange bg-csnb-orange/10" : ""
                   }`}
                 >
                   {lesson.completed ? (
-                    <CheckCircle2 size={12} className="text-green-400 shrink-0" />
+                    <CheckCircle2 size={12} className="shrink-0 text-emerald-400" />
                   ) : lesson.id === params.lessonId ? (
-                    <div className="w-3 h-3 bg-[#c0392b] rounded-full shrink-0" />
+                    <div className="h-3 w-3 shrink-0 rounded-full bg-csnb-orange" />
                   ) : (
-                    <Circle size={12} className="text-[#333] shrink-0" />
+                    <Circle size={12} className="shrink-0 text-csnb-border" />
                   )}
-                  <span className={`text-xs flex-1 line-clamp-2 ${
-                    lesson.id === params.lessonId
-                      ? "text-white font-semibold"
-                      : lesson.completed
-                      ? "text-[#555]"
-                      : "text-[#a0a0a0] group-hover:text-white"
-                  }`}>
+                  <span
+                    className={`line-clamp-2 flex-1 font-sans text-xs ${
+                      lesson.id === params.lessonId
+                        ? "font-semibold text-white"
+                        : lesson.completed
+                          ? "text-csnb-muted/80"
+                          : "text-csnb-muted group-hover:text-white"
+                    }`}
+                  >
                     {lesson.title}
                   </span>
                 </Link>
@@ -182,24 +166,24 @@ export default function LessonViewPage({
             </div>
           ))}
         </div>
-        <div className="p-4 border-t border-[#222]">
+        <div className="border-t border-csnb-border p-4">
           <a
             href={SITE_CONTACT.zaloUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full bg-[#0068FF] hover:bg-[#0051CC] text-white text-xs font-heading font-bold py-2.5 rounded-sm uppercase tracking-wide transition-colors"
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-csnb-orange py-2.5 font-heading text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-csnb-orange-deep"
           >
-            <MessageCircle size={14} /> Hỗ Trợ Qua Zalo
+            <MessageCircle size={14} /> Hỗ trợ qua Zalo
           </a>
         </div>
       </div>
 
-      {/* Floating Zalo */}
       <a
         href={SITE_CONTACT.zaloUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-[#0068FF] hover:bg-[#0051CC] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors lg:hidden"
+        className="fixed right-6 bottom-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-csnb-orange text-white shadow-lg transition-colors hover:bg-csnb-orange-deep lg:hidden"
+        aria-label="Zalo hỗ trợ"
       >
         <MessageCircle size={20} />
       </a>

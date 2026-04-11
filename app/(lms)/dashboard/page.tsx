@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Clock, BookOpen, CheckCircle2, AlertCircle, ArrowRight, Play } from "lucide-react";
+import { Clock, BookOpen, CheckCircle2, AlertCircle, Play } from "lucide-react";
 
 const courses = [
   {
@@ -40,37 +40,33 @@ const recentActivity = [
 export default function DashboardPage() {
   return (
     <div className="p-6 lg:p-8">
-      {/* Header */}
       <div className="mb-8">
-        <h1 className="font-heading font-black text-white text-2xl uppercase tracking-wide">
-          Xin Chào, Học Viên! 👋
-        </h1>
-        <p className="text-[#a0a0a0] text-sm mt-1">Tiếp tục hành trình phục hồi của bạn hôm nay.</p>
+        <h1 className="font-heading text-2xl font-black uppercase tracking-wide text-white">Xin chào, học viên! 👋</h1>
+        <p className="mt-1 font-sans text-sm text-csnb-muted">Tiếp tục hành trình phục hồi của bạn hôm nay.</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          { label: "Khóa Học Đang Học", value: "2", icon: BookOpen, color: "text-[#c0392b]" },
-          { label: "Bài Đã Hoàn Thành", value: "15", icon: CheckCircle2, color: "text-green-400" },
-          { label: "Giờ Đã Học", value: "12.5h", icon: Clock, color: "text-[#e67e22]" },
-          { label: "Ngày Còn Lại (TB)", value: "165", icon: AlertCircle, color: "text-blue-400" },
+          { label: "Khóa học đang học", value: "2", icon: BookOpen, color: "text-csnb-orange-bright" },
+          { label: "Bài đã hoàn thành", value: "15", icon: CheckCircle2, color: "text-emerald-400" },
+          { label: "Giờ đã học", value: "12.5h", icon: Clock, color: "text-csnb-orange" },
+          { label: "Ngày còn lại (TB)", value: "165", icon: AlertCircle, color: "text-sky-400" },
         ].map((stat, i) => (
-          <div key={i} className="bg-[#111] border border-[#222] rounded-sm p-4">
+          <div key={i} className="rounded-xl border border-csnb-border bg-csnb-surface/95 p-4 ring-1 ring-white/5">
             <stat.icon size={20} className={`${stat.color} mb-2`} />
-            <div className="font-heading font-black text-white text-xl">{stat.value}</div>
-            <div className="text-[#a0a0a0] text-xs mt-0.5">{stat.label}</div>
+            <div className="font-heading text-xl font-black text-white">{stat.value}</div>
+            <div className="mt-0.5 font-sans text-xs text-csnb-muted">{stat.label}</div>
           </div>
         ))}
       </div>
 
-      {/* My Courses */}
-      <h2 className="font-heading font-bold text-white text-sm uppercase tracking-wider mb-4">
-        Khóa Học Của Tôi
-      </h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+      <h2 className="mb-4 font-heading text-sm font-bold uppercase tracking-wider text-white">Khóa học của tôi</h2>
+      <div className="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
         {courses.map((course) => (
-          <div key={course.id} className="bg-[#111] border border-[#222] rounded-sm overflow-hidden hover:border-[#c0392b]/30 transition-colors">
+          <div
+            key={course.id}
+            className="overflow-hidden rounded-xl border border-csnb-border bg-csnb-surface/95 ring-1 ring-white/5 transition-colors hover:border-csnb-orange/30"
+          >
             <div className="relative aspect-video">
               <Image
                 src={course.thumbnail}
@@ -79,35 +75,39 @@ export default function DashboardPage() {
                 sizes="(max-width: 1023px) 100vw, 50vw"
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-3 left-3 right-3">
-                <div className="flex items-center justify-between text-white text-xs">
-                  <span className="font-heading font-bold">{course.completedLessons}/{course.totalLessons} bài</span>
-                  <span className={`px-2 py-0.5 rounded font-heading font-bold ${course.daysLeft <= 30 ? "bg-[#c0392b]" : "bg-[#e67e22]"}`}>
-                    Còn {course.daysLeft} ngày
-                  </span>
-                </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-csnb-bg/80 to-transparent" />
+              <div className="absolute right-3 bottom-3 left-3 flex items-center justify-between text-xs text-white">
+                <span className="font-heading font-bold">
+                  {course.completedLessons}/{course.totalLessons} bài
+                </span>
+                <span
+                  className={`rounded px-2 py-0.5 font-heading font-bold ${
+                    course.daysLeft <= 30 ? "bg-csnb-orange-deep" : "bg-csnb-orange"
+                  }`}
+                >
+                  Còn {course.daysLeft} ngày
+                </span>
               </div>
             </div>
             <div className="p-4">
-              <h3 className="font-heading font-bold text-white text-base mb-1">{course.title}</h3>
-              <p className="text-[#a0a0a0] text-xs mb-3">{course.description}</p>
+              <h3 className="mb-1 font-heading text-base font-bold text-white">{course.title}</h3>
+              <p className="mb-3 font-sans text-xs text-csnb-muted">{course.description}</p>
               <div className="mb-3">
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-[#a0a0a0]">Tiến độ</span>
-                  <span className="text-[#e67e22] font-heading font-bold">{course.progress}%</span>
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="text-csnb-muted">Tiến độ</span>
+                  <span className="font-heading font-bold text-csnb-orange-bright">{course.progress}%</span>
                 </div>
-                <div className="h-1.5 bg-[#222] rounded-full overflow-hidden">
-                  <div className="h-full bg-[#c0392b] rounded-full" style={{ width: `${course.progress}%` }} />
+                <div className="h-1.5 overflow-hidden rounded-full bg-csnb-border">
+                  <div className="h-full rounded-full bg-csnb-orange" style={{ width: `${course.progress}%` }} />
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[#a0a0a0] text-xs">Tiếp: {course.lastLesson}</span>
+                <span className="font-sans text-xs text-csnb-muted">Tiếp: {course.lastLesson}</span>
                 <Link
                   href={`/courses/${course.id}`}
-                  className="flex items-center gap-1.5 bg-[#c0392b] hover:bg-[#96281b] text-white text-xs font-heading font-bold px-3 py-1.5 rounded-sm transition-colors uppercase tracking-wide"
+                  className="flex items-center gap-1.5 rounded-md bg-csnb-orange px-3 py-1.5 font-heading text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-csnb-orange-deep"
                 >
-                  <Play size={12} /> Học Ngay
+                  <Play size={12} /> Học ngay
                 </Link>
               </div>
             </div>
@@ -115,19 +115,19 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Recent Activity */}
-      <h2 className="font-heading font-bold text-white text-sm uppercase tracking-wider mb-4">
-        Hoạt Động Gần Đây
-      </h2>
-      <div className="bg-[#111] border border-[#222] rounded-sm overflow-hidden">
+      <h2 className="mb-4 font-heading text-sm font-bold uppercase tracking-wider text-white">Hoạt động gần đây</h2>
+      <div className="overflow-hidden rounded-xl border border-csnb-border bg-csnb-surface/95 ring-1 ring-white/5">
         {recentActivity.map((activity, i) => (
-          <div key={i} className={`flex items-start gap-3 p-4 ${i < recentActivity.length - 1 ? "border-b border-[#222]" : ""}`}>
-            <CheckCircle2 size={16} className="text-green-400 mt-0.5 shrink-0" />
+          <div
+            key={i}
+            className={`flex items-start gap-3 p-4 ${i < recentActivity.length - 1 ? "border-b border-csnb-border" : ""}`}
+          >
+            <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-400" />
             <div className="flex-1">
-              <div className="font-heading font-semibold text-white text-sm">{activity.lesson}</div>
-              <div className="text-[#a0a0a0] text-xs mt-0.5">{activity.course}</div>
+              <div className="font-heading text-sm font-semibold text-white">{activity.lesson}</div>
+              <div className="mt-0.5 font-sans text-xs text-csnb-muted">{activity.course}</div>
             </div>
-            <span className="text-[#a0a0a0] text-xs shrink-0">{activity.time}</span>
+            <span className="shrink-0 font-sans text-xs text-csnb-muted">{activity.time}</span>
           </div>
         ))}
       </div>
