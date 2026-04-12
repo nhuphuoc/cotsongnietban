@@ -81,7 +81,7 @@ export function PublicHocLessonClient({ courseId, lessonId }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-csnb-panel/30 via-white to-csnb-panel/40 pt-16 sm:pt-[4.25rem]">
+    <div className="flex min-h-[100dvh] flex-col overflow-x-clip bg-gradient-to-b from-csnb-panel/30 via-white to-csnb-panel/40 pt-16 sm:pt-[4.25rem]">
       <header className="sticky top-16 z-30 flex shrink-0 items-center justify-between gap-3 border-b border-csnb-border bg-csnb-bg px-4 py-3 sm:top-[4.25rem] sm:px-6">
         <Link
           href="/hoc-cua-toi"
@@ -108,8 +108,8 @@ export function PublicHocLessonClient({ courseId, lessonId }: Props) {
 
           <div className="flex min-h-0 flex-1 flex-col border-t border-csnb-border/20 bg-white">
             <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col">
-              <div className="shrink-0 border-b border-csnb-border/20 px-4 pt-3 sm:px-6">
-                <TabsList variant="line" className="h-auto w-full justify-start gap-6 rounded-none bg-transparent p-0">
+              <div className="shrink-0 overflow-x-auto border-b border-csnb-border/20 px-4 pt-3 sm:px-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <TabsList variant="line" className="h-auto min-w-max justify-start gap-6 rounded-none bg-transparent p-0 sm:w-full sm:min-w-0">
                   <TabsTrigger
                     value="overview"
                     className="rounded-none border-0 px-0 pb-3 font-sans text-sm data-active:text-csnb-ink after:bg-csnb-orange-deep"
@@ -141,15 +141,15 @@ export function PublicHocLessonClient({ courseId, lessonId }: Props) {
                   </span>
                 </div>
                 <p className="mt-4 max-w-2xl font-sans text-sm leading-relaxed text-neutral-600">{course.description}</p>
-                <div className="mt-6 flex flex-wrap items-center gap-3">
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                   <button
                     type="button"
                     onClick={() => setCompletedLocal(true)}
                     disabled={completedLocal}
                     className={
                       completedLocal
-                        ? "inline-flex cursor-default items-center gap-2 rounded-md border border-csnb-border/40 bg-csnb-panel px-4 py-2 font-sans text-sm font-semibold text-csnb-ink"
-                        : "inline-flex items-center gap-2 rounded-md bg-csnb-orange px-4 py-2 font-sans text-sm font-semibold text-white hover:bg-csnb-orange-deep"
+                        ? "inline-flex min-h-11 w-full cursor-default items-center justify-center gap-2 rounded-md border border-csnb-border/40 bg-csnb-panel px-4 py-2 font-sans text-sm font-semibold text-csnb-ink sm:w-auto"
+                        : "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-csnb-orange px-4 py-2 font-sans text-sm font-semibold text-white hover:bg-csnb-orange-deep sm:w-auto"
                     }
                   >
                     <CheckCircle2 className="size-4" />
@@ -158,7 +158,7 @@ export function PublicHocLessonClient({ courseId, lessonId }: Props) {
                   {nextLesson ? (
                     <Link
                       href={lessonHref(nextLesson.id)}
-                      className="font-sans text-sm font-semibold text-csnb-orange-deep hover:underline"
+                      className="inline-flex min-h-11 items-center font-sans text-sm font-semibold text-csnb-orange-deep hover:underline sm:min-h-0"
                     >
                       Bài tiếp theo →
                     </Link>
@@ -200,12 +200,12 @@ export function PublicHocLessonClient({ courseId, lessonId }: Props) {
               accent="brand"
             />
           </div>
-          <div className="shrink-0 border-t border-csnb-border/20 p-3">
+          <div className="shrink-0 border-t border-csnb-border/20 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <a
               href={SITE_CONTACT.zaloUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-md border border-csnb-border/35 bg-csnb-panel/60 py-2.5 font-sans text-xs font-semibold text-csnb-ink transition-colors hover:border-csnb-orange/40 hover:bg-csnb-orange/10"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-csnb-border/35 bg-csnb-panel/60 px-3 py-2.5 font-sans text-xs font-semibold text-csnb-ink transition-colors hover:border-csnb-orange/40 hover:bg-csnb-orange/10"
             >
               <MessageCircle className="size-4 text-csnb-orange-deep" />
               Tư vấn trực tiếp

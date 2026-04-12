@@ -76,7 +76,7 @@ export default function LessonViewPage({
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-neutral-100">
+    <div className="flex min-h-[100dvh] flex-col overflow-x-clip bg-neutral-100 lg:min-h-full">
       <header className="relative z-20 flex shrink-0 items-center justify-between gap-3 border-b border-neutral-800 bg-[#1c1d1f] px-4 py-3 sm:px-5">
         <Link
           href={`/courses/${params.courseId}`}
@@ -102,8 +102,8 @@ export default function LessonViewPage({
 
           <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-200 bg-white">
             <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col">
-              <div className="shrink-0 border-b border-neutral-200 px-4 pt-3 sm:px-6">
-                <TabsList variant="line" className="h-auto w-full justify-start gap-4 rounded-none bg-transparent p-0">
+              <div className="shrink-0 overflow-x-auto border-b border-neutral-200 px-4 pt-3 sm:px-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <TabsList variant="line" className="h-auto min-w-max justify-start gap-4 rounded-none bg-transparent p-0 sm:w-full sm:min-w-0">
                   <TabsTrigger value="overview" className="rounded-none px-0 pb-3 text-sm">
                     Tổng quan
                   </TabsTrigger>
@@ -131,15 +131,15 @@ export default function LessonViewPage({
                 <p className="mt-4 max-w-2xl font-sans text-sm leading-relaxed text-neutral-600">
                   {course.description}
                 </p>
-                <div className="mt-6 flex flex-wrap items-center gap-3">
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                   <button
                     type="button"
                     onClick={() => setCompletedLocal(true)}
                     disabled={completedLocal}
                     className={
                       completedLocal
-                        ? "inline-flex cursor-default items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 font-sans text-sm font-semibold text-emerald-800"
-                        : "inline-flex items-center gap-2 rounded-md bg-violet-600 px-4 py-2 font-sans text-sm font-semibold text-white hover:bg-violet-700"
+                        ? "inline-flex min-h-11 w-full cursor-default items-center justify-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 font-sans text-sm font-semibold text-emerald-800 sm:w-auto"
+                        : "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-violet-600 px-4 py-2 font-sans text-sm font-semibold text-white hover:bg-violet-700 sm:w-auto"
                     }
                   >
                     <CheckCircle2 className="size-4" />
@@ -148,7 +148,7 @@ export default function LessonViewPage({
                   {nextLesson ? (
                     <Link
                       href={`/courses/${params.courseId}/lessons/${nextLesson.id}`}
-                      className="font-sans text-sm font-medium text-violet-700 hover:underline"
+                      className="inline-flex min-h-11 items-center font-sans text-sm font-medium text-violet-700 hover:underline sm:min-h-0"
                     >
                       Bài tiếp theo →
                     </Link>
@@ -190,12 +190,12 @@ export default function LessonViewPage({
           <div className="flex max-h-[min(52vh,440px)] min-h-[min(44vh,320px)] flex-1 flex-col overflow-hidden lg:max-h-none lg:min-h-0 lg:flex-1">
             <CourseCurriculumSidebar course={course} courseId={params.courseId} activeLessonId={lesson.id} />
           </div>
-          <div className="shrink-0 border-t border-neutral-200 p-3">
+          <div className="shrink-0 border-t border-neutral-200 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <a
               href={SITE_CONTACT.zaloUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 py-2.5 font-sans text-xs font-semibold text-neutral-800 transition-colors hover:bg-neutral-100"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 font-sans text-xs font-semibold text-neutral-800 transition-colors hover:bg-neutral-100"
             >
               <MessageCircle className="size-4" />
               Tư vấn trực tiếp

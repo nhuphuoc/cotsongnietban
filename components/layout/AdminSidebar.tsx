@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SiteLogoMark } from "@/components/brand/site-logo-mark";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, BookOpen, ShoppingCart, FileText, LogOut, Settings
@@ -22,9 +23,7 @@ export default function AdminSidebar() {
       {/* Logo */}
       <div className="p-5 border-b border-gray-200">
         <Link href="/admin" className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-[#c0392b] rounded flex items-center justify-center">
-            <span className="text-white font-black text-xs font-heading">C</span>
-          </div>
+          <SiteLogoMark boxClassName="block h-7 w-7" alt="" />
           <div className="flex flex-col leading-none">
             <span className="font-heading font-black text-gray-900 text-xs uppercase tracking-wide">CSNB Admin</span>
             <span className="text-gray-400 text-[10px] mt-0.5">Quản Trị Viên</span>

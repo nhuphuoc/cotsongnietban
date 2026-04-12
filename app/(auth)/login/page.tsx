@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SiteLogoMark } from "@/components/brand/site-logo-mark";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 type Props = { searchParams?: Promise<{ error?: string }> };
@@ -14,9 +15,7 @@ export default async function LoginPage({ searchParams }: Props) {
       <div className="relative w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex flex-col items-center gap-2">
-            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-csnb-orange">
-              <span className="font-heading text-xl font-black text-white">C</span>
-            </div>
+            <SiteLogoMark boxClassName="mx-auto block h-12 w-12" />
             <div className="font-heading text-lg font-black uppercase leading-tight tracking-wider text-white">
               Cột Sống Niết Bàn
             </div>

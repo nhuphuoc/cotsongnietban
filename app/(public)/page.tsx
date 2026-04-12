@@ -41,6 +41,10 @@ import {
 } from "@/components/ui/dialog";
 
 /* ─── MOCK DATA ─────────────────────────────────────────── */
+/** Ảnh hero cột phải / nền blur mobile */
+const heroWorkoutPhotoSrc =
+  "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&h=800&fit=crop&q=75";
+
 const trustStats = [
   { number: "200+", label: "Hơn 200 học viên" },
   { number: "100%", label: "Có đánh giá tốt" },
@@ -263,9 +267,9 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="bg-csnb-bg text-white antialiased">
+    <div className="overflow-x-clip bg-csnb-bg text-white antialiased">
       {/* ── HERO ───────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-csnb-bg pt-24 pb-16 sm:pt-28 sm:pb-20 lg:pt-32 lg:pb-28">
+      <section className="relative overflow-hidden bg-csnb-bg pt-[calc(6rem+env(safe-area-inset-top,0px))] pb-12 max-lg:[&_.csnb-ambient-grid]:opacity-[0.22] max-lg:[&_.csnb-ambient-noise]:opacity-50 sm:pb-16 sm:pt-28 lg:pb-28 lg:pt-32">
         <div className="pointer-events-none absolute inset-0 z-0">
           <Image
             src="https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1920&h=1080&fit=crop&q=75"
@@ -282,44 +286,60 @@ export default function LandingPage() {
           <div className="csnb-ambient-mesh-dark absolute inset-0 opacity-[0.85]" />
           <div className="csnb-ambient-grid absolute inset-0" />
           <div className="csnb-ambient-noise absolute inset-0" />
+          {/* Mobile: ảnh tập mờ — nằm trên các lớp nền tối để vẫn thấy được */}
+          <div className="pointer-events-none absolute inset-0 z-[1] lg:hidden" aria-hidden>
+            <Image
+              src={heroWorkoutPhotoSrc}
+              alt=""
+              fill
+              sizes="100vw"
+              className="scale-110 object-cover opacity-[0.62] blur-[44px] saturate-[1.12]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-csnb-bg/55 via-csnb-bg/20 to-csnb-bg/75" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_35%,rgba(255,184,107,0.12),transparent_60%)]" />
+          </div>
         </div>
-        <div className="pointer-events-none absolute -right-24 top-20 z-[1] h-80 w-80 rounded-full bg-csnb-orange/20 blur-3xl lg:right-10" />
-        <div className="pointer-events-none absolute -left-20 bottom-10 z-[1] h-64 w-64 rounded-full bg-csnb-orange/15 blur-3xl" />
+        <div className="pointer-events-none absolute -right-24 top-20 z-[1] h-64 w-64 rounded-full bg-csnb-orange/18 blur-3xl max-lg:opacity-70 sm:h-80 sm:w-80 sm:opacity-100 lg:right-10" />
+        <div className="pointer-events-none absolute -left-20 bottom-10 z-[1] h-48 w-48 rounded-full bg-csnb-orange/12 blur-3xl max-lg:opacity-60 sm:h-64 sm:w-64 sm:opacity-100" />
         <div className="csnb-drift-orb csnb-drift-orb--warm z-[1]" aria-hidden />
         <div className="csnb-drift-orb csnb-drift-orb--cool z-[1]" aria-hidden />
 
-        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 sm:pb-4 lg:grid-cols-2 lg:gap-16 lg:px-8">
+        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-7 px-4 sm:gap-10 sm:px-6 sm:pb-4 lg:grid-cols-2 lg:gap-16 lg:px-8">
           <motion.div
-            className="text-center lg:text-left"
+            className="mx-auto w-full max-w-lg text-center lg:mx-0 lg:max-w-none lg:text-left"
             initial="hidden"
             animate="visible"
             variants={staggerContainer}
           >
             <motion.p
               variants={fadeUpVariants}
-              className="mb-4 font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-csnb-orange sm:text-xs sm:tracking-[0.2em]"
+              className="mb-5 flex w-full justify-center lg:mb-4 lg:justify-start"
             >
-              Tin vui — thoát vị có thể được quản lý tốt hơn
+              <span className="inline-flex max-w-full items-center rounded-full border border-csnb-orange/35 bg-csnb-orange/[0.09] px-3.5 py-1.5 text-center font-sans text-[10px] font-semibold uppercase leading-snug tracking-[0.14em] text-csnb-orange-bright sm:px-4 sm:py-2 sm:text-[11px] sm:tracking-[0.18em]">
+                <span className="text-balance sm:whitespace-nowrap">
+                  Tin vui — thoát vị có thể được quản lý tốt hơn
+                </span>
+              </span>
             </motion.p>
             <motion.h1
               variants={fadeUpVariants}
-              className="text-balance font-sans text-[1.65rem] font-extrabold leading-snug tracking-normal text-white sm:text-4xl sm:leading-tight lg:text-[2.65rem] lg:leading-[1.15]"
+              className="text-balance font-sans text-[clamp(1.5rem,4.6vw+0.4rem,1.75rem)] font-extrabold leading-[1.18] tracking-[-0.02em] text-white sm:text-4xl sm:leading-tight sm:tracking-normal lg:text-[2.65rem] lg:leading-[1.15]"
             >
               Cột Sống Niết Bàn —{" "}
               <span className="relative inline-block text-csnb-orange-bright">
                 <span className="relative z-10">khôi phục &amp; phát triển cột sống toàn diện</span>
                 <span
-                  className="csnb-animate-highlight-bar absolute -bottom-0.5 left-0 right-0 z-0 h-2.5 rounded-sm bg-csnb-orange/35 sm:h-3"
+                  className="csnb-animate-highlight-bar absolute -bottom-0.5 left-0 right-0 z-0 h-2 rounded-sm bg-csnb-orange/35 sm:h-3"
                   aria-hidden
                 />
               </span>
             </motion.h1>
 
-            <motion.div variants={fadeUpVariants} className="mx-auto mt-7 max-w-xl lg:mx-0">
-              <p className="text-pretty font-sans text-base font-semibold leading-relaxed text-white sm:text-lg">
+            <motion.div variants={fadeUpVariants} className="mx-auto mt-5 max-w-xl sm:mt-7 lg:mx-0">
+              <p className="text-pretty font-sans text-[0.9375rem] font-semibold leading-relaxed text-white/95 sm:text-base sm:text-lg">
                 Hãy tập trung vào chính bạn — sức khỏe là quan trọng nhất.
               </p>
-              <p className="mt-4 text-pretty font-sans text-[0.9375rem] leading-[1.65] tracking-[0.01em] text-csnb-muted sm:text-base sm:leading-[1.7]">
+              <p className="mt-3 text-pretty font-sans text-[0.875rem] leading-[1.62] text-csnb-muted/95 sm:mt-4 sm:text-base sm:leading-[1.7]">
                 Chương trình chăm sóc cột sống: thể dục, trị liệu phục hồi và giáo dục tư thế — giúp giảm đau, ổn
                 định vùng hông–chậu–lưng và vận động an toàn hơn.
               </p>
@@ -327,11 +347,11 @@ export default function LandingPage() {
 
             <motion.div
               variants={fadeUpVariants}
-              className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start"
+              className="mt-7 flex w-full max-w-sm flex-col items-stretch gap-2.5 sm:mt-8 sm:max-w-none sm:flex-row sm:items-center sm:justify-center sm:gap-4 lg:max-w-none lg:justify-start"
             >
               <Link
                 href="/#pricing"
-                className="group inline-flex min-h-11 items-center justify-center gap-3 rounded-md bg-csnb-orange px-7 py-3 font-sans text-sm font-semibold text-white shadow-lg shadow-csnb-orange/30 transition-all duration-200 hover:scale-[1.02] hover:bg-csnb-orange-deep active:scale-[0.99]"
+                className="group inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-csnb-orange px-5 py-3.5 font-sans text-sm font-semibold text-white shadow-[0_12px_40px_-12px_rgba(255,159,67,0.45)] ring-1 ring-white/10 transition-all duration-200 hover:bg-csnb-orange-deep active:scale-[0.99] sm:w-auto sm:min-h-11 sm:gap-3 sm:rounded-md sm:px-7 sm:shadow-lg sm:shadow-csnb-orange/30 sm:ring-0 sm:hover:scale-[1.02]"
               >
                 Bảng giá &amp; gói tập
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition-transform duration-200 group-hover:translate-x-0.5">
@@ -340,7 +360,7 @@ export default function LandingPage() {
               </Link>
               <Link
                 href="/results"
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/25 bg-transparent px-6 py-3 font-sans text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:border-white/50 hover:bg-white/5 active:scale-[0.99]"
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/[0.07] px-5 py-3.5 font-sans text-sm font-medium text-white shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-white/40 hover:bg-white/[0.11] active:scale-[0.99] sm:w-auto sm:min-h-11 sm:rounded-md sm:hover:scale-[1.02]"
               >
                 <Play size={16} className="text-csnb-orange" />
                 Xem kết quả
@@ -349,58 +369,95 @@ export default function LandingPage() {
 
             <motion.div
               variants={fadeUpVariants}
-              className="mt-14 hidden flex-col items-center gap-2 text-csnb-muted sm:flex lg:hidden"
+              className="relative mx-auto mt-5 aspect-[16/9] w-full max-w-sm overflow-hidden rounded-xl shadow-lg shadow-black/30 ring-1 ring-white/15 lg:hidden"
             >
-              <span className="font-heading text-xs uppercase tracking-widest text-csnb-muted/90">
-                Cuộn để khám phá
+              <Image
+                src={heroWorkoutPhotoSrc}
+                alt="Học viên tập luyện an toàn"
+                fill
+                className="object-cover object-center"
+                sizes="(max-width: 1023px) 100vw, 384px"
+              />
+              <div
+                className="pointer-events-none absolute inset-0 bg-gradient-to-t from-csnb-bg/50 via-transparent to-transparent"
+                aria-hidden
+              />
+            </motion.div>
+
+            <motion.div
+              variants={fadeUpVariants}
+              className="mx-auto mt-4 flex max-w-sm items-center gap-3 rounded-xl border border-white/10 bg-csnb-bg/35 px-3.5 py-2.5 shadow-inner shadow-black/20 backdrop-blur-md lg:hidden"
+            >
+              <div className="flex shrink-0 -space-x-2">
+                {testimonials.slice(0, 3).map((t) => (
+                  <div
+                    key={`hero-m-${t.name}`}
+                    className="relative h-9 w-9 overflow-hidden rounded-full ring-2 ring-csnb-bg/90"
+                  >
+                    <Image src={t.avatar} alt="" fill className="object-cover" sizes="36px" />
+                  </div>
+                ))}
+              </div>
+              <div className="min-w-0 text-left">
+                <p className="font-sans text-[10px] font-semibold uppercase tracking-wider text-csnb-orange-bright">
+                  Đồng hành 1:1
+                </p>
+                <p className="mt-0.5 font-sans text-[11px] leading-snug text-csnb-muted/95">
+                  Lộ trình theo tình trạng của bạn
+                </p>
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={fadeUpVariants}
+              className="mt-8 flex flex-col items-center gap-1.5 text-csnb-muted/80 lg:hidden"
+            >
+              <span className="font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-csnb-muted/70">
+                Cuộn để xem thêm
               </span>
-              <ChevronDown size={20} className="csnb-animate-bob" strokeWidth={2.25} />
+              <ChevronDown size={18} className="csnb-animate-bob opacity-80" strokeWidth={2.25} />
             </motion.div>
           </motion.div>
 
           <motion.div
-            className="relative mx-auto w-full max-w-md lg:max-w-none"
+            className="relative mx-auto max-lg:hidden w-full max-w-md lg:max-w-none lg:pb-16"
             initial={{ opacity: 0, scale: 0.94, y: 28 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="relative aspect-[4/5] overflow-hidden rounded-lg shadow-2xl shadow-black/40 ring-1 ring-white/10">
-              <Image
-                src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=900&h=1125&fit=crop"
-                alt="Học viên tập luyện an toàn"
-                fill
-                className="object-cover"
-                sizes="(max-width: 1023px) 90vw, 45vw"
-                priority
-              />
-            </div>
-            <div className="absolute -bottom-6 left-4 right-4 rounded-lg border border-csnb-border bg-csnb-surface/95 p-5 text-white shadow-xl backdrop-blur-sm sm:left-6 sm:right-auto sm:max-w-sm">
-              <p className="font-sans text-xs font-semibold uppercase tracking-wider text-white">
-                Bắt đầu hôm nay
-              </p>
-              <p className="mt-1.5 font-sans text-sm leading-relaxed text-csnb-muted">
-                Coach đồng hành theo tình trạng của bạn.
-              </p>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <div className="flex -space-x-2">
-                  {testimonials.slice(0, 3).map((t) => (
-                    <div
-                      key={t.name}
-                      className="relative h-9 w-9 overflow-hidden rounded-full ring-2 ring-csnb-bg"
-                    >
-                      <Image src={t.avatar} alt="" fill className="object-cover" sizes="36px" />
-                    </div>
-                  ))}
-                </div>
-                <p className="font-sans text-xs leading-snug text-csnb-muted">Học viên đồng hành cùng chúng tôi.</p>
+            <div className="relative">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-lg shadow-2xl shadow-black/40 ring-1 ring-white/10">
+                <Image
+                  src={heroWorkoutPhotoSrc}
+                  alt="Học viên tập luyện an toàn"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1023px) 100vw, 45vw"
+                  priority
+                />
               </div>
-              <Link
-                href="/#pricing"
-                className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-csnb-orange py-2.5 font-sans text-sm font-semibold text-white transition-colors hover:bg-csnb-orange-deep"
-              >
-                Bảng giá &amp; gói tập
-                <ArrowRight size={14} />
-              </Link>
+
+              <div className="absolute -bottom-6 left-6 right-auto z-[1] max-w-sm rounded-lg border border-csnb-border bg-csnb-surface/95 p-5 text-white shadow-xl backdrop-blur-sm">
+                <p className="font-sans text-xs font-semibold uppercase tracking-wider text-white">
+                  Bắt đầu hôm nay
+                </p>
+                <p className="mt-1.5 font-sans text-sm leading-relaxed text-csnb-muted">
+                  Coach đồng hành theo tình trạng của bạn.
+                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <div className="flex -space-x-2">
+                    {testimonials.slice(0, 3).map((t) => (
+                      <div
+                        key={`float-${t.name}`}
+                        className="relative h-9 w-9 overflow-hidden rounded-full ring-2 ring-csnb-bg"
+                      >
+                        <Image src={t.avatar} alt="" fill className="object-cover" sizes="36px" />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="font-sans text-xs leading-snug text-csnb-muted">Học viên đồng hành cùng chúng tôi.</p>
+                </div>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -411,8 +468,8 @@ export default function LandingPage() {
         <div className="csnb-ambient-mesh-surface pointer-events-none absolute inset-0 opacity-80" aria-hidden />
         <div className="csnb-ambient-grid pointer-events-none absolute inset-0 opacity-40" aria-hidden />
         <div className="csnb-ambient-noise pointer-events-none absolute inset-0 opacity-70" aria-hidden />
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 gap-8 sm:gap-10 md:grid-cols-4 md:gap-6 lg:gap-0 lg:divide-x lg:divide-csnb-border">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 md:gap-6 lg:gap-0 lg:divide-x lg:divide-csnb-border">
             {trustStats.map((stat, i) => (
               <motion.div
                 key={i}
@@ -425,7 +482,7 @@ export default function LandingPage() {
                 <div className="font-sans text-2xl font-extrabold tabular-nums tracking-normal text-csnb-orange-bright sm:text-3xl lg:text-[1.85rem] xl:text-3xl">
                   {stat.number}
                 </div>
-                <div className="mx-auto mt-2 max-w-[14rem] font-sans text-[11px] font-medium uppercase leading-snug tracking-wide text-csnb-muted sm:text-xs">
+                <div className="mx-auto mt-2 max-w-[11.5rem] px-0.5 font-sans text-[10px] font-medium uppercase leading-snug tracking-wide text-csnb-muted sm:max-w-[14rem] sm:text-xs">
                   {stat.label}
                 </div>
               </motion.div>
@@ -437,7 +494,7 @@ export default function LandingPage() {
       {/* ── NỘI DUNG TẬP: phase + chu kỳ (gộp một section) ─ */}
       <section
         id="noi-dung-tap"
-        className="relative scroll-mt-24 overflow-hidden bg-csnb-bg py-20 lg:py-28"
+        className="relative scroll-mt-24 overflow-hidden bg-csnb-bg py-14 sm:py-20 lg:py-28"
       >
         <div className="pointer-events-none absolute inset-0 z-0">
           <Image
@@ -456,7 +513,7 @@ export default function LandingPage() {
         </div>
 
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Reveal className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16" y={28}>
+          <Reveal className="grid items-center gap-8 sm:gap-12 lg:grid-cols-2 lg:gap-16" y={28}>
             <div>
               <span className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange">
                 Nội dung tập luyện
@@ -482,8 +539,8 @@ export default function LandingPage() {
                 <ArrowRight size={16} />
               </Link>
             </div>
-            <div className="relative">
-              <div className="relative aspect-[5/4] overflow-hidden rounded-sm shadow-xl ring-1 ring-white/10">
+            <div className="relative mt-2 pb-14 sm:mt-0 sm:pb-12 lg:pb-0">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-xl shadow-xl ring-1 ring-white/10 sm:aspect-[5/4] sm:rounded-sm">
                 <Image
                   src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=900&h=720&fit=crop"
                   alt="Tập luyện cùng coach"
@@ -492,7 +549,7 @@ export default function LandingPage() {
                   sizes="(max-width: 1023px) 100vw, 50vw"
                 />
               </div>
-              <div className="absolute -bottom-4 right-4 max-w-[260px] rounded-sm border border-csnb-border bg-csnb-surface p-4 shadow-lg sm:right-6">
+              <div className="absolute -bottom-2 left-3 right-3 max-w-none rounded-xl border border-csnb-border bg-csnb-surface p-3.5 shadow-lg sm:-bottom-4 sm:left-auto sm:right-6 sm:max-w-[260px] sm:rounded-sm sm:p-4">
                 <p className="font-sans text-xl font-extrabold leading-tight text-csnb-orange-bright sm:text-2xl">
                   Tuần 1 · Tuần 5+
                 </p>
@@ -604,7 +661,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA STRIP ──────────────────────────────── */}
-      <section className="relative overflow-hidden border-y border-csnb-border bg-csnb-orange py-12 text-white lg:py-14">
+      <section className="relative overflow-hidden border-y border-csnb-border bg-csnb-orange py-10 text-white sm:py-12 lg:py-14">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_120%_at_0%_50%,rgba(255,255,255,0.12),transparent_50%),radial-gradient(ellipse_60%_100%_at_100%_0%,rgba(232,112,16,0.35),transparent_45%)]"
           aria-hidden
@@ -612,7 +669,7 @@ export default function LandingPage() {
         <div className="csnb-cta-shine pointer-events-none absolute inset-0" aria-hidden />
         <div className="csnb-ambient-noise pointer-events-none absolute inset-0 opacity-50 mix-blend-overlay" aria-hidden />
         <motion.div
-          className="relative z-10 mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 px-4 sm:flex-row sm:px-6 lg:px-8"
+          className="relative z-10 mx-auto flex max-w-7xl flex-col items-stretch justify-between gap-6 px-4 text-center sm:flex-row sm:items-center sm:gap-8 sm:px-6 sm:text-left lg:px-8"
           initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-40px" }}
@@ -626,8 +683,8 @@ export default function LandingPage() {
               Xem bảng giá hoặc tư vấn trực tiếp — team hỗ trợ theo tình trạng của bạn.
             </p>
           </div>
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
-            <div className="flex -space-x-2">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-end">
+            <div className="flex -space-x-2 justify-center">
               {testimonials.slice(0, 3).map((t) => (
                 <div
                   key={`cta-${t.name}`}
@@ -641,7 +698,7 @@ export default function LandingPage() {
               href={SITE_CONTACT.zaloUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-sm border border-white/30 bg-csnb-bg px-6 py-3 font-heading text-xs font-black uppercase tracking-wide text-white shadow-md transition-all duration-200 hover:scale-[1.03] hover:bg-csnb-raised active:scale-[0.98]"
+              className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 self-center rounded-md border border-white/30 bg-csnb-bg px-6 py-3 font-heading text-xs font-black uppercase tracking-wide text-white shadow-md transition-all duration-200 hover:bg-csnb-raised active:scale-[0.98] sm:w-auto sm:max-w-none sm:rounded-sm sm:hover:scale-[1.03]"
             >
               Liên hệ ngay
               <ArrowRight size={16} />
@@ -651,7 +708,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── LỢI ÍCH ───────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-csnb-panel via-white to-[#e8f4f6] py-20 text-csnb-ink lg:py-28">
+      <section className="relative overflow-hidden bg-gradient-to-b from-csnb-panel via-white to-[#e8f4f6] py-14 text-csnb-ink sm:py-20 lg:py-28">
         <div className="csnb-panel-depth pointer-events-none absolute inset-0 opacity-80" aria-hidden />
         <div className="csnb-panel-grid pointer-events-none absolute inset-0 opacity-50" aria-hidden />
         <div
@@ -668,7 +725,7 @@ export default function LandingPage() {
         />
 
         <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <Reveal className="mx-auto mb-14 max-w-3xl text-center" y={22}>
+          <Reveal className="mx-auto mb-10 max-w-3xl text-center sm:mb-14" y={22}>
             <span className="font-sans text-xs font-semibold uppercase tracking-[0.22em] text-csnb-orange">
               Lợi ích
             </span>
@@ -746,7 +803,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── PROBLEM ────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-csnb-bg py-20 lg:py-28">
+      <section className="relative overflow-hidden bg-csnb-bg py-14 sm:py-20 lg:py-28">
         <div className="pointer-events-none absolute inset-0">
           <div className="csnb-ambient-mesh-dark absolute inset-0 opacity-70" />
           <div className="csnb-ambient-grid absolute inset-0 opacity-50" />
@@ -754,7 +811,7 @@ export default function LandingPage() {
           <div className="csnb-drift-orb csnb-drift-orb--cool opacity-55" aria-hidden />
         </div>
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Reveal className="mb-14 text-center" y={22}>
+          <Reveal className="mb-10 text-center sm:mb-14" y={22}>
             <span className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange">
               Đối tượng phù hợp
             </span>
@@ -768,7 +825,7 @@ export default function LandingPage() {
             {targetAudience.map((p, i) => (
               <motion.div
                 key={i}
-                className="group rounded-sm border border-csnb-border bg-csnb-surface p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-csnb-orange/40 hover:shadow-md hover:shadow-csnb-orange/5"
+                className="group rounded-xl border border-csnb-border bg-csnb-surface p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-csnb-orange/40 hover:shadow-md hover:shadow-csnb-orange/5 sm:rounded-sm sm:p-6"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-24px" }}
@@ -788,7 +845,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── RESULTS ────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-csnb-bg py-20 lg:py-28">
+      <section className="relative overflow-hidden bg-csnb-bg py-14 sm:py-20 lg:py-28">
         <div className="pointer-events-none absolute inset-0">
           <Image
             src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200&h=800&fit=crop&q=65"
@@ -814,22 +871,22 @@ export default function LandingPage() {
           </Reveal>
 
           <Tabs defaultValue="before-after" className="w-full">
-            <TabsList className="mx-auto mb-8 flex w-full max-w-md rounded-sm border border-csnb-border bg-csnb-surface p-1">
+            <TabsList className="mx-auto mb-6 flex h-auto min-h-12 w-full max-w-lg rounded-lg border border-csnb-border bg-csnb-surface p-1 sm:mb-8 sm:max-w-md sm:rounded-sm">
               <TabsTrigger
                 value="before-after"
-                className="flex-1 rounded-sm font-sans text-[10px] font-semibold uppercase tracking-wide text-csnb-muted data-[state=active]:bg-csnb-orange data-[state=active]:text-white sm:text-xs"
+                className="min-h-11 flex-1 rounded-md px-1 py-2.5 font-sans text-[10px] font-semibold uppercase leading-tight tracking-wide text-csnb-muted data-active:bg-csnb-orange data-active:text-white sm:rounded-sm sm:px-2 sm:text-xs"
               >
-                Before & After
+                Before &amp; After
               </TabsTrigger>
               <TabsTrigger
                 value="testimonials"
-                className="flex-1 rounded-sm font-sans text-[10px] font-semibold uppercase tracking-wide text-csnb-muted data-[state=active]:bg-csnb-orange data-[state=active]:text-white sm:text-xs"
+                className="min-h-11 flex-1 rounded-md px-1 py-2.5 font-sans text-[10px] font-semibold uppercase leading-tight tracking-wide text-csnb-muted data-active:bg-csnb-orange data-active:text-white sm:rounded-sm sm:px-2 sm:text-xs"
               >
                 Phản hồi
               </TabsTrigger>
               <TabsTrigger
                 value="comments"
-                className="flex-1 rounded-sm font-sans text-[10px] font-semibold uppercase tracking-wide text-csnb-muted data-[state=active]:bg-csnb-orange data-[state=active]:text-white sm:text-xs"
+                className="min-h-11 flex-1 rounded-md px-1 py-2.5 font-sans text-[10px] font-semibold uppercase leading-tight tracking-wide text-csnb-muted data-active:bg-csnb-orange data-active:text-white sm:rounded-sm sm:px-2 sm:text-xs"
               >
                 Comments
               </TabsTrigger>
@@ -924,7 +981,7 @@ export default function LandingPage() {
           <div className="mt-10 text-center">
             <Link
               href="/results"
-              className="inline-flex items-center gap-2 rounded-sm border border-csnb-border/70 px-6 py-3 font-heading text-sm font-semibold uppercase tracking-wide text-csnb-muted transition-colors hover:border-csnb-orange hover:text-white"
+              className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md border border-csnb-border/70 px-6 py-3 font-heading text-sm font-semibold uppercase tracking-wide text-csnb-muted transition-colors hover:border-csnb-orange hover:text-white sm:w-auto sm:max-w-none sm:rounded-sm"
             >
               Xem thêm kết quả <ArrowRight size={16} />
             </Link>
@@ -933,12 +990,12 @@ export default function LandingPage() {
       </section>
 
       {/* ── BLOG PREVIEW ───────────────────────────── */}
-      <section className="relative overflow-hidden bg-csnb-panel py-20 lg:py-28">
+      <section className="relative overflow-hidden bg-csnb-panel py-14 sm:py-20 lg:py-28">
         <div className="csnb-panel-depth pointer-events-none absolute inset-0 opacity-90" aria-hidden />
         <div className="csnb-panel-grid pointer-events-none absolute inset-0" aria-hidden />
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Reveal className="mb-12 flex items-end justify-between" y={18}>
-            <div>
+          <Reveal className="mb-10 flex flex-col gap-4 sm:mb-12 sm:flex-row sm:items-end sm:justify-between" y={18}>
+            <div className="min-w-0">
               <span className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange">
                 Kiến thức nền tảng
               </span>
@@ -948,7 +1005,7 @@ export default function LandingPage() {
             </div>
             <Link
               href="/blog"
-              className="hidden items-center gap-1 font-sans text-sm font-semibold text-csnb-orange transition-all hover:gap-2 sm:flex"
+              className="inline-flex min-h-11 shrink-0 items-center gap-1 self-start font-sans text-sm font-semibold text-csnb-orange transition-all hover:gap-2 sm:self-auto"
             >
               Tất cả bài viết <ArrowRight size={16} />
             </Link>
@@ -987,16 +1044,11 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <div className="mt-8 text-center sm:hidden">
-            <Link href="/blog" className="font-heading text-sm font-semibold uppercase tracking-wide text-csnb-orange">
-              Xem tất cả bài viết →
-            </Link>
-          </div>
         </div>
       </section>
 
       {/* ── PRICING ────────────────────────────────── */}
-      <section id="pricing" className="relative scroll-mt-24 overflow-hidden bg-csnb-bg py-20 lg:py-28">
+      <section id="pricing" className="relative scroll-mt-24 overflow-hidden bg-csnb-bg py-14 sm:py-20 lg:py-28">
         <div className="pointer-events-none absolute inset-0 z-0">
           <Image
             src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&h=900&fit=crop&q=70"
@@ -1066,9 +1118,14 @@ export default function LandingPage() {
                   </div>
                   <ul className="space-y-1.5">
                     {plan.tiers.map((tier, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="mt-1 shrink-0 text-csnb-orange">›</span>
-                        <span className="font-sans text-xs leading-snug text-white">{tier}</span>
+                      <li key={i} className="flex items-baseline gap-2">
+                        <span
+                          aria-hidden
+                          className="shrink-0 translate-y-px font-sans text-[0.8125rem] font-semibold leading-snug text-csnb-orange"
+                        >
+                          ›
+                        </span>
+                        <span className="min-w-0 flex-1 font-sans text-xs leading-snug text-white">{tier}</span>
                       </li>
                     ))}
                   </ul>
@@ -1129,7 +1186,7 @@ export default function LandingPage() {
       {/* ── FAQ ───────────────────────────────────── */}
       <section
         id="faq"
-        className="relative scroll-mt-24 overflow-hidden border-y border-csnb-border/25 py-20 lg:py-28"
+        className="relative scroll-mt-24 overflow-hidden border-y border-csnb-border/25 py-14 sm:py-20 lg:py-28"
       >
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white via-[#eef8f9] to-csnb-panel"
@@ -1340,7 +1397,7 @@ export default function LandingPage() {
         href={SITE_CONTACT.zaloUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-csnb-orange text-white shadow-lg shadow-csnb-orange/30 transition-colors hover:bg-csnb-orange-deep"
+        className="fixed z-50 flex h-14 w-14 items-center justify-center rounded-full bg-csnb-orange text-white shadow-lg shadow-csnb-orange/30 transition-colors hover:bg-csnb-orange-deep max-sm:bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] max-sm:right-[max(1rem,env(safe-area-inset-right,0px))] sm:bottom-6 sm:right-6"
         title="Tư vấn trực tiếp"
         aria-label="Tư vấn trực tiếp"
         initial={{ scale: 0, opacity: 0 }}

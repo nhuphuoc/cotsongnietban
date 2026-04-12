@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SiteLogoMark } from "@/components/brand/site-logo-mark";
 import { Phone, Mail, MapPin, MessageCircle } from "lucide-react";
 import { SITE_CONTACT } from "@/lib/site-contact";
 
@@ -9,9 +10,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4 lg:gap-12">
           <div className="lg:col-span-2">
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-csnb-orange">
-                <span className="font-heading text-base font-black text-white">C</span>
-              </div>
+              <SiteLogoMark boxClassName="block h-9 w-9" alt="" />
               <div className="flex flex-col leading-none">
                 <span className="font-heading text-base font-black uppercase tracking-wider text-white">
                   Cột Sống Niết Bàn

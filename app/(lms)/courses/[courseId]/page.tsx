@@ -58,7 +58,7 @@ export default function CourseDetailPage({ params }: { params: { courseId: strin
               {nextLesson ? (
                 <Link
                   href={`/courses/${course.id}/lessons/${nextLesson.id}`}
-                  className="inline-flex items-center gap-2 rounded-md bg-[#1c1d1f] px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-black"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#1c1d1f] px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-black"
                 >
                   <Play className="size-4 shrink-0 fill-current" />
                   Tiếp tục học

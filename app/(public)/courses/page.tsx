@@ -7,12 +7,12 @@ import { getCatalogMarketingExtras } from "@/lib/marketing-course-dummies";
 
 export default function CoursesPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pt-20">
+    <div className="relative min-h-screen overflow-x-clip bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pt-20">
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="csnb-ambient-mesh-surface absolute inset-0 opacity-[0.45]" aria-hidden />
       </div>
 
-      <section id="chuong-trinh" className="relative z-10 scroll-mt-24 border-b border-csnb-border/15 py-14 lg:py-16">
+      <section id="chuong-trinh" className="relative z-10 scroll-mt-24 border-b border-csnb-border/15 py-10 sm:py-14 lg:py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-10 max-w-2xl text-center">
             <span className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange-deep">
@@ -45,9 +45,9 @@ export default function CoursesPage() {
                     />
                   </Link>
                   <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="font-sans text-base font-bold leading-snug text-csnb-ink sm:text-lg">{c.title}</h3>
-                      <span className="shrink-0 rounded-md border border-csnb-border/40 bg-csnb-panel/80 px-2 py-0.5 text-center font-sans text-[10px] font-bold uppercase tracking-wide text-csnb-ink">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                      <h3 className="min-w-0 font-sans text-base font-bold leading-snug text-csnb-ink sm:text-lg">{c.title}</h3>
+                      <span className="w-fit shrink-0 rounded-md border border-csnb-border/40 bg-csnb-panel/80 px-2 py-0.5 text-center font-sans text-[10px] font-bold uppercase tracking-wide text-csnb-ink">
                         {c.level}
                       </span>
                     </div>
@@ -63,13 +63,13 @@ export default function CoursesPage() {
                       </span>
                     </div>
                     <div className="my-4 h-px bg-csnb-border/20" />
-                    <div className="mt-auto flex flex-wrap items-end justify-between gap-3">
+                    <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
                       <span className="font-sans text-lg font-extrabold tabular-nums text-csnb-orange-deep sm:text-xl">
                         {extras.priceLabel}
                       </span>
                       <Link
                         href={`/courses/view/${c.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-csnb-border/35 bg-white px-3 py-2 font-sans text-sm font-semibold text-csnb-ink transition-colors hover:border-csnb-orange/40 hover:text-csnb-orange-deep"
+                        className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border border-csnb-border/35 bg-white px-3 py-2 font-sans text-sm font-semibold text-csnb-ink transition-colors hover:border-csnb-orange/40 hover:text-csnb-orange-deep sm:w-auto sm:justify-start"
                       >
                         Chi tiết
                         <ArrowRight className="size-4 shrink-0" />

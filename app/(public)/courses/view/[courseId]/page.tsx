@@ -31,7 +31,7 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
   const lessonCount = course.lessons.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pb-16 pt-20">
+    <div className="min-h-screen overflow-x-clip bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pb-16 pt-20 sm:pb-20">
       <section className="relative border-b border-csnb-border/20">
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="relative overflow-hidden rounded-b-2xl sm:rounded-b-3xl">
@@ -55,7 +55,7 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
                 <p className="mt-2 max-w-2xl font-sans text-sm leading-relaxed text-white/85 sm:text-base">
                   {course.description}
                 </p>
-                <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 font-sans text-xs text-white/80 sm:text-sm">
+                <div className="mt-4 flex flex-col gap-2 font-sans text-xs text-white/80 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-2 sm:text-sm">
                   <span className="inline-flex items-center gap-1.5">
                     <Star className="size-4 shrink-0 text-csnb-orange-bright" aria-hidden />
                     <span className="font-semibold text-white">{meta.rating}</span>
@@ -85,16 +85,16 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
       </section>
 
       <div className="mx-auto mt-8 max-w-6xl px-4 sm:px-6 lg:px-8">
-        <nav className="mb-6 font-sans text-xs text-neutral-500">
-          <Link href="/" className="transition-colors hover:text-csnb-orange-deep">
+        <nav className="mb-6 flex flex-wrap items-center gap-x-1 gap-y-1 font-sans text-xs text-neutral-500">
+          <Link href="/" className="shrink-0 transition-colors hover:text-csnb-orange-deep">
             Trang chủ
           </Link>
-          <span className="mx-2 text-csnb-border/80">/</span>
-          <Link href="/courses" className="transition-colors hover:text-csnb-orange-deep">
+          <span className="shrink-0 text-csnb-border/80">/</span>
+          <Link href="/courses" className="shrink-0 transition-colors hover:text-csnb-orange-deep">
             Khóa học
           </Link>
-          <span className="mx-2 text-csnb-border/80">/</span>
-          <span className="font-medium text-csnb-ink">{course.title}</span>
+          <span className="shrink-0 text-csnb-border/80">/</span>
+          <span className="min-w-0 font-medium leading-snug text-csnb-ink sm:line-clamp-2">{course.title}</span>
         </nav>
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
@@ -156,7 +156,7 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
                 </Link>
                 <Link
                   href={`/courses/${course.id}`}
-                  className="mt-2 flex min-h-10 w-full items-center justify-center rounded-md border border-csnb-border/40 px-4 py-2.5 font-sans text-sm font-semibold text-csnb-ink transition-colors hover:border-csnb-orange/40 hover:text-csnb-orange-deep"
+                  className="mt-2 flex min-h-11 w-full items-center justify-center rounded-md border border-csnb-border/40 px-4 py-2.5 font-sans text-sm font-semibold text-csnb-ink transition-colors hover:border-csnb-orange/40 hover:text-csnb-orange-deep"
                 >
                   Đã có tài khoản — vào LMS
                 </Link>

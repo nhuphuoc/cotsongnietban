@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Menu, X, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SiteLogoMark } from "@/components/brand/site-logo-mark";
 
 const navLinks = [
   { href: "/", label: "Trang chủ" },
@@ -55,9 +56,7 @@ export default function Header() {
           href="/"
           className="group flex shrink-0 items-center gap-2.5 rounded-sm p-1 -m-1 ring-csnb-orange-bright/0 transition-[box-shadow] focus-visible:ring-2 focus-visible:ring-csnb-orange-bright focus-visible:ring-offset-2 focus-visible:ring-offset-csnb-bg"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-csnb-orange transition-colors group-hover:bg-csnb-orange-deep sm:h-10 sm:w-10">
-            <span className="font-heading text-sm font-black text-white sm:text-base">C</span>
-          </div>
+          <SiteLogoMark boxClassName="block h-9 w-9 sm:h-10 sm:w-10" alt="" />
           <div className="hidden leading-none sm:flex sm:flex-col">
             <span className="font-heading text-xs font-black uppercase tracking-wider text-white sm:text-sm">
               Cột Sống
@@ -115,7 +114,10 @@ export default function Header() {
       </div>
 
       {isOpen ? (
-        <div id="site-mobile-nav" className="border-t border-csnb-border/50 bg-csnb-surface/98 lg:hidden">
+        <div
+          id="site-mobile-nav"
+          className="max-h-[min(70vh,calc(100dvh-4rem))] overflow-y-auto overscroll-contain border-t border-csnb-border/50 bg-csnb-surface/98 lg:hidden"
+        >
           <nav className="mx-auto max-w-6xl space-y-0.5 px-4 py-3 sm:px-6" aria-label="Menu chính (mobile)">
             {navLinks.map((link) => {
               const active = isNavActive(pathname, link.href);

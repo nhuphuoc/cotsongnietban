@@ -76,7 +76,7 @@ export function CourseCurriculumSidebar({
                         return (
                           <li
                             key={l.id}
-                            className="flex items-center gap-3 border-b border-neutral-100/80 px-4 py-2.5 opacity-50"
+                            className="flex min-h-11 items-center gap-3 border-b border-neutral-100/80 px-4 py-2.5 opacity-50"
                           >
                             <Lock className="size-3.5 shrink-0 text-neutral-400" />
                             <span className="min-w-0 flex-1 text-xs text-neutral-500 line-clamp-2">{l.title}</span>
@@ -92,7 +92,7 @@ export function CourseCurriculumSidebar({
                           <Link
                             href={lessonHref(l.id)}
                             className={cn(
-                              "flex items-center gap-3 px-4 py-2.5 text-xs no-underline transition-colors hover:bg-white hover:no-underline",
+                              "flex min-h-11 items-center gap-3 px-4 py-2.5 text-xs no-underline transition-colors hover:bg-white hover:no-underline",
                               active &&
                                 (accent === "brand"
                                   ? "border-l-[3px] border-l-csnb-orange-deep bg-csnb-orange/10"

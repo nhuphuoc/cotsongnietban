@@ -22,14 +22,14 @@ export default function HocCuaToiPage() {
   ];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pt-20">
+    <div className="relative min-h-screen overflow-x-clip bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pt-20">
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="csnb-ambient-mesh-surface absolute inset-0 opacity-[0.4]" aria-hidden />
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
-        <header className="border-b border-csnb-border/15 py-10">
-          <h1 className="font-sans text-3xl font-extrabold tracking-tight text-csnb-ink sm:text-4xl">
+        <header className="border-b border-csnb-border/15 py-8 sm:py-10">
+          <h1 className="font-sans text-2xl font-extrabold tracking-tight text-csnb-ink sm:text-3xl md:text-4xl">
             Khóa học của tôi
           </h1>
           <p className="mt-2 max-w-xl font-sans text-sm leading-relaxed text-neutral-600 sm:text-base">
@@ -61,7 +61,7 @@ export default function HocCuaToiPage() {
             </h2>
             <Link
               href="/courses"
-              className="font-sans text-sm font-semibold text-csnb-orange-deep underline-offset-2 hover:underline"
+              className="inline-flex min-h-11 items-center font-sans text-sm font-semibold text-csnb-orange-deep underline-offset-2 hover:underline"
             >
               Xem thêm khóa công khai →
             </Link>
@@ -83,7 +83,13 @@ export default function HocCuaToiPage() {
                       href={href}
                       className="relative aspect-video w-full shrink-0 overflow-hidden rounded-lg sm:aspect-[16/10] sm:w-44 md:w-52"
                     >
-                      <Image src={course.thumbnail} alt="" fill className="object-cover" sizes="208px" />
+                      <Image
+                        src={course.thumbnail}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 639px) 100vw, 208px"
+                      />
                     </Link>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-start justify-between gap-2">

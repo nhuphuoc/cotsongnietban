@@ -15,7 +15,11 @@ export default function PublicLayout({
         Bỏ qua menu, đến nội dung chính
       </a>
       <Header />
-      <main id="main-content" className="flex-1 scroll-mt-20 outline-none" tabIndex={-1}>
+      <main
+        id="main-content"
+        className="min-w-0 flex-1 scroll-mt-20 overflow-x-clip outline-none"
+        tabIndex={-1}
+      >
         {children}
       </main>
       <Footer />
