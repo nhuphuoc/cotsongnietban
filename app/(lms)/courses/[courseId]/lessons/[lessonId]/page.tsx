@@ -1,192 +1,208 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { SITE_CONTACT } from "@/lib/site-contact";
-import { ArrowLeft, CheckCircle2, Circle, Lock, Clock, ChevronRight, MessageCircle } from "lucide-react";
-
-const lessons = [
-  { id: "1", title: "Giới thiệu khóa học & Tổng quan phương pháp", duration: "12:30", completed: true },
-  { id: "2", title: "Giải phẫu cột sống và đĩa đệm", duration: "18:45", completed: true },
-  { id: "3", title: "Đánh giá tư thế cơ bản", duration: "15:20", completed: true },
-  { id: "4", title: "Breathing Mechanics - Nền tảng vận động", duration: "22:10", completed: true },
-  { id: "5", title: "Foot & Ankle Mobility", duration: "19:30", completed: true },
-  { id: "6", title: "Hip Flexor Release", duration: "25:00", completed: true },
-  { id: "7", title: "Glute Activation Sequence", duration: "28:15", completed: true },
-  { id: "8", title: "Hip Mobility Drill - Cấp độ 1", duration: "20:40", completed: true },
-  { id: "9", title: "Posterior Chain Activation", duration: "32:00", completed: true },
-  { id: "10", title: "Corrective Hip Hinge", duration: "24:30", completed: false },
-  { id: "11", title: "Spinal Decompression Routine", duration: "21:15", completed: false, locked: true },
-  { id: "12", title: "Lộ trình duy trì & phòng ngừa tái phát", duration: "18:00", completed: false, locked: true },
-];
+import {
+  getDemoCourse,
+  getNextPlayableLesson,
+  getCompletedLessonCount,
+  getCourseProgressPercent,
+} from "@/lib/demo-courses";
+import { LessonVideoPlayer } from "@/components/lms/lesson-video-player";
+import { CourseCurriculumSidebar } from "@/components/lms/course-curriculum-sidebar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, CheckCircle2, Clock, MessageCircle } from "lucide-react";
 
 export default function LessonViewPage({
   params,
 }: {
   params: { courseId: string; lessonId: string };
 }) {
-  const [completed, setCompleted] = useState(false);
-  const currentLesson = lessons.find((l) => l.id === params.lessonId) || lessons[9];
-  const currentIndex = lessons.findIndex((l) => l.id === params.lessonId);
-  const nextLesson = lessons[currentIndex + 1];
+  const course = useMemo(() => getDemoCourse(params.courseId), [params.courseId]);
+  const lesson = useMemo(
+    () => course?.lessons.find((l) => l.id === params.lessonId),
+    [course, params.lessonId]
+  );
 
-  return (
-    <div className="flex h-full flex-col lg:flex-row">
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center gap-3 border-b border-csnb-border px-6 py-3">
+  const [completedLocal, setCompletedLocal] = useState(lesson?.completed ?? false);
+
+  useEffect(() => {
+    setCompletedLocal(lesson?.completed ?? false);
+  }, [lesson?.completed, lesson?.id]);
+
+  if (!course || !lesson) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 bg-neutral-100 p-8 text-center">
+        <p className="font-sans text-sm text-neutral-600">Không tìm thấy bài học hoặc khóa học.</p>
+        <Link href="/dashboard" className="text-sm font-semibold text-violet-700 hover:underline">
+          Về dashboard
+        </Link>
+      </div>
+    );
+  }
+
+  const currentIndex = course.lessons.findIndex((l) => l.id === lesson.id);
+  const nextLesson = getNextPlayableLesson(course, lesson.id);
+  const doneCount = getCompletedLessonCount(course);
+  const courseProgress = getCourseProgressPercent(course);
+
+  if (lesson.locked) {
+    return (
+      <div className="flex min-h-full flex-col bg-neutral-100">
+        <header className="relative z-20 border-b border-neutral-800 bg-[#1c1d1f] px-4 py-3">
           <Link
             href={`/courses/${params.courseId}`}
-            className="flex items-center gap-1.5 font-heading text-xs text-csnb-muted transition-colors hover:text-white"
+            className="inline-flex max-w-full items-center gap-2 text-xs font-medium text-white/85 no-underline hover:text-white hover:no-underline"
           >
-            <ArrowLeft size={14} /> Phục Hồi Lưng Cơ Bản
+            <ArrowLeft className="size-4 shrink-0" />
+            <span className="truncate">{course.title}</span>
           </Link>
-          <ChevronRight size={12} className="text-csnb-border" />
-          <span className="truncate font-heading text-xs text-white">{currentLesson.title}</span>
-        </div>
-
-        <div
-          className="relative bg-csnb-bg"
-          style={{ aspectRatio: "16/9", maxHeight: "calc(100vh - 200px)" }}
-        >
-          <div className="flex h-full w-full items-center justify-center" onContextMenu={(e) => e.preventDefault()}>
-            <div className="text-center">
-              <div className="group mx-auto mb-4 flex h-20 w-20 cursor-pointer items-center justify-center rounded-full border-2 border-csnb-orange/35 transition-colors hover:border-csnb-orange">
-                <div className="ml-1 h-0 w-0 border-b-[14px] border-l-[24px] border-t-[14px] border-b-transparent border-l-csnb-orange border-t-transparent transition-colors group-hover:border-l-white" />
-              </div>
-              <div className="font-sans text-sm text-csnb-muted">Bunny.net Video Player</div>
-              <div className="mt-1 font-sans text-xs text-csnb-border">Video ID: bunny-video-placeholder</div>
-            </div>
-          </div>
-          <div className="pointer-events-none absolute inset-0" style={{ userSelect: "none" }} />
-        </div>
-
-        <div className="border-t border-csnb-border bg-csnb-surface/95 px-6 py-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="font-heading text-base font-bold text-white">{currentLesson.title}</h1>
-              <div className="mt-1 flex items-center gap-3 font-sans text-xs text-csnb-muted">
-                <span className="flex items-center gap-1">
-                  <Clock size={11} /> {currentLesson.duration}
-                </span>
-                <span>
-                  Bài {currentIndex + 1} / {lessons.length}
-                </span>
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-3">
-              {nextLesson && !nextLesson.locked && (
-                <Link
-                  href={`/courses/${params.courseId}/lessons/${nextLesson.id}`}
-                  className="font-heading text-xs text-csnb-muted transition-colors hover:text-white"
-                >
-                  Bài tiếp →
-                </Link>
-              )}
-              <button
-                type="button"
-                onClick={() => setCompleted(true)}
-                disabled={completed}
-                className={`flex items-center gap-2 rounded-md px-4 py-2 font-heading text-sm font-bold uppercase tracking-wide transition-colors ${
-                  completed
-                    ? "cursor-default border border-emerald-600/30 bg-emerald-600/20 text-emerald-400"
-                    : "bg-csnb-orange text-white hover:bg-csnb-orange-deep"
-                }`}
-              >
-                <CheckCircle2 size={15} />
-                {completed ? "Đã hoàn thành" : "Đánh dấu hoàn thành"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 px-6 py-5">
-          <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-white">Ghi chú bài học</h2>
-          <div className="rounded-xl border border-csnb-border bg-csnb-surface/95 p-4 font-sans text-sm leading-relaxed text-csnb-muted ring-1 ring-white/5">
-            <p className="mb-2">
-              <strong className="text-white">Corrective Hip Hinge</strong> là một trong những chuyển động cơ bản quan trọng nhất để bảo vệ cột sống thắt lưng.
-            </p>
-            <ul className="space-y-1 text-sm">
-              <li className="flex items-start gap-2">
-                <span className="mt-1 text-csnb-orange">•</span>
-                Giữ lưng thẳng, không cong vẹo
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-1 text-csnb-orange">•</span>
-                Tập trung vào việc gấp hông, không gấp lưng
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-1 text-csnb-orange">•</span>
-                Hít thở đúng nhịp: hít vào khi xuống, thở ra khi lên
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex w-full flex-col border-t border-csnb-border bg-csnb-surface/95 lg:w-72 lg:border-t-0 lg:border-l">
-        <div className="border-b border-csnb-border p-4">
-          <h2 className="font-heading text-xs font-bold uppercase tracking-wider text-white">Nội dung khóa học</h2>
-          <div className="mt-1 font-sans text-xs text-csnb-muted">9/12 bài hoàn thành</div>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {lessons.map((lesson, i) => (
-            <div key={lesson.id} className={i < lessons.length - 1 ? "border-b border-csnb-border" : ""}>
-              {lesson.locked ? (
-                <div className="flex items-center gap-3 px-4 py-3 opacity-40">
-                  <Lock size={12} className="shrink-0 text-csnb-muted" />
-                  <span className="line-clamp-2 flex-1 font-sans text-xs text-csnb-muted">{lesson.title}</span>
-                </div>
-              ) : (
-                <Link
-                  href={`/courses/${params.courseId}/lessons/${lesson.id}`}
-                  className={`group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/5 ${
-                    lesson.id === params.lessonId ? "border-r-2 border-csnb-orange bg-csnb-orange/10" : ""
-                  }`}
-                >
-                  {lesson.completed ? (
-                    <CheckCircle2 size={12} className="shrink-0 text-emerald-400" />
-                  ) : lesson.id === params.lessonId ? (
-                    <div className="h-3 w-3 shrink-0 rounded-full bg-csnb-orange" />
-                  ) : (
-                    <Circle size={12} className="shrink-0 text-csnb-border" />
-                  )}
-                  <span
-                    className={`line-clamp-2 flex-1 font-sans text-xs ${
-                      lesson.id === params.lessonId
-                        ? "font-semibold text-white"
-                        : lesson.completed
-                          ? "text-csnb-muted/80"
-                          : "text-csnb-muted group-hover:text-white"
-                    }`}
-                  >
-                    {lesson.title}
-                  </span>
-                </Link>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="border-t border-csnb-border p-4">
-          <a
-            href={SITE_CONTACT.zaloUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex w-full items-center justify-center gap-2 rounded-md bg-csnb-orange py-2.5 font-heading text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-csnb-orange-deep"
+        </header>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-20">
+          <p className="max-w-md text-center font-sans text-sm text-neutral-600">
+            Bài <span className="font-semibold text-neutral-900">{lesson.title}</span> đang khóa. Hoàn thành các bài
+            trước để mở.
+          </p>
+          <Link
+            href={`/courses/${params.courseId}`}
+            className="rounded-md bg-[#1c1d1f] px-5 py-2.5 font-sans text-sm font-semibold text-white hover:bg-black"
           >
-            <MessageCircle size={14} /> Hỗ trợ qua Zalo
-          </a>
+            Về trang khóa học
+          </Link>
         </div>
       </div>
+    );
+  }
 
-      <a
-        href={SITE_CONTACT.zaloUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed right-6 bottom-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-csnb-orange text-white shadow-lg transition-colors hover:bg-csnb-orange-deep lg:hidden"
-        aria-label="Zalo hỗ trợ"
-      >
-        <MessageCircle size={20} />
-      </a>
+  return (
+    <div className="flex min-h-full flex-col bg-neutral-100">
+      <header className="relative z-20 flex shrink-0 items-center justify-between gap-3 border-b border-neutral-800 bg-[#1c1d1f] px-4 py-3 sm:px-5">
+        <Link
+          href={`/courses/${params.courseId}`}
+          className="inline-flex min-w-0 max-w-[min(100%,28rem)] items-center gap-2 text-xs font-medium text-white/90 no-underline hover:text-white hover:no-underline sm:text-sm"
+        >
+          <ArrowLeft className="size-4 shrink-0" />
+          <span className="truncate font-semibold">{course.title}</span>
+        </Link>
+        <span className="hidden shrink-0 font-sans text-[11px] text-white/55 sm:block">Không có khu vực bình luận</span>
+      </header>
+
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:items-stretch">
+        <div className="flex min-w-0 min-h-0 flex-1 flex-col">
+          <div className="relative z-0 shrink-0 border-t border-neutral-800/80 bg-black">
+            <LessonVideoPlayer
+              variant="embed"
+              src={lesson.videoUrl}
+              poster={course.thumbnail}
+              title={lesson.title}
+              className="mx-auto w-full max-w-5xl lg:max-w-none"
+            />
+          </div>
+
+          <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-200 bg-white">
+            <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col">
+              <div className="shrink-0 border-b border-neutral-200 px-4 pt-3 sm:px-6">
+                <TabsList variant="line" className="h-auto w-full justify-start gap-4 rounded-none bg-transparent p-0">
+                  <TabsTrigger value="overview" className="rounded-none px-0 pb-3 text-sm">
+                    Tổng quan
+                  </TabsTrigger>
+                  <TabsTrigger value="notes" className="rounded-none px-0 pb-3 text-sm">
+                    Ghi chú
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="overview" className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+                <h1 className="font-sans text-lg font-bold text-neutral-900 sm:text-xl">{lesson.title}</h1>
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-sans text-xs text-neutral-500">
+                  <span className="flex items-center gap-1">
+                    <Clock className="size-3.5" />
+                    {lesson.duration}
+                  </span>
+                  <span>
+                    Bài {currentIndex + 1} / {course.lessons.length}
+                  </span>
+                  <span className="tabular-nums">Tiến độ khóa: {courseProgress}%</span>
+                  <span>
+                    {doneCount}/{course.lessons.length} đã xong
+                  </span>
+                </div>
+                <p className="mt-4 max-w-2xl font-sans text-sm leading-relaxed text-neutral-600">
+                  {course.description}
+                </p>
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCompletedLocal(true)}
+                    disabled={completedLocal}
+                    className={
+                      completedLocal
+                        ? "inline-flex cursor-default items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 font-sans text-sm font-semibold text-emerald-800"
+                        : "inline-flex items-center gap-2 rounded-md bg-violet-600 px-4 py-2 font-sans text-sm font-semibold text-white hover:bg-violet-700"
+                    }
+                  >
+                    <CheckCircle2 className="size-4" />
+                    {completedLocal ? "Đã hoàn thành" : "Đánh dấu hoàn thành"}
+                  </button>
+                  {nextLesson ? (
+                    <Link
+                      href={`/courses/${params.courseId}/lessons/${nextLesson.id}`}
+                      className="font-sans text-sm font-medium text-violet-700 hover:underline"
+                    >
+                      Bài tiếp theo →
+                    </Link>
+                  ) : null}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="notes" className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+                <div className="max-w-2xl rounded-lg border border-neutral-200 bg-neutral-50/80 p-4 font-sans text-sm leading-relaxed text-neutral-700">
+                  {lesson.notesIntro ? <p className="mb-3 text-neutral-900">{lesson.notesIntro}</p> : null}
+                  {lesson.noteBullets && lesson.noteBullets.length > 0 ? (
+                    <ul className="space-y-2">
+                      {lesson.noteBullets.map((line, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
+                          {line}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : !lesson.notesIntro ? (
+                    <ul className="space-y-2">
+                      <li className="flex gap-2">
+                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
+                        Khởi động nhẹ trước khi vào tải chính.
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
+                        Giữ form trong tầm kiểm soát — chất lượng hơn số lần.
+                      </li>
+                    </ul>
+                  ) : null}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+
+        <aside className="flex w-full shrink-0 flex-col border-t border-neutral-200 bg-white lg:w-[min(100%,380px)] lg:border-t-0 lg:border-l lg:border-neutral-200">
+          <div className="flex max-h-[min(52vh,440px)] min-h-[min(44vh,320px)] flex-1 flex-col overflow-hidden lg:max-h-none lg:min-h-0 lg:flex-1">
+            <CourseCurriculumSidebar course={course} courseId={params.courseId} activeLessonId={lesson.id} />
+          </div>
+          <div className="shrink-0 border-t border-neutral-200 p-3">
+            <a
+              href={SITE_CONTACT.zaloUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 py-2.5 font-sans text-xs font-semibold text-neutral-800 transition-colors hover:bg-neutral-100"
+            >
+              <MessageCircle className="size-4" />
+              Tư vấn trực tiếp
+            </a>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

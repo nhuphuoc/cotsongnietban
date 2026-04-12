@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Phone, Mail, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin, MessageCircle } from "lucide-react";
 import { SITE_CONTACT } from "@/lib/site-contact";
 
 export default function Footer() {
@@ -54,10 +54,10 @@ export default function Footer() {
                 href={SITE_CONTACT.zaloUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Zalo"
-                className="flex h-11 w-11 items-center justify-center rounded-md border border-csnb-border bg-csnb-surface font-heading text-xs font-bold text-csnb-muted transition-colors hover:border-csnb-orange hover:text-csnb-orange focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-csnb-orange-bright"
+                aria-label="Tư vấn trực tiếp"
+                className="flex h-11 w-11 items-center justify-center rounded-md border border-csnb-border bg-csnb-surface text-csnb-muted transition-colors hover:border-csnb-orange hover:text-csnb-orange focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-csnb-orange-bright"
               >
-                Za
+                <MessageCircle className="size-[18px]" aria-hidden />
               </a>
             </div>
           </div>
@@ -69,10 +69,10 @@ export default function Footer() {
                 { href: "/", label: "Trang Chủ" },
                 { href: "/results", label: "Kết Quả Học Viên" },
                 { href: "/blog", label: "Blog Kiến Thức" },
-                { href: "/#pricing", label: "Khóa Học" },
+                { href: "/courses", label: "Khóa Học" },
                 { href: SITE_CONTACT.facebookUrl, label: "Facebook" },
                 { href: SITE_CONTACT.instagramUrl, label: "Instagram" },
-                { href: SITE_CONTACT.zaloUrl, label: "Zalo" },
+                { href: SITE_CONTACT.zaloUrl, label: "Tư vấn trực tiếp" },
               ].map((link) => (
                 <li key={link.href}>
                   <Link

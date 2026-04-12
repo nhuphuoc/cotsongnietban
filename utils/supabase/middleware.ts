@@ -1,15 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSupabasePublicEnv } from "@/utils/supabase/env";
 
 export async function updateSession(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const env = getSupabasePublicEnv();
 
-  // Allow the app to run without Supabase configured (e.g. initial scaffolding).
-  // Once env vars are set, session refresh will automatically activate.
-  if (!supabaseUrl || !supabaseAnonKey) {
+  // Cho phép chạy app khi chưa cấu hình Supabase. Khi có .env.local, session sẽ được refresh tự động.
+  if (!env) {
     return NextResponse.next({ request });
   }
+
+  const { url: supabaseUrl, anonKey: supabaseAnonKey } = env;
 
   let supabaseResponse = NextResponse.next({
     request,

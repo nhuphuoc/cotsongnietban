@@ -1,130 +1,167 @@
 import Link from "next/link";
 import Image from "next/image";
-import { CheckCircle2, Circle, Lock, Play, Clock, ArrowLeft } from "lucide-react";
-
-const course = {
-  id: "1",
-  title: "Phục Hồi Lưng Cơ Bản",
-  description:
-    "Lộ trình khoa học 12 bài giảng từ nền tảng đến nâng cao. Bạn sẽ hiểu nguyên nhân đau lưng, cách vận động đúng và xây dựng thói quen chuyển động khỏe mạnh lâu dài.",
-  thumbnail: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop",
-  progress: 75,
-  completedLessons: 9,
-  totalLessons: 12,
-  expiresAt: "30/06/2024",
-  daysLeft: 75,
-};
-
-const lessons = [
-  { id: "1", title: "Giới thiệu khóa học & Tổng quan phương pháp", duration: "12:30", completed: true },
-  { id: "2", title: "Giải phẫu cột sống và đĩa đệm", duration: "18:45", completed: true },
-  { id: "3", title: "Đánh giá tư thế cơ bản", duration: "15:20", completed: true },
-  { id: "4", title: "Breathing Mechanics - Nền tảng vận động", duration: "22:10", completed: true },
-  { id: "5", title: "Foot & Ankle Mobility", duration: "19:30", completed: true },
-  { id: "6", title: "Hip Flexor Release", duration: "25:00", completed: true },
-  { id: "7", title: "Glute Activation Sequence", duration: "28:15", completed: true },
-  { id: "8", title: "Hip Mobility Drill - Cấp độ 1", duration: "20:40", completed: true },
-  { id: "9", title: "Posterior Chain Activation", duration: "32:00", completed: true },
-  { id: "10", title: "Corrective Hip Hinge", duration: "24:30", completed: false },
-  { id: "11", title: "Spinal Decompression Routine", duration: "21:15", completed: false, locked: true },
-  { id: "12", title: "Lộ trình duy trì & phòng ngừa tái phát", duration: "18:00", completed: false, locked: true },
-];
+import { notFound } from "next/navigation";
+import { ArrowLeft, Play, Clock } from "lucide-react";
+import {
+  getDemoCourse,
+  getCourseProgressPercent,
+  getCompletedLessonCount,
+  getCoursePhases,
+  getLessonsForPhase,
+  isPhaseComplete,
+  firstPlayableLessonIdInPhase,
+} from "@/lib/demo-courses";
 
 export default function CourseDetailPage({ params }: { params: { courseId: string } }) {
-  const nextLesson = lessons.find((l) => !l.completed && !l.locked);
+  const course = getDemoCourse(params.courseId);
+  if (!course) notFound();
+
+  const progress = getCourseProgressPercent(course);
+  const completedCount = getCompletedLessonCount(course);
+  const nextLesson = course.lessons.find((l) => !l.completed && !l.locked);
+  const phases = getCoursePhases(course);
+  const showExpiryBanner = course.daysLeft <= 60;
 
   return (
-    <div className="p-6 lg:p-8">
-      <Link
-        href="/dashboard"
-        className="mb-6 inline-flex items-center gap-2 font-sans text-sm text-csnb-muted transition-colors hover:text-white"
-      >
-        <ArrowLeft size={16} /> Quay lại Dashboard
-      </Link>
+    <div className="min-h-full bg-neutral-100 pb-10">
+      <header className="sticky top-0 z-10 border-b border-neutral-200 bg-[#1c1d1f] px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center gap-3">
+          <Link
+            href="/dashboard"
+            className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-white/80 transition-colors hover:text-white"
+          >
+            <ArrowLeft className="size-4" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </Link>
+          <span className="h-4 w-px shrink-0 bg-white/15" aria-hidden />
+          <h1 className="min-w-0 truncate font-sans text-sm font-semibold text-white">{course.title}</h1>
+        </div>
+      </header>
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <div className="relative mb-6 aspect-video overflow-hidden rounded-xl border border-csnb-border ring-1 ring-white/5">
+      <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
+        <div className="mb-6 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+          <div className="relative aspect-video bg-neutral-900">
             <Image
               src={course.thumbnail}
               alt={course.title}
               fill
-              sizes="(max-width: 1023px) 100vw, 66vw"
+              sizes="(max-width: 1024px) 100vw, 896px"
               className="object-cover"
+              priority
             />
-            <div className="absolute inset-0 flex items-center justify-center bg-csnb-bg/55">
-              {nextLesson && (
+            {showExpiryBanner ? (
+              <div className="absolute inset-x-0 top-0 bg-sky-600 px-4 py-2 text-center font-sans text-xs font-semibold text-white sm:text-sm">
+                Quyền truy cập chương trình còn {course.daysLeft} ngày — hết hạn {course.expiresAt}
+              </div>
+            ) : null}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              {nextLesson ? (
                 <Link
                   href={`/courses/${course.id}/lessons/${nextLesson.id}`}
-                  className="flex items-center gap-3 rounded-md bg-csnb-orange px-6 py-3 font-heading text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-csnb-orange-deep"
+                  className="inline-flex items-center gap-2 rounded-md bg-[#1c1d1f] px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-black"
                 >
-                  <Play size={18} /> Tiếp tục học
+                  <Play className="size-4 shrink-0 fill-current" />
+                  Tiếp tục học
                 </Link>
+              ) : (
+                <span className="rounded-md bg-white/90 px-4 py-2 font-sans text-sm text-neutral-700">
+                  Đã hoàn thành các bài mở hoặc chờ mở khóa
+                </span>
               )}
             </div>
           </div>
 
-          <h1 className="mb-2 font-heading text-2xl font-black uppercase text-white">{course.title}</h1>
-          <p className="mb-6 font-sans text-sm leading-relaxed text-csnb-muted">{course.description}</p>
+          <div className="border-t border-neutral-100 p-5 sm:p-6">
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-neutral-500">
+              <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 font-medium text-emerald-800">{course.level}</span>
+              <span className="flex items-center gap-1">
+                <Clock className="size-3.5" />
+                {course.totalDurationLabel}
+              </span>
+              <span>
+                {completedCount}/{course.lessons.length} bài
+              </span>
+              {phases.length > 1 ? (
+                <span className="rounded-full bg-violet-50 px-2.5 py-0.5 font-medium text-violet-800">
+                  {phases.length} giai đoạn
+                </span>
+              ) : null}
+            </div>
+            <h2 className="font-sans text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl">{course.title}</h2>
+            <p className="mt-2 max-w-3xl font-sans text-sm leading-relaxed text-neutral-600">{course.description}</p>
+            <p className="mt-2 font-sans text-xs text-neutral-500">
+              Truy cập đến <span className="font-medium text-neutral-700">{course.expiresAt}</span> — còn{" "}
+              <span className="tabular-nums font-medium text-neutral-700">{course.daysLeft}</span> ngày
+            </p>
 
-          <div className="mb-6 rounded-xl border border-csnb-border bg-csnb-surface/95 p-4 ring-1 ring-white/5">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="font-heading text-sm font-bold text-white">Tiến độ học tập</span>
-              <span className="font-heading font-black text-csnb-orange-bright">{course.progress}%</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-csnb-border">
-              <div className="h-full rounded-full bg-csnb-orange" style={{ width: `${course.progress}%` }} />
-            </div>
-            <div className="mt-2 flex items-center justify-between font-sans text-xs text-csnb-muted">
-              <span>
-                {course.completedLessons}/{course.totalLessons} bài hoàn thành
-              </span>
-              <span>
-                Hết hạn: {course.expiresAt} (còn {course.daysLeft} ngày)
-              </span>
+            <div className="mt-5">
+              <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-neutral-600">
+                <span>Tiến độ</span>
+                <span className="tabular-nums text-neutral-900">{progress}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-neutral-200">
+                <div className="h-full rounded-full bg-violet-600 transition-[width]" style={{ width: `${progress}%` }} />
+              </div>
             </div>
           </div>
         </div>
 
-        <div>
-          <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wider text-white">Danh sách bài giảng</h2>
-          <div className="overflow-hidden rounded-xl border border-csnb-border bg-csnb-surface/95 ring-1 ring-white/5">
-            {lessons.map((lesson, i) => (
-              <div key={lesson.id} className={i < lessons.length - 1 ? "border-b border-csnb-border" : ""}>
-                {lesson.locked ? (
-                  <div className="flex items-center gap-3 px-4 py-3 opacity-40">
-                    <Lock size={14} className="shrink-0 text-csnb-muted" />
-                    <span className="flex-1 font-sans text-xs text-csnb-muted">{lesson.title}</span>
-                    <span className="flex items-center gap-1 font-sans text-xs text-csnb-muted">
-                      <Clock size={10} /> {lesson.duration}
+        <section>
+          <h3 className="mb-4 font-sans text-lg font-bold text-neutral-900">Giai đoạn</h3>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {phases.map((phase) => {
+              const lessons = getLessonsForPhase(course, phase);
+              const complete = isPhaseComplete(course, phase);
+              const firstId = firstPlayableLessonIdInPhase(course, phase);
+              const inner = (
+                <>
+                  <div className="relative aspect-[16/10] bg-neutral-100">
+                    <Image
+                      src={phase.thumbnail}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 100vw, 33vw"
+                      className="object-cover"
+                    />
+                    {complete ? (
+                      <span className="absolute top-2 right-2 rounded bg-emerald-600 px-2 py-0.5 font-sans text-[10px] font-semibold text-white">
+                        Hoàn thành
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="p-4">
+                    <h4 className="font-sans text-sm font-bold text-neutral-900">{phase.title}</h4>
+                    <p className="mt-1 line-clamp-3 font-sans text-xs leading-relaxed text-neutral-600">{phase.description}</p>
+                    <span className="mt-3 inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 font-sans text-[11px] font-medium text-emerald-800">
+                      {lessons.length} bài
                     </span>
                   </div>
-                ) : (
-                  <Link
-                    href={`/courses/${course.id}/lessons/${lesson.id}`}
-                    className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/5"
+                </>
+              );
+
+              if (!firstId) {
+                return (
+                  <div
+                    key={phase.id}
+                    className="overflow-hidden rounded-xl border border-neutral-200 bg-white opacity-60 shadow-sm"
                   >
-                    {lesson.completed ? (
-                      <CheckCircle2 size={14} className="shrink-0 text-emerald-400" />
-                    ) : (
-                      <Circle size={14} className="shrink-0 text-csnb-orange" />
-                    )}
-                    <span
-                      className={`flex-1 font-sans text-xs transition-colors group-hover:text-white ${
-                        lesson.completed ? "text-csnb-muted" : "text-white"
-                      }`}
-                    >
-                      {lesson.title}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-1 font-sans text-xs text-csnb-muted">
-                      <Clock size={10} /> {lesson.duration}
-                    </span>
-                  </Link>
-                )}
-              </div>
-            ))}
+                    {inner}
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={phase.id}
+                  href={`/courses/${course.id}/lessons/${firstId}`}
+                  className="block overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                >
+                  {inner}
+                </Link>
+              );
+            })}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

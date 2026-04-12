@@ -6,6 +6,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Reveal, fadeUpVariants, staggerContainer } from "@/components/marketing/reveal";
 import { SITE_CONTACT } from "@/lib/site-contact";
+import { pricingPlans, type PricingPlan } from "@/lib/pricing-plans";
 import {
   ChevronDown,
   ArrowRight,
@@ -185,64 +186,6 @@ const blogPosts = [
   },
 ];
 
-const pricingPlans = [
-  {
-    id: "truc-tiep",
-    name: "Tập luyện trực tiếp",
-    tag: "TRỰC TIẾP",
-    priceFrom: "17TR+",
-    tiers: [
-      "30 BUỔI — 17.000.000đ (3 tháng)",
-      "60 BUỔI — 31.000.000đ (6 tháng)",
-      "100 BUỔI — 45.000.000đ (10 tháng)",
-    ],
-    desc: "Coach kinh nghiệm cột sống & đau khớp mãn tính; theo sát 1-1.",
-    features: [
-      "Có buổi giải cơ trị liệu kèm theo",
-      "Ưu tiên xử lý khẩn cấp và chỉnh lộ trình kịp thời",
-      "Chi phí trọn gói theo thời gian (không chỉ tính buổi): cố vấn, tập, hỗ trợ khi có sự cố ở nhà/công ty",
-    ],
-    popular: false,
-  },
-  {
-    id: "zoom",
-    name: "Trực tuyến trực tiếp (Zoom)",
-    tag: "ZOOM",
-    priceFrom: "14TR+",
-    tiers: [
-      "30 BUỔI — 14.000.000đ",
-      "60 BUỔI — 26.000.000đ",
-      "100 BUỔI — 38.000.000đ",
-    ],
-    desc: "Ở xa vẫn được coach hướng dẫn trực tiếp qua Zoom.",
-    features: [
-      "Chương trình theo tình trạng từng ngày của học viên",
-      "Giải đáp thắc mắc & thông tin bệnh lý trực tiếp",
-      "Học viên tập ngoài phòng hoặc tự chuẩn bị dụng cụ thuận tiện",
-    ],
-    popular: true,
-  },
-  {
-    id: "online",
-    name: "Online Coaching (gián tiếp)",
-    tag: "ONLINE",
-    priceFrom: "Liên hệ",
-    tiers: [
-      "Đăng ký qua Google Form (thông tin liên hệ)",
-      "Lộ trình cá nhân hóa theo từng người, từng tình trạng",
-      "Theo sát & hướng dẫn cụ thể trong suốt quá trình",
-    ],
-    desc: "Theo sát online, lộ trình rõ — không phải tự mò phương pháp.",
-    features: [
-      "Kết hợp kỹ thuật thể dục, trị liệu phục hồi & giáo dục tư thế",
-      "Sau khi đặt câu hỏi triệu chứng, sẽ gợi ý có nên chụp film khi cần",
-      "Ưu tiên kiến thức bệnh lý & tổ chức lối sống lành mạnh lâu dài",
-    ],
-    popular: false,
-    registrationUrl: SITE_CONTACT.onlineCoachingFormUrl,
-  },
-];
-
 const faqs = [
   {
     q: "Đối tượng đăng ký Online Coaching là ai?",
@@ -278,7 +221,7 @@ const faqs = [
   },
   {
     q: "Đăng ký Online Coaching ở đâu?",
-    a: "Vui lòng điền form Google trong mục bảng giá (nút Đăng ký qua form) hoặc nhắn Zalo để được hỗ trợ.",
+    a: "Vui lòng điền form Google trong mục bảng giá (nút Đăng ký qua form) hoặc liên hệ tư vấn trực tiếp để được hỗ trợ.",
   },
 ];
 
@@ -312,9 +255,9 @@ const benefitPillars = [
 /* ─── COMPONENT ─────────────────────────────────────────── */
 export default function LandingPage() {
   const [pricingDialog, setPricingDialog] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<(typeof pricingPlans)[0] | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
 
-  const handleOpenPricing = (plan: (typeof pricingPlans)[0]) => {
+  const handleOpenPricing = (plan: PricingPlan) => {
     setSelectedPlan(plan);
     setPricingDialog(true);
   };
@@ -680,7 +623,7 @@ export default function LandingPage() {
               Trở thành học viên Cột Sống Niết Bàn
             </h3>
             <p className="mt-2 max-w-xl font-sans text-sm leading-relaxed text-white/85">
-              Xem bảng giá hoặc nhắn Zalo — team tư vấn theo tình trạng của bạn.
+              Xem bảng giá hoặc tư vấn trực tiếp — team hỗ trợ theo tình trạng của bạn.
             </p>
           </div>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
@@ -795,7 +738,7 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 className="inline-flex min-h-11 items-center justify-center rounded-full border border-csnb-border/60 bg-white px-6 font-sans text-sm font-semibold text-csnb-ink transition hover:border-csnb-orange/40 hover:bg-csnb-panel/50"
               >
-                Liên hệ Zalo
+                Tư vấn trực tiếp
               </Link>
             </div>
           </Reveal>
@@ -1270,7 +1213,7 @@ export default function LandingPage() {
                   className="mx-auto mt-7 inline-flex min-h-11 w-full max-w-xs items-center justify-center gap-2 rounded-full border border-csnb-border/40 bg-csnb-ink px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-csnb-raised hover:shadow-lg lg:mx-0 lg:max-w-none"
                 >
                   <MessageCircle size={17} className="shrink-0 text-csnb-orange-bright" />
-                  Nhắn Zalo hỏi nhanh
+                  Tư vấn trực tiếp
                   <ArrowRight size={15} className="shrink-0 opacity-80" />
                 </Link>
               </div>
@@ -1392,13 +1335,14 @@ export default function LandingPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Floating Zalo Button */}
+      {/* Nút tư vấn trực tiếp (nổi) */}
       <motion.a
         href={SITE_CONTACT.zaloUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-csnb-orange text-white shadow-lg shadow-csnb-orange/30 transition-colors hover:bg-csnb-orange-deep"
-        title="Liên hệ ngay"
+        title="Tư vấn trực tiếp"
+        aria-label="Tư vấn trực tiếp"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.9, type: "spring", stiffness: 280, damping: 19 }}

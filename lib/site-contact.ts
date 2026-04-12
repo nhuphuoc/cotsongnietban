@@ -2,7 +2,7 @@
 export const SITE_CONTACT = {
   phoneDisplay: "090 298 68 55",
   phoneIntl: "+84 90 298 68 55",
-  /** Dùng cho tel: và Zalo deep link */
+  /** Dùng cho tel: và liên kết tư vấn trực tiếp (deep link) */
   phoneE164: "+84902986855",
   email: "nirvanaspine@gmail.com",
   instagramHandle: "nirvana.spine",

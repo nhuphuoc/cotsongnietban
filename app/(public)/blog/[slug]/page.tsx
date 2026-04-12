@@ -118,7 +118,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
         <div className="mt-12 overflow-hidden rounded-xl border border-csnb-orange/25 bg-gradient-to-br from-csnb-orange to-csnb-orange-deep p-6 text-center shadow-lg shadow-black/10 sm:p-8">
           <h3 className="font-sans text-xl font-extrabold text-white sm:text-2xl">Bắt đầu hành trình phục hồi</h3>
           <p className="mx-auto mt-2 max-w-md font-sans text-sm leading-relaxed text-white/90">
-            Xem bảng giá và chọn gói phù hợp — hoặc nhắn Zalo để team hỗ trợ định hướng lộ trình.
+            Xem bảng giá và chọn gói phù hợp — hoặc liên hệ tư vấn trực tiếp để team hỗ trợ định hướng lộ trình.
           </p>
           <Link
             href="/#pricing"
