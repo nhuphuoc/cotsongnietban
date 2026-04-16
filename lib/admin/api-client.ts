@@ -1,0 +1,59 @@
+"use client";
+
+export type ApiOk<T> = { data: T };
+export type ApiFail = { error: { message: string; details: unknown | null } };
+
+export class ApiError extends Error {
+  status: number;
+  details: unknown | null;
+
+  constructor(message: string, status: number, details: unknown | null) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.details = details;
+  }
+}
+
+async function readJsonSafe(res: Response) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function apiFetch<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
+  const res = await fetch(input, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  const json = (await readJsonSafe(res)) as ApiOk<T> | ApiFail | null;
+
+  if (!res.ok) {
+    const msg = (json as ApiFail | null)?.error?.message ?? `Request failed (${res.status})`;
+    const details = (json as ApiFail | null)?.error?.details ?? null;
+    throw new ApiError(msg, res.status, details);
+  }
+
+  if (!json || !("data" in json)) {
+    throw new ApiError("Invalid API response shape.", 500, json);
+  }
+
+  return (json as ApiOk<T>).data;
+}
+
+export function slugifyClient(input: string) {
+  return input
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+

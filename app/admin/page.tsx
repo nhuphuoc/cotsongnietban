@@ -1,10 +1,11 @@
-import { Users, BookOpen, ShoppingCart, TrendingUp, DollarSign, CheckCircle2, Clock } from "lucide-react";
+import Link from "next/link";
+import { BarChart3, BookOpen, DollarSign, MessageSquareQuote, ShoppingCart, Users, CheckCircle2, Clock } from "lucide-react";
 
 const stats = [
-  { label: "Tổng Doanh Thu", value: "148,500,000đ", icon: DollarSign, trend: "+12.5%", color: "bg-green-50 text-green-600 border-green-200" },
-  { label: "Người Dùng", value: "1,247", icon: Users, trend: "+8.3%", color: "bg-blue-50 text-blue-600 border-blue-200" },
-  { label: "Khóa Học Active", value: "3", icon: BookOpen, trend: "0%", color: "bg-purple-50 text-purple-600 border-purple-200" },
-  { label: "Đơn Chờ Duyệt", value: "12", icon: ShoppingCart, trend: "+3", color: "bg-orange-50 text-[#c0392b] border-orange-200" },
+  { label: "Doanh thu (demo)", value: "148,500,000đ", icon: DollarSign, trend: "+12.5%", color: "bg-green-50 text-green-700 border-green-200" },
+  { label: "Người dùng", value: "1,247", icon: Users, trend: "+8.3%", color: "bg-blue-50 text-blue-700 border-blue-200" },
+  { label: "Khóa học", value: "4", icon: BookOpen, trend: "+1", color: "bg-purple-50 text-purple-700 border-purple-200" },
+  { label: "Feedback mới", value: "6", icon: MessageSquareQuote, trend: "+2", color: "bg-orange-50 text-[#c0392b] border-orange-200" },
 ];
 
 const recentOrders = [
@@ -14,11 +15,18 @@ const recentOrders = [
   { id: "ORD004", user: "Phạm Quốc Hùng", email: "hung@gmail.com", course: "Phục Hồi Lưng Cơ Bản", amount: "1,500,000đ", status: "approved", time: "2 tiếng trước" },
 ];
 
+const quickLinks = [
+  { href: "/admin/orders", label: "Duyệt đơn hàng", icon: ShoppingCart, desc: "Xem đơn chờ duyệt và xác nhận thanh toán" },
+  { href: "/admin/courses", label: "Quản lý khóa học", icon: BookOpen, desc: "Thêm/sửa/xuất bản khóa học (demo)" },
+  { href: "/admin/blog", label: "Quản lý blog", icon: BarChart3, desc: "Đăng bài & cập nhật nội dung" },
+  { href: "/admin/feedback", label: "Quản lý feedback", icon: MessageSquareQuote, desc: "Duyệt, ghim, ẩn phản hồi" },
+];
+
 export default function AdminDashboardPage() {
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="font-heading font-black text-gray-900 text-2xl">Admin Dashboard</h1>
+        <h1 className="font-sans font-extrabold tracking-tight text-gray-900 text-2xl">Admin Dashboard</h1>
         <p className="text-gray-500 text-sm mt-1">Tổng quan hệ thống Cột Sống Niết Bàn</p>
       </div>
 
@@ -36,15 +44,38 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
+      {/* Quick actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        {quickLinks.map((q) => (
+          <Link
+            key={q.href}
+            href={q.href}
+            className="group rounded-sm border border-gray-200 bg-white p-5 transition-colors hover:bg-gray-50"
+          >
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-sm bg-gray-100 text-gray-700 group-hover:bg-white">
+                <q.icon size={18} />
+              </span>
+              <div className="min-w-0">
+                <div className="font-heading font-black text-gray-900 text-sm uppercase tracking-wide">
+                  {q.label}
+                </div>
+                <div className="mt-1 text-sm text-gray-500">{q.desc}</div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
       {/* Recent Orders */}
       <div className="bg-white border border-gray-200 rounded-sm">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <h2 className="font-heading font-bold text-gray-900 text-sm uppercase tracking-wide">
             Đơn Hàng Gần Đây
           </h2>
-          <a href="/admin/orders" className="text-[#c0392b] text-xs font-semibold hover:underline">
+          <Link href="/admin/orders" className="text-[#c0392b] text-xs font-semibold hover:underline">
             Xem tất cả →
-          </a>
+          </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

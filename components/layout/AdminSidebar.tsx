@@ -4,7 +4,7 @@ import Link from "next/link";
 import { SiteLogoMark } from "@/components/brand/site-logo-mark";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Users, BookOpen, ShoppingCart, FileText, LogOut, Settings
+  LayoutDashboard, Users, BookOpen, ShoppingCart, FileText, LogOut, MessageSquareQuote
 } from "lucide-react";
 
 const navItems = [
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin/orders", label: "Đơn Hàng", icon: ShoppingCart },
   { href: "/admin/courses", label: "Khóa Học", icon: BookOpen },
   { href: "/admin/blog", label: "Blog", icon: FileText },
+  { href: "/admin/feedback", label: "Feedback", icon: MessageSquareQuote },
   { href: "/admin/users", label: "Người Dùng", icon: Users },
 ];
 
@@ -25,7 +26,7 @@ export default function AdminSidebar() {
         <Link href="/admin" className="flex items-center gap-2">
           <SiteLogoMark boxClassName="block h-7 w-7" alt="" />
           <div className="flex flex-col leading-none">
-            <span className="font-heading font-black text-gray-900 text-xs uppercase tracking-wide">CSNB Admin</span>
+            <span className="font-sans font-extrabold text-gray-900 text-xs uppercase tracking-wide">CSNB Admin</span>
             <span className="text-gray-400 text-[10px] mt-0.5">Quản Trị Viên</span>
           </div>
         </Link>
@@ -39,7 +40,7 @@ export default function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-heading font-semibold transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-sans font-semibold transition-colors ${
                 active
                   ? "bg-[#c0392b] text-white"
                   : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
@@ -54,7 +55,7 @@ export default function AdminSidebar() {
 
       {/* Bottom */}
       <div className="p-3 border-t border-gray-200 space-y-0.5">
-        <Link href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors font-heading font-semibold">
+        <Link href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors font-sans font-semibold">
           <LogOut size={16} />
           Thoát Admin
         </Link>
