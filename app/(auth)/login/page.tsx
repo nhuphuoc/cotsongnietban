@@ -1,12 +1,33 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SiteLogoMark } from "@/components/brand/site-logo-mark";
+import { EmailPasswordAuthForm } from "@/components/auth/email-password-auth-form";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { getSupabasePublicEnv } from "@/utils/supabase/env";
+import { createClient } from "@/utils/supabase/server";
 
 type Props = { searchParams?: Promise<{ error?: string }> };
 
 export default async function LoginPage({ searchParams }: Props) {
   const params = searchParams ? await searchParams : {};
   const errorKey = params.error;
+
+  if (getSupabasePublicEnv()) {
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        if (user.email_confirmed_at) {
+          redirect("/dashboard");
+        }
+        redirect("/verify-email");
+      }
+    } catch {
+      // Ignore auth check failures and continue rendering login page.
+    }
+  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-csnb-bg px-4">
@@ -27,18 +48,28 @@ export default async function LoginPage({ searchParams }: Props) {
           <h1 className="mb-2 text-center font-heading text-xl font-black uppercase tracking-wide text-white">
             Đăng nhập
           </h1>
-          <p className="mb-8 text-center font-sans text-sm text-csnb-muted">Sử dụng tài khoản Google để truy cập khóa học</p>
+          <p className="mb-8 text-center font-sans text-sm text-csnb-muted">
+            Đăng nhập bằng email/mật khẩu hoặc Google.
+          </p>
 
           {errorKey === "auth" ? (
             <p className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-center font-sans text-xs text-red-200">
-              Đăng nhập thất bại. Thử lại hoặc kiểm tra Redirect URL trong Supabase.
+              Đăng nhập thất bại. Thử lại hoặc kiểm tra cấu hình Supabase.
             </p>
           ) : null}
           {errorKey === "config" ? (
             <p className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center font-sans text-xs text-amber-100">
-              Chưa cấu hình Supabase. Thêm NEXT_PUBLIC_SUPABASE_URL và NEXT_PUBLIC_SUPABASE_ANON_KEY vào .env.local.
+              Chưa cấu hình Supabase. Thêm NEXT_PUBLIC_SUPABASE_URL và khóa publishable/anon vào .env.local.
             </p>
           ) : null}
+
+          <EmailPasswordAuthForm />
+
+          <div className="my-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-csnb-border" />
+            <span className="font-sans text-[11px] uppercase tracking-wider text-csnb-muted">hoặc</span>
+            <div className="h-px flex-1 bg-csnb-border" />
+          </div>
 
           <GoogleSignInButton />
 

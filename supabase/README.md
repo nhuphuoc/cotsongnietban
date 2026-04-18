@@ -1,28 +1,36 @@
-## Local Supabase (dev)
+## Supabase Online (recommended)
 
 ### Prerequisites
-- Docker đang chạy
-- Supabase CLI (repo đã có `supabase` trong `devDependencies`)
-
-### Start
-
-```bash
-npm run supabase:start
-npm run supabase:status
-```
+- Một project Supabase trên cloud
+- Lấy API keys trong Supabase Dashboard -> Project Settings -> API
 
 ### Set `.env.local`
 
-Copy `.env.example` → `.env.local`, sau đó set:
+```bash
+cp .env.example .env.local
+```
 
-- `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY=...` (từ `npm run supabase:status`)
-- `SUPABASE_SERVICE_ROLE_KEY=...` (chỉ cần nếu gọi các admin API routes ở `app/api/admin/*`)
+Set các biến:
 
-### Reset DB (apply migrations + seed)
+- `NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY=...` (hoặc `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)
+- `SUPABASE_SERVICE_ROLE_KEY=...` (nếu dùng admin API routes ở `app/api/admin/*`)
+
+### Seed auth users (optional)
 
 ```bash
-npm run supabase:reset
+npm run seed:auth:remote
+```
+
+Có thể override email/password bằng env:
+
+```bash
+SEED_REMOTE_SUPABASE=true \
+SEED_AUTH_PASSWORD='StrongPassword123!' \
+SEED_ADMIN_EMAIL='admin@example.com' \
+SEED_USER1_EMAIL='user1@example.com' \
+SEED_USER2_EMAIL='user2@example.com' \
+node scripts/seed-local-auth.js
 ```
 
 ### Notes

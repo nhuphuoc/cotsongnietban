@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
-import { apiFetch, slugifyClient } from "@/lib/admin/api-client";
+import { ApiError, apiFetch, slugifyClient } from "@/lib/admin/api-client";
+import { ApiTestPanel } from "@/components/admin/api-test-panel";
 
 const categories = ["Liệu Pháp", "Đau Lưng", "Kiến Thức", "Tư Thế", "Dinh Dưỡng"];
 
@@ -42,7 +43,11 @@ export default function AdminBlogCreatePage() {
         });
         router.push(`/admin/blog/${created.id}`);
       } catch (e: any) {
-        setError(e?.message ?? "Không thể tạo bài viết.");
+        if (e instanceof ApiError) {
+          setError(`${e.message} (HTTP ${e.status})\n${e.details ? JSON.stringify(e.details, null, 2) : ""}`.trim());
+        } else {
+          setError(e?.message ?? "Không thể tạo bài viết.");
+        }
       } finally {
         setSubmitting(false);
       }
@@ -80,7 +85,7 @@ export default function AdminBlogCreatePage() {
       </div>
 
       {error ? (
-        <div className="mb-4 rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-4 rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 whitespace-pre-wrap">
           {error}
         </div>
       ) : null}
@@ -108,7 +113,7 @@ export default function AdminBlogCreatePage() {
           <div className="bg-white border border-gray-200 rounded-sm p-5">
             <div className="mb-2 flex items-center justify-between gap-3">
               <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Nội dung</label>
-              <span className="text-xs text-gray-400">Lưu qua API (local Supabase)</span>
+              <span className="text-xs text-gray-400">Lưu qua API (Supabase)</span>
             </div>
             <RichTextEditor valueHtml={contentHtml} onChangeHtml={setContentHtml} placeholder="Bắt đầu viết..." />
           </div>
@@ -149,6 +154,8 @@ export default function AdminBlogCreatePage() {
               <li>Chèn tiêu đề H2/H3 cho phần lớn.</li>
             </ul>
           </div>
+
+          <ApiTestPanel />
         </div>
       </div>
     </div>

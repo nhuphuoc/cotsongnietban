@@ -34,7 +34,7 @@ export function requireSupabaseServerEnv(): { url: string; serviceRoleKey: strin
   const env = getSupabaseServerEnv();
   if (!env) {
     throw new Error(
-      "Thiếu NEXT_PUBLIC_SUPABASE_URL hoặc SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SECRET_KEY. Với local Supabase, thêm các giá trị này vào .env.local sau khi chạy `supabase start`."
+      "Thiếu NEXT_PUBLIC_SUPABASE_URL hoặc SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SECRET_KEY. Thêm các giá trị này vào .env.local từ Supabase Project Settings -> API."
     );
   }
   return env;
