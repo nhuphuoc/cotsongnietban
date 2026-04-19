@@ -232,41 +232,23 @@ export async function incrementBlogPostViewCount(postId: string) {
 
 export async function listFeedbacks() {
   const client = admin();
-  const { data, error } = await client.from("feedbacks").select("*").order("created_at", { ascending: false });
+  const { data, error } = await client
+    .from("feedbacks")
+    .select("id, type, customer_name, customer_info, content, avatar_url, image_url_1, image_url_2, is_active, created_at")
+    .order("created_at", { ascending: false });
   if (error) throw error;
-
-  const courseIds = [...new Set((data ?? []).map((item) => item.course_id).filter(Boolean))];
-  const { data: courses, error: courseError } = courseIds.length
-    ? await client.from("courses").select("id, title, slug").in("id", courseIds)
-    : { data: [], error: null };
-
-  if (courseError) throw courseError;
-  const coursesById = new Map((courses ?? []).map((item) => [item.id, item]));
-
-  return (data ?? []).map((item) => ({
-    ...item,
-    course: item.course_id ? coursesById.get(item.course_id) ?? null : null,
-  }));
+  return data ?? [];
 }
 
 export async function getFeedbackById(id: string) {
   const client = admin();
-  const { data, error } = await client.from("feedbacks").select("*").eq("id", id).maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
-
-  if (!data.course_id) {
-    return { ...data, course: null };
-  }
-
-  const { data: course, error: courseError } = await client
-    .from("courses")
-    .select("id, title, slug")
-    .eq("id", data.course_id)
+  const { data, error } = await client
+    .from("feedbacks")
+    .select("id, type, customer_name, customer_info, content, avatar_url, image_url_1, image_url_2, is_active, created_at")
+    .eq("id", id)
     .maybeSingle();
-
-  if (courseError) throw courseError;
-  return { ...data, course: course ?? null };
+  if (error) throw error;
+  return data ?? null;
 }
 
 export async function listOrders() {

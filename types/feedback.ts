@@ -1,8 +1,8 @@
-export type AdminFeedbackType = "before_after" | "testimonial" | "comment";
+export type FeedbackType = "before_after" | "testimonial" | "comment";
 
-export type AdminFeedback = {
+export type Feedback = {
   id: string;
-  type: AdminFeedbackType;
+  type: FeedbackType;
   customer_name: string | null;
   customer_info: string | null;
   content: string | null;
@@ -12,4 +12,3 @@ export type AdminFeedback = {
   is_active: boolean;
   created_at: string;
 };
-

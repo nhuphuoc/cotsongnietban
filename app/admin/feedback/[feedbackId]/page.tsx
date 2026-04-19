@@ -3,12 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Trash2 } from "lucide-react";
-import { CourseSelect } from "@/components/admin/course-select";
-import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import { ArrowLeft, Loader2, Trash2, Upload } from "lucide-react";
 import { apiFetch } from "@/lib/admin/api-client";
-import type { AdminFeedbackSource, AdminFeedbackStatus } from "@/lib/admin/feedback-types";
+import { uploadAdminImage } from "@/lib/admin/upload-image";
+import type { AdminFeedback, AdminFeedbackType } from "@/lib/admin/feedback-types";
 import { crudNotify, notifyApiProblem, notify } from "@/lib/ui/notify";
+
+const TYPE_OPTIONS: { value: AdminFeedbackType; label: string }[] = [
+  { value: "before_after", label: "Trước & Sau" },
+  { value: "testimonial", label: "Chia sẻ" },
+  { value: "comment", label: "Bình luận" },
+];
 
 export default function AdminFeedbackDetailPage() {
   const params = useParams<{ feedbackId: string }>();
@@ -17,24 +22,26 @@ export default function AdminFeedbackDetailPage() {
   const id = params.feedbackId;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [item, setItem] = useState<any | null>(null);
+  const [item, setItem] = useState<AdminFeedback | null>(null);
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [avatar, setAvatar] = useState("");
-  const [courseId, setCourseId] = useState("");
-  const [source, setSource] = useState<AdminFeedbackSource>("website");
-  const [status, setStatus] = useState<AdminFeedbackStatus>("new");
-  const [rating, setRating] = useState<1 | 2 | 3 | 4 | 5>(5);
-  const [messageHtml, setMessageHtml] = useState("<p></p>");
-  const [internalNoteHtml, setInternalNoteHtml] = useState("<p></p>");
+  const [type, setType] = useState<AdminFeedbackType>("testimonial");
+  const [customerName, setCustomerName] = useState("");
+  const [customerInfo, setCustomerInfo] = useState("");
+  const [content, setContent] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [imageUrl1, setImageUrl1] = useState("");
+  const [imageUrl2, setImageUrl2] = useState("");
+  const [isActive, setIsActive] = useState(true);
+  const [uploading1, setUploading1] = useState(false);
+  const [uploading2, setUploading2] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<any>(`/api/admin/feedback/${id}`);
+      const data = await apiFetch<AdminFeedback>(`/api/admin/feedback/${id}`);
       setItem(data);
     } catch (e: any) {
       notifyApiProblem(e, { fallbackTitle: "Không thể tải feedback" });
@@ -50,18 +57,17 @@ export default function AdminFeedbackDetailPage() {
 
   useEffect(() => {
     if (!item) return;
-    setName(item.name ?? "");
-    setEmail(item.email ?? "");
-    setAvatar(item.avatar_url ?? "");
-    setCourseId(item.course?.id ?? "");
-    setSource(item.source);
-    setStatus(item.status);
-    setRating(item.rating);
-    setMessageHtml(item.message_html ?? "<p></p>");
-    setInternalNoteHtml(item.internal_note_html ?? "<p></p>");
+    setType(item.type);
+    setCustomerName(item.customer_name ?? "");
+    setCustomerInfo(item.customer_info ?? "");
+    setContent(item.content ?? "");
+    setAvatarUrl(item.avatar_url ?? "");
+    setImageUrl1(item.image_url_1 ?? "");
+    setImageUrl2(item.image_url_2 ?? "");
+    setIsActive(item.is_active);
   }, [item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const canSave = useMemo(() => name.trim().length >= 2 && email.trim().includes("@"), [name, email]);
+  const canSave = useMemo(() => customerName.trim().length >= 2, [customerName]);
 
   const onSave = () => {
     void (async () => {
@@ -71,18 +77,17 @@ export default function AdminFeedbackDetailPage() {
       try {
         const updated = await crudNotify.update(
           () =>
-            apiFetch<any>(`/api/admin/feedback/${item.id}`, {
+            apiFetch<AdminFeedback>(`/api/admin/feedback/${item.id}`, {
               method: "PATCH",
               body: JSON.stringify({
-                name: name.trim(),
-                email: email.trim(),
-                avatarUrl: avatar.trim() || null,
-                courseId: courseId || null,
-                source,
-                status,
-                rating,
-                messageHtml,
-                internalNoteHtml: internalNoteHtml.trim() === "<p></p>" ? null : internalNoteHtml,
+                type,
+                customerName: customerName.trim(),
+                customerInfo: customerInfo.trim() || null,
+                content: content.trim() || null,
+                avatarUrl: avatarUrl.trim() || null,
+                imageUrl1: imageUrl1.trim() || null,
+                imageUrl2: imageUrl2.trim() || null,
+                isActive,
               }),
             }),
           { entity: "feedback" }
@@ -112,6 +117,31 @@ export default function AdminFeedbackDetailPage() {
     })();
   };
 
+  const makeImageUploader = (setter: (v: string) => void, setUploading: (v: boolean) => void, label: string) =>
+    (file: File | null) => {
+      if (!file) return;
+      void (async () => {
+        setUploading(true);
+        try {
+          const url = await crudNotify.create(() => uploadAdminImage(file), {
+            entity: label,
+            loadingMessage: `Đang tải ${label}...`,
+            successMessage: `Upload ${label} thành công.`,
+            fallbackErrorMessage: `Không thể upload ${label}.`,
+          });
+          setter(url);
+        } catch (e: any) {
+          setError(e?.message ?? `Không thể upload ${label}.`);
+        } finally {
+          setUploading(false);
+        }
+      })();
+    };
+
+  const onUploadAvatar = makeImageUploader(setAvatarUrl, setUploadingAvatar, "ảnh đại diện");
+  const onUploadImage1 = makeImageUploader(setImageUrl1, setUploading1, "ảnh 1");
+  const onUploadImage2 = makeImageUploader(setImageUrl2, setUploading2, "ảnh 2");
+
   if (loading) {
     return (
       <div className="p-6 lg:p-8">
@@ -130,9 +160,7 @@ export default function AdminFeedbackDetailPage() {
         <div className="mt-4 rounded-sm border border-gray-200 bg-white p-6">
           <div className="font-heading font-black text-gray-900 text-lg">Không tìm thấy feedback</div>
           <p className="mt-1 text-sm text-gray-500">{error ?? "Có thể feedback đã bị xoá hoặc ID không tồn tại."}</p>
-          <button onClick={load} className="mt-3 text-sm font-semibold text-[#c0392b] hover:underline">
-            Thử lại
-          </button>
+          <button onClick={load} className="mt-3 text-sm font-semibold text-[#c0392b] hover:underline">Thử lại</button>
         </div>
       </div>
     );
@@ -150,14 +178,13 @@ export default function AdminFeedbackDetailPage() {
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
             <span className="rounded-full bg-gray-100 px-2 py-1 font-mono">id: {item.id}</span>
             <span className="text-gray-400">·</span>
-            <span>Cập nhật: {new Date(item.updated_at).toLocaleString("vi-VN")}</span>
+            <span>Tạo: {new Date(item.created_at).toLocaleString("vi-VN")}</span>
           </div>
         </div>
-
         <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
           <button
             onClick={onSave}
-            disabled={!canSave}
+            disabled={!canSave || saving}
             className="bg-[#c0392b] hover:bg-[#96281b] disabled:opacity-40 disabled:hover:bg-[#c0392b] text-white text-sm font-bold px-4 py-2.5 rounded-sm transition-colors"
           >
             {saving ? "Đang lưu..." : "Lưu thay đổi"}
@@ -165,7 +192,6 @@ export default function AdminFeedbackDetailPage() {
           <button
             onClick={onDelete}
             className="inline-flex items-center justify-center gap-2 rounded-sm border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 hover:border-[#c0392b]/40 hover:text-[#c0392b]"
-            title="Xóa (demo)"
           >
             <Trash2 size={16} />
           </button>
@@ -173,103 +199,140 @@ export default function AdminFeedbackDetailPage() {
       </div>
 
       {error ? (
-        <div className="mb-4 rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
+        <div className="mb-4 rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       ) : null}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="lg:col-span-5 space-y-4">
           <div className="bg-white border border-gray-200 rounded-sm p-5 space-y-3">
             <div>
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Tên *</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Email *</label>
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Avatar URL</label>
-              <input
-                value={avatar}
-                onChange={(e) => setAvatar(e.target.value)}
-                placeholder="https://images.unsplash.com/..."
-                className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]"
-              />
-            </div>
-            <CourseSelect value={courseId} onChange={setCourseId} />
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Nguồn</label>
-                <select
-                  value={source}
-                  onChange={(e) => setSource(e.target.value as AdminFeedbackSource)}
-                  className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#c0392b]"
-                >
-                  <option value="website">Website</option>
-                  <option value="zalo">Zalo</option>
-                  <option value="facebook">Facebook</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Trạng thái</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as AdminFeedbackStatus)}
-                  className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#c0392b]"
-                >
-                  <option value="new">Mới</option>
-                  <option value="reviewed">Đã duyệt</option>
-                  <option value="pinned">Ghim</option>
-                  <option value="hidden">Ẩn</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Rating</label>
+              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Loại *</label>
               <select
-                value={rating}
-                onChange={(e) => setRating(Number(e.target.value) as any)}
+                value={type}
+                onChange={(e) => setType(e.target.value as AdminFeedbackType)}
                 className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#c0392b]"
               >
-                {[5, 4, 3, 2, 1].map((n) => (
-                  <option key={n} value={n}>
-                    {n} sao
-                  </option>
+                {TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Tên khách hàng *</label>
+              <input
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Thông tin phụ</label>
+              <input
+                value={customerInfo}
+                onChange={(e) => setCustomerInfo(e.target.value)}
+                placeholder="VD: 45 tuổi, thoát vị L4-L5"
+                className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Nội dung / Caption</label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={3}
+                className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-[#c0392b] resize-none"
+              />
+            </div>
+            <div>
+              <label className="flex cursor-pointer items-center gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                  className="accent-[#c0392b]"
+                />
+                <span className="font-semibold text-gray-700">Hiển thị (is_active)</span>
+              </label>
             </div>
           </div>
         </div>
 
         <div className="lg:col-span-7 space-y-4">
-          <div className="bg-white border border-gray-200 rounded-sm p-5">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Nội dung phản hồi</label>
-              <span className="text-xs text-gray-400">Rich text</span>
-            </div>
-            <RichTextEditor valueHtml={messageHtml} onChangeHtml={setMessageHtml} />
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-sm p-5">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Ghi chú nội bộ</label>
-              <span className="text-xs text-gray-400">Chỉ admin thấy</span>
-            </div>
-            <RichTextEditor valueHtml={internalNoteHtml} onChangeHtml={setInternalNoteHtml} />
+          <div className="bg-white border border-gray-200 rounded-sm p-5 space-y-4">
+            {type === "testimonial" && (
+              <ImageUploadField
+                label="Ảnh đại diện (avatar_url)"
+                value={avatarUrl}
+                uploading={uploadingAvatar}
+                onChange={onUploadAvatar}
+                onClear={() => setAvatarUrl("")}
+              />
+            )}
+            <ImageUploadField
+              label={type === "before_after" ? "Ảnh Trước (image_url_1)" : "Ảnh chính (image_url_1)"}
+              value={imageUrl1}
+              uploading={uploading1}
+              onChange={onUploadImage1}
+              onClear={() => setImageUrl1("")}
+            />
+            {type === "before_after" && (
+              <ImageUploadField
+                label="Ảnh Sau (image_url_2)"
+                value={imageUrl2}
+                uploading={uploading2}
+                onChange={onUploadImage2}
+                onClear={() => setImageUrl2("")}
+              />
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+function ImageUploadField({
+  label,
+  value,
+  uploading,
+  onChange,
+  onClear,
+}: {
+  label: string;
+  value: string;
+  uploading: boolean;
+  onChange: (file: File | null) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div>
+      <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">{label}</label>
+      <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-sm border border-dashed border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:border-[#c0392b]/50 hover:text-[#c0392b]">
+        {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+        {uploading ? "Đang upload..." : "Chọn ảnh từ máy"}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="sr-only"
+          onChange={(e) => {
+            onChange(e.target.files?.[0] ?? null);
+            e.target.value = "";
+          }}
+        />
+      </label>
+      {value ? (
+        <div className="mt-2 overflow-hidden rounded-sm border border-gray-200 bg-gray-50">
+          <img src={value} alt="" className="h-36 w-full object-cover" />
+          <div className="flex items-center justify-between gap-3 px-3 py-2">
+            <span className="truncate text-xs text-gray-500">{value}</span>
+            <button type="button" onClick={onClear} className="shrink-0 text-xs font-semibold text-gray-600 hover:text-[#c0392b]">
+              Xóa ảnh
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 

@@ -13,8 +13,7 @@ create type public.publication_status as enum ('draft', 'published', 'archived')
 create type public.lesson_kind as enum ('video', 'article', 'download', 'live');
 create type public.enrollment_status as enum ('pending', 'active', 'expired', 'cancelled', 'refunded');
 create type public.order_status as enum ('pending', 'paid', 'approved', 'cancelled', 'refunded');
-create type public.feedback_source as enum ('website', 'zalo', 'facebook', 'email', 'other');
-create type public.feedback_status as enum ('new', 'reviewed', 'pinned', 'hidden');
+
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -225,21 +224,15 @@ create table public.lesson_progress (
 
 create table public.feedbacks (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references public.profiles(id) on delete set null,
-  course_id uuid references public.courses(id) on delete set null,
-  source public.feedback_source not null default 'website',
-  name text not null,
-  email text,
+  type text not null check (type in ('before_after', 'testimonial', 'comment')),
+  customer_name text,
+  customer_info text,
+  content text,
   avatar_url text,
-  rating integer not null check (rating between 1 and 5),
-  message_html text not null,
-  internal_note_html text,
-  status public.feedback_status not null default 'new',
-  is_public boolean not null default false,
-  reviewed_by uuid references public.profiles(id) on delete set null,
-  reviewed_at timestamptz,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
+  image_url_1 text,
+  image_url_2 text,
+  is_active boolean not null default true,
+  created_at timestamptz not null default timezone('utc', now())
 );
 
 create index idx_courses_status_featured on public.courses (status, is_featured, published_at desc);
@@ -253,8 +246,7 @@ create index idx_order_items_course on public.order_items (course_id);
 create index idx_enrollments_user_status on public.enrollments (user_id, status);
 create index idx_enrollments_course_status on public.enrollments (course_id, status);
 create index idx_lesson_progress_enrollment on public.lesson_progress (enrollment_id);
-create index idx_feedbacks_status_created on public.feedbacks (status, created_at desc);
-create index idx_feedbacks_course_status on public.feedbacks (course_id, status);
+create index idx_feedbacks_type_active on public.feedbacks (type, is_active, created_at desc);
 
 create trigger set_profiles_updated_at
 before update on public.profiles
@@ -296,10 +288,6 @@ create trigger set_lesson_progress_updated_at
 before update on public.lesson_progress
 for each row execute procedure public.set_updated_at();
 
-create trigger set_feedbacks_updated_at
-before update on public.feedbacks
-for each row execute procedure public.set_updated_at();
-
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute procedure public.handle_new_user();
@@ -312,7 +300,7 @@ comment on table public.orders is 'Commercial order/payment approval workflow.';
 comment on table public.enrollments is 'Granted access to a course for one learner.';
 comment on table public.lesson_progress is 'Per-lesson learner progress state.';
 comment on table public.blog_posts is 'Public knowledge/blog content.';
-comment on table public.feedbacks is 'Testimonials and moderation workflow.';
+comment on table public.feedbacks is 'Social proof content: before/after, testimonials, and comments.';
 
 -- Suggested next step:
 -- Add RLS policies after finalizing actor rules for admin, coach, and student.

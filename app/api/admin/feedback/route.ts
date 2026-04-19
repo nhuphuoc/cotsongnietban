@@ -3,6 +3,8 @@ import { ok, fail } from "@/lib/api/http";
 import { listFeedbacks } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 
+const ALLOWED_TYPES = new Set(["before_after", "testimonial", "comment"]);
+
 export async function GET() {
   const auth = await requireAdminActor();
   if (!auth.actor) return fail(auth.message ?? "Forbidden", auth.status);
@@ -20,25 +22,23 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    if (!body.name || !body.messageHtml || !body.rating) {
-      return fail("Thiếu name, rating hoặc messageHtml.");
+    const type = typeof body.type === "string" ? body.type : "";
+    if (!type || !ALLOWED_TYPES.has(type)) {
+      return fail("type phải là 'before_after', 'testimonial' hoặc 'comment'.");
     }
 
     const client = createAdminClient();
     const { data, error } = await client
       .from("feedbacks")
       .insert({
-        user_id: body.userId ?? null,
-        course_id: body.courseId ?? null,
-        source: body.source ?? "website",
-        name: body.name,
-        email: body.email ?? null,
+        type,
+        customer_name: body.customerName ?? null,
+        customer_info: body.customerInfo ?? null,
+        content: body.content ?? null,
         avatar_url: body.avatarUrl ?? null,
-        rating: body.rating,
-        message_html: body.messageHtml,
-        internal_note_html: body.internalNoteHtml ?? null,
-        status: body.status ?? "new",
-        is_public: body.isPublic ?? false,
+        image_url_1: body.imageUrl1 ?? null,
+        image_url_2: body.imageUrl2 ?? null,
+        is_active: body.isActive !== false,
       })
       .select("*")
       .single();

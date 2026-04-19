@@ -3,6 +3,8 @@ import { ok, fail } from "@/lib/api/http";
 import { compactPatch, getFeedbackById } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 
+const ALLOWED_TYPES = new Set(["before_after", "testimonial", "comment"]);
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -30,24 +32,20 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const status = body.status as string | undefined;
-    const markReviewed =
-      status !== undefined && status !== "new" && ["reviewed", "pinned", "hidden"].includes(status);
+
+    if (body.type !== undefined && !ALLOWED_TYPES.has(body.type)) {
+      return fail("type không hợp lệ.");
+    }
 
     const patch = compactPatch({
-      user_id: body.userId,
-      course_id: body.courseId,
-      source: body.source,
-      name: body.name,
-      email: body.email,
+      type: body.type,
+      customer_name: body.customerName,
+      customer_info: body.customerInfo,
+      content: body.content,
       avatar_url: body.avatarUrl,
-      rating: body.rating,
-      message_html: body.messageHtml,
-      internal_note_html: body.internalNoteHtml,
-      status: body.status,
-      is_public: body.isPublic,
-      reviewed_by: markReviewed ? auth.actor.id : undefined,
-      reviewed_at: markReviewed ? new Date().toISOString() : undefined,
+      image_url_1: body.imageUrl1,
+      image_url_2: body.imageUrl2,
+      is_active: body.isActive,
     });
 
     const client = createAdminClient();
@@ -78,3 +76,4 @@ export async function DELETE(
     return fail("Không thể xóa feedback.", 500, error);
   }
 }
+

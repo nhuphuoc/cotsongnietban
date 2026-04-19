@@ -1,32 +1,132 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Star } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import type { Feedback } from "@/types/feedback";
 
-const beforeAfterData = [
-  { name: "Nguyễn Văn A", issue: "Thoát vị L4-L5", duration: "3 tháng", before: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=400&fit=crop", after: "https://images.unsplash.com/photo-1581009137042-c552e485697a?w=300&h=400&fit=crop" },
-  { name: "Trần Thị B", issue: "Đau lưng mãn tính", duration: "2 tháng", before: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&h=400&fit=crop", after: "https://images.unsplash.com/photo-1549476464-37392f717541?w=300&h=400&fit=crop" },
-  { name: "Lê Minh C", issue: "Vai gáy căng cứng", duration: "6 tuần", before: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=300&h=400&fit=crop", after: "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=300&h=400&fit=crop" },
-  { name: "Phạm Thu D", issue: "Đau gót chân", duration: "8 tuần", before: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=300&h=400&fit=crop", after: "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=300&h=400&fit=crop" },
-  { name: "Hoàng Văn E", issue: "Chấn thương đầu gối", duration: "4 tháng", before: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=300&h=400&fit=crop", after: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=300&h=400&fit=crop" },
-  { name: "Ngô Thị F", issue: "Vẹo cột sống nhẹ", duration: "5 tháng", before: "https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=300&h=400&fit=crop", after: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=300&h=400&fit=crop" },
-];
+type BeforeAfterRow = Pick<
+  Feedback,
+  "id" | "customer_name" | "customer_info" | "content" | "image_url_1" | "image_url_2"
+>;
 
-const testimonials = [
-  { name: "Chị Lan Anh", role: "Nhân viên văn phòng, 34 tuổi", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop", text: "Sau 3 tháng học, cơn đau lưng mãn tính của tôi gần như biến mất hoàn toàn. Tôi có thể ngồi làm việc 8 tiếng mà không đau nữa. Phương pháp này thực sự thay đổi cuộc sống tôi!", rating: 5 },
-  { name: "Anh Minh Tuấn", role: "Vận động viên, 28 tuổi", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop", text: "Tôi bị thoát vị đĩa đệm L5-S1 và đã không thể tập luyện 6 tháng. Sau khóa học, tôi đã quay lại thi đấu và thành tích còn tốt hơn trước.", rating: 5 },
-  { name: "Chị Thu Hương", role: "Giáo viên, 42 tuổi", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop", text: "Tôi đứng dạy cả ngày và bị đau gót chân kinh niên. Chỉ 6 tuần với khóa học này, tôi đã đứng thoải mái và không cần uống thuốc giảm đau nữa.", rating: 5 },
-  { name: "Anh Quốc Hùng", role: "Kỹ sư xây dựng, 38 tuổi", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop", text: "Công việc tôi phải đứng nhiều và mang vác nặng. Sau 2 tháng học, tôi hiểu cách bảo vệ cột sống và không còn về nhà với cơn đau lưng nữa.", rating: 5 },
-  { name: "Chị Bảo Châu", role: "Vũ công, 25 tuổi", avatar: "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=80&h=80&fit=crop", text: "Là vũ công, chấn thương là nỗi ám ảnh lớn nhất. Khóa học này giúp tôi hiểu cơ thể mình hơn và tập luyện an toàn, hiệu quả hơn rất nhiều.", rating: 5 },
-  { name: "Anh Trọng Nhân", role: "Lập trình viên, 31 tuổi", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop", text: "Ngồi code 10-12 tiếng mỗi ngày khiến lưng và cổ tôi rất tệ. Chỉ sau 4 tuần áp dụng kỹ thuật trong khóa học, tôi đã cảm thấy khác biệt rõ rệt.", rating: 5 },
-];
+type TestimonialRow = Pick<Feedback, "id" | "customer_name" | "customer_info" | "content" | "avatar_url">;
+
+type PublicFeedback = Pick<Feedback, "id" | "customer_name" | "avatar_url" | "content" | "image_url_1" | "created_at">;
+
+type FeedbackApiRow = {
+  id: string;
+  type?: string;
+  customer_name: string | null;
+  customer_info: string | null;
+  content: string | null;
+  avatar_url: string | null;
+  image_url_1: string | null;
+  image_url_2: string | null;
+  created_at: string;
+};
+
+function formatDateVi(iso: string | null) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
 
 const tabTriggerClass =
   "flex-1 rounded-md border border-transparent px-2 py-2.5 font-sans text-[11px] font-semibold uppercase tracking-wide text-neutral-600 transition-colors hover:text-csnb-ink data-active:border-csnb-orange/35 data-active:bg-csnb-orange data-active:text-white data-active:shadow-sm sm:text-xs";
 
+function TabLoading() {
+  return (
+    <div className="flex items-center justify-center rounded-xl border border-csnb-border/20 bg-white p-10 text-sm text-neutral-500">
+      <Loader2 className="mr-2 size-4 animate-spin text-csnb-orange-deep" />
+      Đang tải...
+    </div>
+  );
+}
+
+async function fetchFeedbackType(type: string): Promise<FeedbackApiRow[]> {
+  const res = await fetch(`/api/feedback?type=${encodeURIComponent(type)}`, { cache: "no-store" });
+  const json = (await res.json()) as {
+    data?: FeedbackApiRow[];
+    error?: { message?: string };
+  };
+  if (!res.ok) {
+    throw new Error(json.error?.message ?? "Không thể tải feedback.");
+  }
+  return Array.isArray(json.data) ? json.data : [];
+}
+
 export default function ResultsPage() {
+  const [beforeAfter, setBeforeAfter] = useState<BeforeAfterRow[]>([]);
+  const [testimonials, setTestimonials] = useState<TestimonialRow[]>([]);
+  const [comments, setComments] = useState<PublicFeedback[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadAll = async () => {
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const [ba, te, co] = await Promise.all([
+          fetchFeedbackType("before_after"),
+          fetchFeedbackType("testimonial"),
+          fetchFeedbackType("comment"),
+        ]);
+
+        if (!mounted) return;
+
+        setBeforeAfter(
+          ba.map((r) => ({
+            id: r.id,
+            customer_name: r.customer_name,
+            customer_info: r.customer_info,
+            content: r.content,
+            image_url_1: r.image_url_1,
+            image_url_2: r.image_url_2,
+          })),
+        );
+        setTestimonials(
+          te.map((r) => ({
+            id: r.id,
+            customer_name: r.customer_name,
+            customer_info: r.customer_info,
+            content: r.content,
+            avatar_url: r.avatar_url,
+          })),
+        );
+        setComments(
+          co.map((r) => ({
+            id: r.id,
+            customer_name: r.customer_name,
+            avatar_url: r.avatar_url,
+            content: r.content,
+            image_url_1: r.image_url_1,
+            created_at: r.created_at,
+          })),
+        );
+      } catch (error) {
+        if (mounted) {
+          setLoadError(error instanceof Error ? error.message : "Không thể tải feedback.");
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadAll();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pt-20">
       <div className="pointer-events-none absolute inset-0 z-0">
@@ -63,92 +163,169 @@ export default function ResultsPage() {
             </TabsList>
 
             <TabsContent value="before-after" className="outline-none">
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-                {beforeAfterData.map((item, i) => (
-                  <div
-                    key={i}
-                    className="overflow-hidden rounded-xl border border-csnb-border/25 bg-white shadow-sm transition-shadow hover:border-csnb-orange/25 hover:shadow-md"
-                  >
-                    <div className="grid grid-cols-2 divide-x divide-csnb-border/20">
-                      <div className="relative aspect-[3/4]">
-                        <Image
-                          src={item.before}
-                          alt="Trước"
-                          fill
-                          sizes="(max-width: 639px) 50vw, (max-width: 1023px) 25vw, 17vw"
-                          className="object-cover"
-                        />
-                        <div className="absolute bottom-2 left-2 rounded-sm bg-white/90 px-2 py-1 font-sans text-[10px] font-bold uppercase tracking-wide text-csnb-ink shadow-sm backdrop-blur-sm">
-                          Trước
+              {loading ? (
+                <TabLoading />
+              ) : loadError ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">{loadError}</div>
+              ) : beforeAfter.length === 0 ? (
+                <div className="rounded-xl border border-csnb-border/20 bg-white p-6 text-sm text-neutral-600">
+                  Chưa có hình trước &amp; sau.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+                  {beforeAfter.map((item) => (
+                    <div
+                      key={item.id}
+                      className="overflow-hidden rounded-xl border border-csnb-border/25 bg-white shadow-sm transition-shadow hover:border-csnb-orange/25 hover:shadow-md"
+                    >
+                      <div className="grid grid-cols-2 divide-x divide-csnb-border/20">
+                        <div className="relative aspect-[3/4] bg-neutral-100">
+                          {item.image_url_1 ? (
+                            <Image
+                              src={item.image_url_1}
+                              alt="Trước"
+                              fill
+                              sizes="(max-width: 639px) 50vw, (max-width: 1023px) 25vw, 17vw"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center p-2 text-center font-sans text-xs text-neutral-400">
+                              Chưa có ảnh
+                            </div>
+                          )}
+                          <div className="absolute bottom-2 left-2 rounded-sm bg-white/90 px-2 py-1 font-sans text-[10px] font-bold uppercase tracking-wide text-csnb-ink shadow-sm backdrop-blur-sm">
+                            Trước
+                          </div>
+                        </div>
+                        <div className="relative aspect-[3/4] bg-neutral-100">
+                          {item.image_url_2 ? (
+                            <Image
+                              src={item.image_url_2}
+                              alt="Sau"
+                              fill
+                              sizes="(max-width: 639px) 50vw, (max-width: 1023px) 25vw, 17vw"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center p-2 text-center font-sans text-xs text-neutral-400">
+                              Chưa có ảnh
+                            </div>
+                          )}
+                          <div className="absolute bottom-2 right-2 rounded-sm bg-csnb-orange px-2 py-1 font-sans text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                            Sau
+                          </div>
                         </div>
                       </div>
-                      <div className="relative aspect-[3/4]">
-                        <Image
-                          src={item.after}
-                          alt="Sau"
-                          fill
-                          sizes="(max-width: 639px) 50vw, (max-width: 1023px) 25vw, 17vw"
-                          className="object-cover"
-                        />
-                        <div className="absolute bottom-2 right-2 rounded-sm bg-csnb-orange px-2 py-1 font-sans text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-                          Sau
-                        </div>
+                      <div className="border-t border-csnb-border/15 bg-white p-4">
+                        <div className="font-sans text-sm font-bold text-csnb-ink">{item.customer_name ?? "Học viên"}</div>
+                        {item.customer_info ? (
+                          <div className="mt-0.5 font-sans text-xs text-neutral-500">{item.customer_info}</div>
+                        ) : null}
+                        {item.content ? (
+                          <p className="mt-2 font-sans text-xs leading-relaxed text-neutral-600">{item.content}</p>
+                        ) : null}
                       </div>
                     </div>
-                    <div className="border-t border-csnb-border/15 bg-white p-4">
-                      <div className="font-sans text-sm font-bold text-csnb-ink">{item.name}</div>
-                      <div className="mt-0.5 font-sans text-xs text-csnb-orange-deep">{item.issue}</div>
-                      <div className="mt-1 font-sans text-xs text-neutral-500">{item.duration}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="testimonials" className="outline-none">
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
-                {testimonials.map((t, i) => (
-                  <div
-                    key={i}
-                    className="rounded-xl border border-csnb-border/25 bg-white p-6 shadow-sm transition-shadow hover:border-csnb-orange/25 hover:shadow-md"
-                  >
-                    <div className="mb-4 flex items-center gap-0.5">
-                      {Array.from({ length: t.rating }).map((_, j) => (
-                        <Star key={j} size={14} className="fill-csnb-orange text-csnb-orange-deep" />
-                      ))}
-                    </div>
-                    <p className="mb-5 font-sans text-sm italic leading-relaxed text-neutral-600">&ldquo;{t.text}&rdquo;</p>
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1 ring-csnb-border/30">
-                        <Image src={t.avatar} alt={t.name} fill sizes="40px" className="object-cover" />
+              {loading ? (
+                <TabLoading />
+              ) : loadError ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">{loadError}</div>
+              ) : testimonials.length === 0 ? (
+                <div className="rounded-xl border border-csnb-border/20 bg-white p-6 text-sm text-neutral-600">
+                  Chưa có chia sẻ từ học viên.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
+                  {testimonials.map((t) => (
+                    <div
+                      key={t.id}
+                      className="rounded-xl border border-csnb-border/25 bg-white p-6 shadow-sm transition-shadow hover:border-csnb-orange/25 hover:shadow-md"
+                    >
+                      <p className="mb-5 font-sans text-sm italic leading-relaxed text-neutral-600">
+                        &ldquo;{t.content ?? "—"}&rdquo;
+                      </p>
+                      <div className="flex items-center gap-3">
+                        {t.avatar_url ? (
+                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1 ring-csnb-border/30">
+                            <Image src={t.avatar_url} alt={t.customer_name ?? ""} fill sizes="40px" className="object-cover" />
+                          </div>
+                        ) : (
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-csnb-panel font-sans text-xs font-bold text-neutral-500 ring-1 ring-csnb-border/30">
+                            {(t.customer_name ?? "?").slice(0, 1)}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-sans text-sm font-bold text-csnb-ink">{t.customer_name ?? "Học viên"}</div>
+                          {t.customer_info ? (
+                            <div className="font-sans text-xs text-neutral-500">{t.customer_info}</div>
+                          ) : null}
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="font-sans text-sm font-bold text-csnb-ink">{t.name}</div>
-                        <div className="font-sans text-xs text-neutral-500">{t.role}</div>
-                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="comments" className="outline-none">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-                {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => (
-                  <div
-                    key={n}
-                    className="relative aspect-[9/16] overflow-hidden rounded-xl border border-csnb-border/25 bg-white shadow-sm transition-shadow hover:border-csnb-orange/30 hover:shadow-md"
-                  >
-                    <Image
-                      src={`/images/fb${n}.png`}
-                      alt={`Feedback ${n}`}
-                      fill
-                      sizes="(max-width: 639px) 50vw, (max-width: 1024px) 33vw, (max-width: 1279px) 25vw, 20vw"
-                      className="object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
+              {loading ? (
+                <TabLoading />
+              ) : loadError ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">{loadError}</div>
+              ) : comments.length === 0 ? (
+                <div className="rounded-xl border border-csnb-border/20 bg-white p-6 text-sm text-neutral-600">
+                  Chưa có feedback công khai.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {comments.map((item) => (
+                    <article
+                      key={item.id}
+                      className="rounded-xl border border-csnb-border/25 bg-white p-5 shadow-sm transition-shadow hover:border-csnb-orange/25 hover:shadow-md"
+                    >
+                      <div className="mb-3 flex items-start gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1 ring-csnb-border/25">
+                            <Image
+                              src={item.avatar_url || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop"}
+                              alt={item.customer_name ?? ""}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="truncate font-sans text-sm font-bold text-csnb-ink">{item.customer_name}</div>
+                            <div className="text-xs text-neutral-500">{formatDateVi(item.created_at)}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {item.image_url_1 ? (
+                        <div className="mb-3 overflow-hidden rounded-lg">
+                          <Image
+                            src={item.image_url_1}
+                            alt="Ảnh feedback"
+                            width={400}
+                            height={300}
+                            className="w-full object-cover"
+                          />
+                        </div>
+                      ) : null}
+
+                      {item.content ? (
+                        <p className="line-clamp-4 font-sans text-sm leading-relaxed text-neutral-700">{item.content}</p>
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>
