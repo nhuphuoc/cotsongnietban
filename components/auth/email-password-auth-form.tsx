@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
 type Mode = "signin" | "signup";
+
+interface EmailCheckResult {
+  available: boolean;
+  checking: boolean;
+  error: string | null;
+}
 
 export function EmailPasswordAuthForm() {
   const router = useRouter();
@@ -14,6 +20,12 @@ export function EmailPasswordAuthForm() {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [emailCheck, setEmailCheck] = useState<EmailCheckResult>({
+    available: true,
+    checking: false,
+    error: null,
+  });
+  const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,6 +34,17 @@ export function EmailPasswordAuthForm() {
     const trimmed = email.trim();
     if (!trimmed || !password) {
       setMessage("Nhập email và mật khẩu.");
+      return;
+    }
+
+    // Check email availability for signup
+    if (mode === "signup" && !emailCheck.available) {
+      setMessage("Email này đã được sử dụng. Vui lòng dùng email khác.");
+      return;
+    }
+
+    if (mode === "signup" && emailCheck.checking) {
+      setMessage("Vui lòng đợi kiểm tra email hoàn tất.");
       return;
     }
 
@@ -60,9 +83,7 @@ export function EmailPasswordAuthForm() {
           return;
         }
 
-        setNotice("Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản trước khi đăng nhập.");
-        setMode("signin");
-        setPassword("");
+        router.push(`/check-email?email=${encodeURIComponent(trimmed)}`);
         return;
       }
 
@@ -75,6 +96,70 @@ export function EmailPasswordAuthForm() {
     }
   }
 
+  // Check email availability when user is signing up
+  async function checkEmailAvailability(emailValue: string) {
+    const trimmed = emailValue.trim();
+
+    // Clear previous timeout
+    if (checkTimeoutRef.current) {
+      clearTimeout(checkTimeoutRef.current);
+    }
+
+    // Don't check if email is empty or invalid format
+    if (!trimmed || !trimmed.includes("@")) {
+      setEmailCheck({ available: true, checking: false, error: null });
+      return;
+    }
+
+    // Only check in signup mode
+    if (mode !== "signup") {
+      setEmailCheck({ available: true, checking: false, error: null });
+      return;
+    }
+
+    setEmailCheck((prev) => ({ ...prev, checking: true }));
+
+    // Debounce check by 500ms
+    checkTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/auth/check-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: trimmed }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          setEmailCheck({
+            available: true,
+            checking: false,
+            error: data.error || "Không thể kiểm tra email",
+          });
+          return;
+        }
+
+        const data = await response.json();
+        setEmailCheck({
+          available: data.available,
+          checking: false,
+          error: null,
+        });
+      } catch (err) {
+        console.error("Email check error:", err);
+        setEmailCheck({
+          available: true,
+          checking: false,
+          error: "Không thể kết nối",
+        });
+      }
+    }, 500);
+  }
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    checkEmailAvailability(value);
+  };
+
   return (
     <div className="w-full">
       <div className="mb-4 flex rounded-md border border-csnb-border bg-csnb-bg/50 p-0.5">
@@ -83,6 +168,7 @@ export function EmailPasswordAuthForm() {
           onClick={() => {
             setMode("signin");
             setMessage(null);
+            setEmailCheck({ available: true, checking: false, error: null });
           }}
           className={`flex-1 rounded px-3 py-2 font-sans text-xs font-semibold transition-colors ${
             mode === "signin" ? "bg-csnb-orange text-white" : "text-csnb-muted hover:text-white"
@@ -95,6 +181,7 @@ export function EmailPasswordAuthForm() {
           onClick={() => {
             setMode("signup");
             setMessage(null);
+            setEmailCheck({ available: true, checking: false, error: null });
           }}
           className={`flex-1 rounded px-3 py-2 font-sans text-xs font-semibold transition-colors ${
             mode === "signup" ? "bg-csnb-orange text-white" : "text-csnb-muted hover:text-white"
@@ -114,11 +201,32 @@ export function EmailPasswordAuthForm() {
             type="email"
             autoComplete="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => handleEmailChange(e.target.value)}
             className="w-full rounded-md border border-csnb-border bg-white px-3 py-2.5 font-sans text-sm text-csnb-ink outline-none ring-csnb-orange/40 focus:ring-2"
             placeholder="ban@example.com"
             disabled={pending}
           />
+          {mode === "signup" && email.trim() && (
+            <div className="mt-2">
+              {emailCheck.checking && (
+                <p className="font-sans text-[11px] text-csnb-muted">
+                  ⏳ Đang kiểm tra...
+                </p>
+              )}
+              {!emailCheck.checking && !emailCheck.error && (
+                <p className={`font-sans text-[11px] ${
+                  emailCheck.available ? "text-emerald-400" : "text-red-400"
+                }`}>
+                  {emailCheck.available ? "✓ Email có sẵn" : "✕ Email đã được dùng"}
+                </p>
+              )}
+              {emailCheck.error && (
+                <p className="font-sans text-[11px] text-amber-400">
+                  ⚠ {emailCheck.error}
+                </p>
+              )}
+            </div>
+          )}
           <p className="mt-1 font-sans text-[11px] text-csnb-muted/90">
             Tài khoản là email (Supabase Auth). Đăng nhập Google có thể bật lại sau.
           </p>

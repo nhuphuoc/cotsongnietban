@@ -4,11 +4,12 @@ import { SiteLogoMark } from "@/components/brand/site-logo-mark";
 import { getSupabasePublicEnv } from "@/utils/supabase/env";
 import { createClient } from "@/utils/supabase/server";
 
-type Props = { searchParams?: Promise<{ resent?: string }> };
+type Props = { searchParams?: Promise<{ resent?: string; resend_error?: string }> };
 
 export default async function VerifyEmailPage({ searchParams }: Props) {
   const params = searchParams ? await searchParams : {};
   const resent = params.resent === "1";
+  const resendError = params.resend_error?.trim() ?? null;
 
   if (!getSupabasePublicEnv()) {
     redirect("/login?error=config");
@@ -56,6 +57,12 @@ export default async function VerifyEmailPage({ searchParams }: Props) {
           <p className="mb-4 rounded-md border border-csnb-border bg-csnb-bg/50 px-3 py-2 text-center font-mono text-xs text-white">
             {email}
           </p>
+
+          {resendError ? (
+            <p className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-center font-sans text-xs text-red-200">
+              Không gửi được email: {resendError}
+            </p>
+          ) : null}
 
           {resent ? (
             <p className="mb-4 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center font-sans text-xs text-emerald-100">
