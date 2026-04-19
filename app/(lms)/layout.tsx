@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { LmsAppShell } from "@/components/layout/LmsAppShell";
 import { getSupabasePublicEnv } from "@/utils/supabase/env";
-import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export default async function LmsLayout({ children }: { children: React.ReactNode }) {
@@ -22,14 +21,21 @@ export default async function LmsLayout({ children }: { children: React.ReactNod
     redirect("/verify-email");
   }
 
-  const admin = createAdminClient();
-  const { data: profile } = await admin
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("is_active")
+    .select("role,is_active")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile?.is_active) {
+  if (profileError || !profile) {
+    redirect("/login?error=auth");
+  }
+
+  if (profile.role === "admin") {
+    redirect("/admin");
+  }
+
+  if (!profile.is_active) {
     redirect("/");
   }
 

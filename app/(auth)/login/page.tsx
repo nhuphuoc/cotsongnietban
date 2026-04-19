@@ -21,6 +21,15 @@ export default async function LoginPage({ searchParams }: Props) {
       } = await supabase.auth.getUser();
       if (user) {
         if (user.email_confirmed_at) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          if (profile?.role === "admin") {
+            redirect("/admin");
+          }
           redirect("/dashboard");
         }
         redirect("/verify-email");

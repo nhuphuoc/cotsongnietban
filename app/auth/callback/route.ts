@@ -2,6 +2,27 @@ import { NextResponse } from "next/server";
 import { getSupabasePublicEnv } from "@/utils/supabase/env";
 import { createClient } from "@/utils/supabase/server";
 
+async function resolvePostAuthPath(requestedPath: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return requestedPath;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.role === "admin") {
+    return "/admin";
+  }
+
+  return requestedPath;
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -18,7 +39,8 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       const safeNext = next.startsWith("/") ? next : "/dashboard";
-      return NextResponse.redirect(`${origin}${safeNext}`);
+      const redirectPath = await resolvePostAuthPath(safeNext);
+      return NextResponse.redirect(`${origin}${redirectPath}`);
     }
   }
 
@@ -30,7 +52,8 @@ export async function GET(request: Request) {
     });
     if (!error) {
       const safeNext = next.startsWith("/") ? next : "/dashboard";
-      return NextResponse.redirect(`${origin}${safeNext}`);
+      const redirectPath = await resolvePostAuthPath(safeNext);
+      return NextResponse.redirect(`${origin}${redirectPath}`);
     }
   }
 

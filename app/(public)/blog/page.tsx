@@ -5,7 +5,7 @@ import { listBlogPosts } from "@/lib/api/repositories";
 
 export const dynamic = "force-dynamic";
 
-const categories = ["Tất cả", "Đau lưng", "Liệu pháp", "Tư thế", "Dinh dưỡng", "Kiến thức"];
+const ALL_CATEGORY_KEY = "all";
 
 function estimateReadMinutes(html: string) {
   const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -32,12 +32,45 @@ type BlogRow = {
   category: { name: string } | null;
 };
 
-export default async function BlogPage() {
+function categoryKey(input: string) {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/đ/g, "d")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+
+export default async function BlogPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string | string[] }>;
+}) {
+  const sp = await searchParams;
   const raw = (await listBlogPosts({ publishedOnly: true })) as unknown as BlogRow[];
   const posts = raw.filter((p) => p.slug && p.title);
 
-  const hero = posts[0] ?? null;
-  const rest = posts.slice(1);
+  const selectedCategoryRaw = Array.isArray(sp.category) ? sp.category[0] : sp.category;
+  const selectedCategory = selectedCategoryRaw ? categoryKey(selectedCategoryRaw) : ALL_CATEGORY_KEY;
+
+  const categories = [
+    { key: ALL_CATEGORY_KEY, label: "Tất cả" },
+    ...Array.from(new Set(posts.map((p) => p.category?.name?.trim()).filter(Boolean) as string[])).map((name) => ({
+      key: categoryKey(name),
+      label: name,
+    })),
+  ];
+
+  const activeCategory = categories.some((c) => c.key === selectedCategory) ? selectedCategory : ALL_CATEGORY_KEY;
+  const filteredPosts =
+    activeCategory === ALL_CATEGORY_KEY
+      ? posts
+      : posts.filter((p) => categoryKey(p.category?.name ?? "") === activeCategory);
+
+  const hero = filteredPosts[0] ?? null;
+  const rest = filteredPosts.slice(1);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pt-20">
@@ -60,18 +93,18 @@ export default async function BlogPage() {
       <div className="sticky top-16 z-40 border-b border-csnb-border/20 bg-white/90 backdrop-blur-md lg:top-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="scrollbar-hide flex items-center gap-2 overflow-x-auto py-3">
-            {categories.map((cat, i) => (
-              <button
-                key={cat}
-                type="button"
+            {categories.map((cat) => (
+              <Link
+                key={cat.key}
+                href={cat.key === ALL_CATEGORY_KEY ? "/blog" : `/blog?category=${encodeURIComponent(cat.key)}`}
                 className={`shrink-0 rounded-full px-4 py-1.5 font-sans text-[11px] font-semibold uppercase tracking-wide transition-colors sm:text-xs ${
-                  i === 0
+                  cat.key === activeCategory
                     ? "bg-csnb-orange text-white shadow-sm"
                     : "border border-csnb-border/30 bg-white text-neutral-600 hover:border-csnb-orange/40 hover:text-csnb-ink"
                 }`}
               >
-                {cat}
-              </button>
+                {cat.label}
+              </Link>
             ))}
           </div>
         </div>
@@ -120,7 +153,9 @@ export default async function BlogPage() {
             </Link>
           ) : (
             <div className="mb-8 rounded-xl border border-csnb-border/20 bg-white p-8 text-center text-sm text-neutral-600">
-              Chưa có bài viết đã xuất bản.
+              {activeCategory === ALL_CATEGORY_KEY
+                ? "Chưa có bài viết đã xuất bản."
+                : "Không có bài viết thuộc danh mục đã chọn."}
             </div>
           )}
 

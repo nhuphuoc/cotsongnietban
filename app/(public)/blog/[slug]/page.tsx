@@ -67,17 +67,19 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
       </div>
 
       <article className="relative z-10 mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:py-14">
-        <Link
-          href="/blog"
-          className="mb-8 inline-flex items-center gap-2 font-sans text-sm font-semibold text-csnb-orange-deep transition-all hover:gap-3 hover:text-csnb-orange"
-        >
-          <ArrowLeft className="size-4 shrink-0" />
-          Quay lại blog
-        </Link>
+        <div className="mb-6 flex flex-wrap items-center gap-3 sm:gap-4">
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-2 font-sans text-sm font-semibold text-csnb-orange-deep transition-all hover:gap-3 hover:text-csnb-orange"
+          >
+            <ArrowLeft className="size-4 shrink-0" />
+            Quay lại blog
+          </Link>
 
-        <span className="mb-4 inline-block rounded-md bg-csnb-orange px-3 py-1 font-sans text-[10px] font-bold uppercase tracking-wide text-white">
-          {categoryName}
-        </span>
+          <span className="inline-block rounded-md bg-csnb-orange px-3 py-1 font-sans text-[10px] font-bold uppercase tracking-wide text-white">
+            {categoryName}
+          </span>
+        </div>
 
         <h1 className="mb-4 font-sans text-3xl font-extrabold leading-tight tracking-normal text-csnb-ink sm:text-4xl">
           {title}
