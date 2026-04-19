@@ -243,31 +243,43 @@ export default function ResultsPage() {
               ) : (
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
                   {testimonials.map((t) => (
-                    <div
+                    <article
                       key={t.id}
-                      className="rounded-xl border border-csnb-border/25 bg-white p-6 shadow-sm transition-shadow hover:border-csnb-orange/25 hover:shadow-md"
+                      className="group relative overflow-hidden rounded-2xl border border-csnb-border/25 bg-gradient-to-b from-white via-white to-csnb-panel/35 p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-csnb-orange/30 hover:shadow-[0_18px_42px_-20px_rgba(6,38,44,0.35)]"
                     >
-                      <p className="mb-5 font-sans text-sm italic leading-relaxed text-neutral-600">
-                        &ldquo;{t.content ?? "—"}&rdquo;
-                      </p>
-                      <div className="flex items-center gap-3">
+                      <div
+                        className="pointer-events-none absolute -right-7 -top-8 h-24 w-24 rounded-full bg-csnb-orange/10 blur-2xl transition-opacity group-hover:opacity-90"
+                        aria-hidden
+                      />
+                      <div className="relative z-[1]">
+                        <span className="mb-3 inline-flex rounded-full border border-csnb-orange/30 bg-csnb-orange/10 px-2.5 py-1 font-sans text-[10px] font-bold uppercase tracking-wide text-csnb-orange-deep">
+                          Chia sẻ học viên
+                        </span>
+                        <p className="mb-6 min-h-[96px] font-sans text-[15px] italic leading-7 text-neutral-700">
+                          <span className="mr-1 align-top font-serif text-2xl leading-none text-csnb-orange/80">&ldquo;</span>
+                          {t.content ?? "—"}
+                          <span className="ml-1 align-bottom font-serif text-2xl leading-none text-csnb-orange/80">&rdquo;</span>
+                        </p>
+                      </div>
+
+                      <div className="relative z-[1] flex items-center gap-3 border-t border-csnb-border/20 pt-4">
                         {t.avatar_url ? (
-                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1 ring-csnb-border/30">
-                            <Image src={t.avatar_url} alt={t.customer_name ?? ""} fill sizes="40px" className="object-cover" />
+                          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-csnb-orange/25">
+                            <Image src={t.avatar_url} alt={t.customer_name ?? ""} fill sizes="48px" className="object-cover" />
                           </div>
                         ) : (
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-csnb-panel font-sans text-xs font-bold text-neutral-500 ring-1 ring-csnb-border/30">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-csnb-panel font-sans text-sm font-bold text-neutral-600 ring-2 ring-csnb-orange/20">
                             {(t.customer_name ?? "?").slice(0, 1)}
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="font-sans text-sm font-bold text-csnb-ink">{t.customer_name ?? "Học viên"}</div>
+                          <div className="font-sans text-xl font-extrabold tracking-tight text-csnb-ink">{t.customer_name ?? "Học viên"}</div>
                           {t.customer_info ? (
-                            <div className="font-sans text-xs text-neutral-500">{t.customer_info}</div>
+                            <div className="font-sans text-sm text-neutral-500">{t.customer_info}</div>
                           ) : null}
                         </div>
                       </div>
-                    </div>
+                    </article>
                   ))}
                 </div>
               )}
