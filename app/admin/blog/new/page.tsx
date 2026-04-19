@@ -3,10 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2, Upload } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { ApiError, apiFetch, slugifyClient } from "@/lib/admin/api-client";
-import { ApiTestPanel } from "@/components/admin/api-test-panel";
+import { uploadAdminImage } from "@/lib/admin/upload-image";
+import { crudNotify, notify } from "@/lib/ui/notify";
 
 const categories = ["Liệu Pháp", "Đau Lưng", "Kiến Thức"];
 
@@ -19,6 +20,7 @@ export default function AdminBlogCreatePage() {
   const [coverImage, setCoverImage] = useState("");
   const [status, setStatus] = useState<"draft" | "published">("draft");
   const [contentHtml, setContentHtml] = useState("<p></p>");
+  const [coverUploading, setCoverUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,17 +32,24 @@ export default function AdminBlogCreatePage() {
       setSubmitting(true);
       setError(null);
       try {
-        const created = await apiFetch<any>("/api/admin/blog", {
-          method: "POST",
-          body: JSON.stringify({
-            title: title.trim(),
-            excerpt: excerpt.trim(),
-            contentHtml,
-            status,
-            coverImageUrl: coverImage.trim() || null,
-            categorySlug: slugifyClient(category),
-          }),
-        });
+        const created = await crudNotify.create(
+          () =>
+            apiFetch<any>("/api/admin/blog", {
+              method: "POST",
+              body: JSON.stringify({
+                title: title.trim(),
+                excerpt: excerpt.trim(),
+                contentHtml,
+                status,
+                coverImageUrl: coverImage.trim() || null,
+                categorySlug: slugifyClient(category),
+              }),
+            }),
+          {
+            entity: "bài viết",
+          }
+        );
+        notify.info("Đang chuyển trang", "Mở màn hình chỉnh sửa bài viết vừa tạo.");
         router.push(`/admin/blog/${created.id}`);
       } catch (e: any) {
         if (e instanceof ApiError) {
@@ -50,6 +59,27 @@ export default function AdminBlogCreatePage() {
         }
       } finally {
         setSubmitting(false);
+      }
+    })();
+  };
+
+  const onUploadCover = (file: File | null) => {
+    if (!file) return;
+    void (async () => {
+      setCoverUploading(true);
+      setError(null);
+      try {
+        const url = await crudNotify.create(() => uploadAdminImage(file), {
+          entity: "ảnh cover",
+          loadingMessage: "Đang tải ảnh cover...",
+          successMessage: "Upload ảnh cover thành công.",
+          fallbackErrorMessage: "Không thể upload ảnh cover.",
+        });
+        setCoverImage(url);
+      } catch (e: any) {
+        setError(e?.message ?? "Không thể upload ảnh cover.");
+      } finally {
+        setCoverUploading(false);
       }
     })();
   };
@@ -113,7 +143,6 @@ export default function AdminBlogCreatePage() {
           <div className="bg-white border border-gray-200 rounded-sm p-5">
             <div className="mb-2 flex items-center justify-between gap-3">
               <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Nội dung</label>
-              <span className="text-xs text-gray-400">Lưu qua API (Supabase)</span>
             </div>
             <RichTextEditor valueHtml={contentHtml} onChangeHtml={setContentHtml} placeholder="Bắt đầu viết..." />
           </div>
@@ -134,16 +163,37 @@ export default function AdminBlogCreatePage() {
               ))}
             </select>
 
-            <label className="mt-4 text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">
-              Ảnh cover (URL)
+            <label className="mt-4 text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Ảnh cover</label>
+            <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-sm border border-dashed border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:border-[#c0392b]/50 hover:text-[#c0392b]">
+              {coverUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              {coverUploading ? "Đang upload..." : "Chọn ảnh từ máy"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                onChange={(e) => {
+                  onUploadCover(e.target.files?.[0] ?? null);
+                  e.target.value = "";
+                }}
+              />
             </label>
-            <input
-              value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              placeholder="https://images.unsplash.com/..."
-              className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]"
-            />
-            <p className="mt-2 text-xs text-gray-400">Tuỳ chọn. Dùng để minh hoạ bài viết ở trang public.</p>
+            {coverImage ? (
+              <div className="mt-3 overflow-hidden rounded-sm border border-gray-200 bg-gray-50">
+                <img src={coverImage} alt="Cover preview" className="h-36 w-full object-cover" />
+                <div className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="truncate text-xs text-gray-500">{coverImage}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCoverImage("")}
+                    className="shrink-0 text-xs font-semibold text-gray-600 hover:text-[#c0392b]"
+                  >
+                    Xóa ảnh
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-gray-400">Tuỳ chọn. Không chọn thì bài viết sẽ không có ảnh cover.</p>
+            )}
           </div>
 
           <div className="bg-white border border-gray-200 rounded-sm p-5">
@@ -154,8 +204,6 @@ export default function AdminBlogCreatePage() {
               <li>Chèn tiêu đề H2/H3 cho phần lớn.</li>
             </ul>
           </div>
-
-          <ApiTestPanel />
         </div>
       </div>
     </div>

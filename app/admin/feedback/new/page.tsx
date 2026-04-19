@@ -8,6 +8,7 @@ import { CourseSelect } from "@/components/admin/course-select";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { apiFetch } from "@/lib/admin/api-client";
 import type { AdminFeedbackSource, AdminFeedbackStatus } from "@/lib/admin/feedback-types";
+import { crudNotify, notify } from "@/lib/ui/notify";
 
 export default function AdminFeedbackCreatePage() {
   const router = useRouter();
@@ -32,20 +33,27 @@ export default function AdminFeedbackCreatePage() {
       setSubmitting(true);
       setError(null);
       try {
-        const created = await apiFetch<any>("/api/admin/feedback", {
-          method: "POST",
-          body: JSON.stringify({
-            name: name.trim(),
-            email: email.trim(),
-            avatarUrl: avatar.trim() || null,
-            courseId: courseId || null,
-            source,
-            status,
-            rating,
-            messageHtml,
-            internalNoteHtml: internalNoteHtml.trim() === "<p></p>" ? null : internalNoteHtml,
-          }),
-        });
+        const created = await crudNotify.create(
+          () =>
+            apiFetch<any>("/api/admin/feedback", {
+              method: "POST",
+              body: JSON.stringify({
+                name: name.trim(),
+                email: email.trim(),
+                avatarUrl: avatar.trim() || null,
+                courseId: courseId || null,
+                source,
+                status,
+                rating,
+                messageHtml,
+                internalNoteHtml: internalNoteHtml.trim() === "<p></p>" ? null : internalNoteHtml,
+              }),
+            }),
+          {
+            entity: "feedback",
+          }
+        );
+        notify.info("Đang chuyển trang", "Mở chi tiết feedback vừa tạo.");
         router.push(`/admin/feedback/${created.id}`);
       } catch (e: any) {
         setError(e?.message ?? "Không thể tạo feedback.");

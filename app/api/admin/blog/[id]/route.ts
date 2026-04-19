@@ -36,7 +36,10 @@ export async function PATCH(
 
     const patch = compactPatch({
       title: body.title,
-      slug: body.slug ?? (body.title ? slugify(body.title) : undefined),
+      slug:
+        body.slug !== undefined
+          ? (typeof body.slug === "string" && body.slug.trim() ? body.slug : body.title ? slugify(body.title) : undefined)
+          : undefined,
       excerpt: body.excerpt,
       cover_image_url: body.coverImageUrl,
       content_html: body.contentHtml,

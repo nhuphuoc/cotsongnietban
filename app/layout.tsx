@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Anton, Montserrat } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 const montserrat = Montserrat({
   variable: "--font-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
         {children}
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );

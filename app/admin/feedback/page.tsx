@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CheckCircle2, Clock, Flag, MessageSquareQuote, Plus, Search, Star, Trash2, User } from "lucide-react";
 import { apiFetch } from "@/lib/admin/api-client";
+import { crudNotify, notifyApiProblem } from "@/lib/ui/notify";
 
 type FeedbackStatus = "new" | "reviewed" | "pinned" | "hidden";
 
@@ -126,6 +127,7 @@ export default function AdminFeedbackPage() {
       const data = await apiFetch<FeedbackRow[]>("/api/admin/feedback");
       setItems(data);
     } catch (e: any) {
+      notifyApiProblem(e, { fallbackTitle: "Không thể tải feedback" });
       setError(e?.message ?? "Không thể tải feedback.");
     } finally {
       setLoading(false);
@@ -139,10 +141,17 @@ export default function AdminFeedbackPage() {
   const setStatusFor = async (id: string, next: FeedbackStatus) => {
     setError(null);
     try {
-      const updated = await apiFetch<any>(`/api/admin/feedback/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: next }),
-      });
+      const updated = await crudNotify.update(
+        () =>
+          apiFetch<any>(`/api/admin/feedback/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: next }),
+          }),
+        {
+          entity: "trạng thái feedback",
+          successMessage: `Đã cập nhật trạng thái thành ${next}.`,
+        }
+      );
       setItems((prev) => prev.map((it) => (it.id === id ? { ...it, status: updated.status ?? next } : it)));
     } catch (e: any) {
       setError(e?.message ?? "Không thể cập nhật trạng thái.");
@@ -152,7 +161,9 @@ export default function AdminFeedbackPage() {
   const remove = async (id: string) => {
     setError(null);
     try {
-      await apiFetch<{ id: string; deleted: true }>(`/api/admin/feedback/${id}`, { method: "DELETE" });
+      await crudNotify.remove(() => apiFetch<{ id: string; deleted: true }>(`/api/admin/feedback/${id}`, { method: "DELETE" }), {
+        entity: "feedback",
+      });
       setItems((prev) => prev.filter((it) => it.id !== id));
     } catch (e: any) {
       setError(e?.message ?? "Không thể xóa feedback.");

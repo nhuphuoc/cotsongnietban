@@ -10,6 +10,14 @@ import { cn } from "@/lib/utils";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const UPLOAD_ENDPOINT = "/api/admin/uploads/image";
 
+const StyledImage = Image.extend({
+  renderHTML({ HTMLAttributes }) {
+    const existingStyle = typeof HTMLAttributes.style === "string" ? HTMLAttributes.style : "";
+    const baseStyle = "display:block;margin:16px auto;max-width:100%;height:auto;";
+    return ["img", { ...HTMLAttributes, style: `${baseStyle}${existingStyle}` }];
+  },
+});
+
 type Props = {
   valueHtml: string;
   onChangeHtml: (nextHtml: string) => void;
@@ -79,11 +87,11 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
         heading: { levels: [1, 2, 3] },
         codeBlock: false,
       }),
-      Image.configure({
-        inline: true,
+      StyledImage.configure({
+        inline: false,
         allowBase64: false,
         HTMLAttributes: {
-          class: "max-w-full h-auto rounded-md border border-gray-200 align-middle my-2",
+          class: "mx-auto my-4 block max-w-full h-auto rounded-md border border-gray-200",
         },
       }),
     ],
@@ -97,7 +105,7 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm max-w-none focus:outline-none px-4 py-3 min-h-[260px] prose-headings:font-bold prose-a:text-[#c0392b] prose-img:max-w-full prose-img:rounded-md",
+          "prose prose-sm max-w-none focus:outline-none px-4 py-3 min-h-[260px] prose-headings:font-bold prose-a:text-[#c0392b] prose-img:max-w-full prose-img:rounded-md [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6 [&_li]:my-1 [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#c0392b]/50 [&_blockquote]:bg-[#c0392b]/5 [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:italic [&_blockquote]:text-gray-700",
       },
     },
     onUpdate: ({ editor: ed }) => {
@@ -281,7 +289,9 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
       {uploadMessage ? (
         <p className="border-b border-amber-200 bg-amber-50 px-3 py-2 font-sans text-xs text-amber-900">{uploadMessage}</p>
       ) : null}
-      <EditorContent editor={editor} />
+      <div className="max-h-[65vh] overflow-y-auto">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

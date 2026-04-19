@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ExternalLink, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, Trash2, Upload } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { apiFetch, slugifyClient } from "@/lib/admin/api-client";
+import { uploadAdminImage } from "@/lib/admin/upload-image";
+import { crudNotify, notifyApiProblem, notify } from "@/lib/ui/notify";
 
 const categories = ["Liệu Pháp", "Đau Lưng", "Kiến Thức"];
 
@@ -23,6 +25,7 @@ export default function AdminBlogEditPage() {
   const [coverImage, setCoverImage] = useState("");
   const [status, setStatus] = useState<"draft" | "published">("draft");
   const [contentHtml, setContentHtml] = useState("<p></p>");
+  const [coverUploading, setCoverUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -32,6 +35,7 @@ export default function AdminBlogEditPage() {
       const data = await apiFetch<any>(`/api/admin/blog/${postId}`);
       setPost(data);
     } catch (e: any) {
+      notifyApiProblem(e, { fallbackTitle: "Không thể tải bài viết" });
       setError(e?.message ?? "Không thể tải bài viết.");
     } finally {
       setLoading(false);
@@ -61,18 +65,21 @@ export default function AdminBlogEditPage() {
       setSaving(true);
       setError(null);
       try {
-        const updated = await apiFetch<any>(`/api/admin/blog/${post.id}`, {
-          method: "PATCH",
-          body: JSON.stringify({
-            title: title.trim(),
-            slug: slugifyClient(title),
-            excerpt: excerpt.trim(),
-            coverImageUrl: coverImage.trim() || null,
-            contentHtml,
-            status,
-            categorySlug: slugifyClient(category),
-          }),
-        });
+        const updated = await crudNotify.update(
+          () =>
+            apiFetch<any>(`/api/admin/blog/${post.id}`, {
+              method: "PATCH",
+              body: JSON.stringify({
+                title: title.trim(),
+                excerpt: excerpt.trim(),
+                coverImageUrl: coverImage.trim() || null,
+                contentHtml,
+                status,
+                categorySlug: slugifyClient(category),
+              }),
+            }),
+          { entity: "bài viết" }
+        );
         setPost(updated);
       } catch (e: any) {
         setError(e?.message ?? "Không thể lưu thay đổi.");
@@ -87,10 +94,34 @@ export default function AdminBlogEditPage() {
       if (!post) return;
       setError(null);
       try {
-        await apiFetch<{ id: string; deleted: true }>(`/api/admin/blog/${post.id}`, { method: "DELETE" });
+        await crudNotify.remove(() => apiFetch<{ id: string; deleted: true }>(`/api/admin/blog/${post.id}`, { method: "DELETE" }), {
+          entity: "bài viết",
+        });
+        notify.info("Đã xóa bài viết", "Đang quay về danh sách blog.");
         router.push("/admin/blog");
       } catch (e: any) {
         setError(e?.message ?? "Không thể xóa bài viết.");
+      }
+    })();
+  };
+
+  const onUploadCover = (file: File | null) => {
+    if (!file) return;
+    void (async () => {
+      setCoverUploading(true);
+      setError(null);
+      try {
+        const url = await crudNotify.create(() => uploadAdminImage(file), {
+          entity: "ảnh cover",
+          loadingMessage: "Đang tải ảnh cover...",
+          successMessage: "Upload ảnh cover thành công.",
+          fallbackErrorMessage: "Không thể upload ảnh cover.",
+        });
+        setCoverImage(url);
+      } catch (e: any) {
+        setError(e?.message ?? "Không thể upload ảnh cover.");
+      } finally {
+        setCoverUploading(false);
       }
     })();
   };
@@ -132,7 +163,6 @@ export default function AdminBlogEditPage() {
           <h1 className="mt-2 font-heading font-black text-gray-900 text-2xl line-clamp-2">{post.title}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
             <span className="rounded-full bg-gray-100 px-2 py-1 font-mono">id: {post.id}</span>
-            <span className="rounded-full bg-gray-100 px-2 py-1 font-mono">slug: {post.slug}</span>
             <span className={`rounded-full px-2 py-1 font-semibold ${post.status === "published" ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"}`}>
               {post.status === "published" ? "Đã đăng" : "Bản nháp"}
             </span>
@@ -222,16 +252,37 @@ export default function AdminBlogEditPage() {
               ))}
             </select>
 
-            <label className="mt-4 text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">
-              Ảnh cover (URL)
+            <label className="mt-4 text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Ảnh cover</label>
+            <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-sm border border-dashed border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:border-[#c0392b]/50 hover:text-[#c0392b]">
+              {coverUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              {coverUploading ? "Đang upload..." : "Chọn ảnh từ máy"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                onChange={(e) => {
+                  onUploadCover(e.target.files?.[0] ?? null);
+                  e.target.value = "";
+                }}
+              />
             </label>
-            <input
-              value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              placeholder="https://images.unsplash.com/..."
-              className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]"
-            />
-            <p className="mt-2 text-xs text-gray-400">Để trống nếu không dùng.</p>
+            {coverImage ? (
+              <div className="mt-3 overflow-hidden rounded-sm border border-gray-200 bg-gray-50">
+                <img src={coverImage} alt="Cover preview" className="h-36 w-full object-cover" />
+                <div className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="truncate text-xs text-gray-500">{coverImage}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCoverImage("")}
+                    className="shrink-0 text-xs font-semibold text-gray-600 hover:text-[#c0392b]"
+                  >
+                    Xóa ảnh
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-gray-400">Để trống nếu không dùng.</p>
+            )}
           </div>
 
           <div className="bg-white border border-gray-200 rounded-sm p-5">

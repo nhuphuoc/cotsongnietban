@@ -8,6 +8,7 @@ import { CourseSelect } from "@/components/admin/course-select";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { apiFetch } from "@/lib/admin/api-client";
 import type { AdminFeedbackSource, AdminFeedbackStatus } from "@/lib/admin/feedback-types";
+import { crudNotify, notifyApiProblem, notify } from "@/lib/ui/notify";
 
 export default function AdminFeedbackDetailPage() {
   const params = useParams<{ feedbackId: string }>();
@@ -36,6 +37,7 @@ export default function AdminFeedbackDetailPage() {
       const data = await apiFetch<any>(`/api/admin/feedback/${id}`);
       setItem(data);
     } catch (e: any) {
+      notifyApiProblem(e, { fallbackTitle: "Không thể tải feedback" });
       setError(e?.message ?? "Không thể tải feedback.");
     } finally {
       setLoading(false);
@@ -67,20 +69,24 @@ export default function AdminFeedbackDetailPage() {
       setSaving(true);
       setError(null);
       try {
-        const updated = await apiFetch<any>(`/api/admin/feedback/${item.id}`, {
-          method: "PATCH",
-          body: JSON.stringify({
-            name: name.trim(),
-            email: email.trim(),
-            avatarUrl: avatar.trim() || null,
-            courseId: courseId || null,
-            source,
-            status,
-            rating,
-            messageHtml,
-            internalNoteHtml: internalNoteHtml.trim() === "<p></p>" ? null : internalNoteHtml,
-          }),
-        });
+        const updated = await crudNotify.update(
+          () =>
+            apiFetch<any>(`/api/admin/feedback/${item.id}`, {
+              method: "PATCH",
+              body: JSON.stringify({
+                name: name.trim(),
+                email: email.trim(),
+                avatarUrl: avatar.trim() || null,
+                courseId: courseId || null,
+                source,
+                status,
+                rating,
+                messageHtml,
+                internalNoteHtml: internalNoteHtml.trim() === "<p></p>" ? null : internalNoteHtml,
+              }),
+            }),
+          { entity: "feedback" }
+        );
         setItem(updated);
       } catch (e: any) {
         setError(e?.message ?? "Không thể lưu thay đổi.");
@@ -95,7 +101,10 @@ export default function AdminFeedbackDetailPage() {
       if (!item) return;
       setError(null);
       try {
-        await apiFetch<{ id: string; deleted: true }>(`/api/admin/feedback/${item.id}`, { method: "DELETE" });
+        await crudNotify.remove(() => apiFetch<{ id: string; deleted: true }>(`/api/admin/feedback/${item.id}`, { method: "DELETE" }), {
+          entity: "feedback",
+        });
+        notify.info("Đã xóa feedback", "Đang quay về danh sách feedback.");
         router.push("/admin/feedback");
       } catch (e: any) {
         setError(e?.message ?? "Không thể xóa feedback.");

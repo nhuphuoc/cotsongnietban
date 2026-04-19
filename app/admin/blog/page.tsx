@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/admin/api-client";
+import { crudNotify, notifyApiProblem } from "@/lib/ui/notify";
 
 type BlogPostRow = {
   id: string;
@@ -32,6 +33,7 @@ export default function AdminBlogPage() {
       const data = await apiFetch<BlogPostRow[]>("/api/admin/blog");
       setPosts(data);
     } catch (e: any) {
+      notifyApiProblem(e, { fallbackTitle: "Không thể tải bài viết" });
       setError(e?.message ?? "Không thể tải bài viết.");
     } finally {
       setLoading(false);
@@ -45,10 +47,17 @@ export default function AdminBlogPage() {
   const toggleStatus = async (id: string, current: BlogPostRow["status"]) => {
     const next = current === "published" ? "draft" : "published";
     try {
-      await apiFetch<BlogPostRow>(`/api/admin/blog/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: next }),
-      });
+      await crudNotify.update(
+        () =>
+          apiFetch<BlogPostRow>(`/api/admin/blog/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: next }),
+          }),
+        {
+          entity: "trạng thái bài viết",
+          successMessage: next === "published" ? "Đã xuất bản bài viết." : "Đã chuyển bài viết về bản nháp.",
+        }
+      );
       setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status: next } : p)));
     } catch (e: any) {
       setError(e?.message ?? "Không thể cập nhật trạng thái.");
@@ -57,7 +66,9 @@ export default function AdminBlogPage() {
 
   const removePost = async (id: string) => {
     try {
-      await apiFetch<{ id: string; deleted: true }>(`/api/admin/blog/${id}`, { method: "DELETE" });
+      await crudNotify.remove(() => apiFetch<{ id: string; deleted: true }>(`/api/admin/blog/${id}`, { method: "DELETE" }), {
+        entity: "bài viết",
+      });
       setPosts((prev) => prev.filter((p) => p.id !== id));
     } catch (e: any) {
       setError(e?.message ?? "Không thể xóa bài viết.");
