@@ -1,4 +1,5 @@
 import { ok, fail } from "@/lib/api/http";
+import { getSessionActor } from "@/lib/api/auth";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ALLOWED_SOURCES = new Set(["website", "zalo", "facebook", "email", "other"]);
@@ -9,6 +10,7 @@ const ALLOWED_SOURCES = new Set(["website", "zalo", "facebook", "email", "other"
  */
 export async function POST(request: Request) {
   try {
+    const actor = await getSessionActor();
     const body = await request.json();
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const messageHtml = typeof body.messageHtml === "string" ? body.messageHtml.trim() : "";
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
     const { data, error } = await client
       .from("feedbacks")
       .insert({
-        user_id: body.userId ?? null,
+        user_id: actor?.id ?? null,
         course_id: body.courseId ?? null,
         source,
         name,

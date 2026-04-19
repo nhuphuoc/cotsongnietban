@@ -63,7 +63,7 @@ export default function AdminFeedbackCreatePage() {
             Quản lý Feedback
           </Link>
           <h1 className="mt-2 font-heading font-black text-gray-900 text-2xl">Tạo feedback</h1>
-          <p className="text-gray-500 text-sm mt-1">Tạo phản hồi (demo) và lưu vào localStorage</p>
+          <p className="text-gray-500 text-sm mt-1">Tạo phản hồi và lưu qua API (Supabase)</p>
         </div>
         <button
           onClick={onSave}

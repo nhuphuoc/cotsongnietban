@@ -2,8 +2,93 @@ import { createAdminClient } from "@/utils/supabase/admin";
 
 type JsonRecord = Record<string, unknown>;
 
+const PUBLIC_COURSE_FIELDS =
+  "id, category_id, title, slug, short_description, description, level_label, thumbnail_url, trailer_url, price_vnd, access_duration_days, total_duration_seconds, lesson_count, instructor_name, instructor_title, rating_avg, rating_count, is_featured, status, published_at, created_at, updated_at";
+const PUBLIC_LESSON_FIELDS =
+  "id, course_id, section_id, title, slug, summary, kind, duration_seconds, is_preview, is_published, sort_order";
+
 function admin() {
   return createAdminClient();
+}
+
+function enrichEnrollmentRows(
+  enrollments: Array<Record<string, unknown>>,
+  coursesById: Map<string, unknown>,
+  lessonsById: Map<string, unknown>
+) {
+  return enrollments.map((item) => ({
+    ...item,
+    course: coursesById.get(String(item.course_id)) ?? null,
+    last_lesson: item.last_lesson_id ? lessonsById.get(String(item.last_lesson_id)) ?? null : null,
+  }));
+}
+
+function mapPublicLesson(lesson: Record<string, unknown>) {
+  return {
+    id: lesson.id,
+    course_id: lesson.course_id,
+    section_id: lesson.section_id,
+    title: lesson.title,
+    slug: lesson.slug,
+    summary: lesson.summary,
+    kind: lesson.kind,
+    duration_seconds: lesson.duration_seconds,
+    is_preview: lesson.is_preview,
+    is_published: lesson.is_published,
+    sort_order: lesson.sort_order,
+  };
+}
+
+export async function getPublicCourseByIdentifier(identifier: string) {
+  const client = admin();
+  const { data: course, error } = await client
+    .from("courses")
+    .select(PUBLIC_COURSE_FIELDS)
+    .or(`id.eq.${identifier},slug.eq.${identifier}`)
+    .eq("status", "published")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!course) return null;
+
+  const [{ data: category }, { data: sections }, { data: lessons }] = await Promise.all([
+    course.category_id
+      ? client.from("course_categories").select("*").eq("id", course.category_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    client.from("course_sections").select("*").eq("course_id", course.id).order("sort_order"),
+    client
+      .from("lessons")
+      .select(PUBLIC_LESSON_FIELDS)
+      .eq("course_id", course.id)
+      .eq("is_published", true)
+      .order("sort_order"),
+  ]);
+
+  const lessonsBySectionId = new Map<string, ReturnType<typeof mapPublicLesson>[]>();
+  const ungrouped: ReturnType<typeof mapPublicLesson>[] = [];
+
+  for (const lesson of lessons ?? []) {
+    const safeLesson = mapPublicLesson(lesson);
+    if (lesson.section_id) {
+      const current = lessonsBySectionId.get(lesson.section_id) ?? [];
+      current.push(safeLesson);
+      lessonsBySectionId.set(lesson.section_id, current);
+    } else {
+      ungrouped.push(safeLesson);
+    }
+  }
+
+  return {
+    ...course,
+    category: category ?? null,
+    sections: (sections ?? []).map((section) => ({
+      ...section,
+      lessons: lessonsBySectionId.get(section.id) ?? [],
+    })),
+    lessons: (lessons ?? []).map(mapPublicLesson),
+    ungroupedLessons: ungrouped,
+  };
 }
 
 export async function listCourses(options?: { publishedOnly?: boolean }) {
@@ -337,11 +422,42 @@ export async function listEnrollmentsForUser(userId: string) {
   const coursesById = new Map((coursesResult.data ?? []).map((item) => [item.id, item]));
   const lessonsById = new Map((lessonsResult.data ?? []).map((item) => [item.id, item]));
 
-  return (enrollments ?? []).map((item) => ({
-    ...item,
-    course: coursesById.get(item.course_id) ?? null,
-    last_lesson: item.last_lesson_id ? lessonsById.get(item.last_lesson_id) ?? null : null,
-  }));
+  return enrichEnrollmentRows(enrollments ?? [], coursesById, lessonsById);
+}
+
+export async function listAccessibleEnrollmentsForUser(userId: string) {
+  const client = admin();
+  const nowIso = new Date().toISOString();
+  const { data: enrollments, error } = await client
+    .from("enrollments")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    // PostgREST `or`: timestamp must be quoted so `:` in ISO string does not break parsing.
+    .or(`expires_at.is.null,expires_at.gt."${nowIso}"`)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  const courseIds = [...new Set((enrollments ?? []).map((item) => item.course_id).filter(Boolean))];
+  const lessonIds = [...new Set((enrollments ?? []).map((item) => item.last_lesson_id).filter(Boolean))];
+
+  const [coursesResult, lessonsResult] = await Promise.all([
+    courseIds.length
+      ? client.from("courses").select("id, title, slug, thumbnail_url, level_label, lesson_count").in("id", courseIds)
+      : Promise.resolve({ data: [], error: null }),
+    lessonIds.length
+      ? client.from("lessons").select("id, title, slug, course_id").in("id", lessonIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (coursesResult.error) throw coursesResult.error;
+  if (lessonsResult.error) throw lessonsResult.error;
+
+  const coursesById = new Map((coursesResult.data ?? []).map((item) => [item.id, item]));
+  const lessonsById = new Map((lessonsResult.data ?? []).map((item) => [item.id, item]));
+
+  return enrichEnrollmentRows(enrollments ?? [], coursesById, lessonsById);
 }
 
 export async function resolveCategoryId(table: "course_categories" | "blog_categories", input?: string | null) {

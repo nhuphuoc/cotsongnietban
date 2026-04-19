@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Bold, Italic, List, ListOrdered, Quote, Redo2, Undo2 } from "lucide-react";
+import Image from "@tiptap/extension-image";
+import { Bold, ImageIcon, Italic, List, ListOrdered, Quote, Redo2, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const UPLOAD_ENDPOINT = "/api/admin/uploads/image";
 
 type Props = {
   valueHtml: string;
@@ -12,6 +16,24 @@ type Props = {
   placeholder?: string;
   className?: string;
 };
+
+async function postAdminImage(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(UPLOAD_ENDPOINT, {
+    method: "POST",
+    body: fd,
+    credentials: "include",
+  });
+  const json = (await res.json()) as { data?: { url: string }; error?: { message?: string } };
+  if (!res.ok) {
+    throw new Error(json.error?.message ?? "Upload thất bại");
+  }
+  if (!json.data?.url) {
+    throw new Error("Phản hồi máy chủ không hợp lệ");
+  }
+  return json.data.url;
+}
 
 function ToolButton({
   active,
@@ -42,45 +64,47 @@ function ToolButton({
   );
 }
 
-function buildEditor({
-  valueHtml,
-  onChangeHtml,
-  placeholder,
-}: {
-  valueHtml: string;
-  onChangeHtml: (next: string) => void;
-  placeholder?: string;
-}) {
-  return useEditor({
-    // Next.js dev overlays can look like SSR; keep hydration stable.
-    immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-        codeBlock: false,
-      }),
-    ],
-    content: valueHtml || (placeholder ? `<p>${placeholder}</p>` : "<p></p>"),
-    editorProps: {
-      attributes: {
-        class:
-          "prose prose-sm max-w-none focus:outline-none px-4 py-3 min-h-[260px] prose-headings:font-bold prose-a:text-[#c0392b]",
-      },
-    },
-    onUpdate: ({ editor }) => {
-      onChangeHtml(editor.getHTML());
-    },
-  });
-}
-
 function canToggle(editor: Editor | null) {
   return !!editor && editor.isEditable;
 }
 
 export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className }: Props) {
-  const editor = buildEditor({ valueHtml, onChangeHtml, placeholder });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
 
-  // Khi đổi record (edit post khác), cập nhật content.
+  const extensions = useMemo(
+    () => [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        codeBlock: false,
+      }),
+      Image.configure({
+        inline: true,
+        allowBase64: false,
+        HTMLAttributes: {
+          class: "max-w-full h-auto rounded-md border border-gray-200 align-middle my-2",
+        },
+      }),
+    ],
+    []
+  );
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions,
+    content: valueHtml || (placeholder ? `<p>${placeholder}</p>` : "<p></p>"),
+    editorProps: {
+      attributes: {
+        class:
+          "prose prose-sm max-w-none focus:outline-none px-4 py-3 min-h-[260px] prose-headings:font-bold prose-a:text-[#c0392b] prose-img:max-w-full prose-img:rounded-md",
+      },
+    },
+    onUpdate: ({ editor: ed }) => {
+      onChangeHtml(ed.getHTML());
+    },
+  });
+
   useEffect(() => {
     if (!editor) return;
     const current = editor.getHTML();
@@ -88,6 +112,72 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
       editor.commands.setContent(valueHtml || "<p></p>", { emitUpdate: false });
     }
   }, [editor, valueHtml]);
+
+  const uploadAndInsert = useCallback(
+    async (file: File) => {
+      if (!editor) return;
+      if (!file.type.startsWith("image/")) {
+        setUploadMessage("Chỉ chấp nhận file ảnh.");
+        return;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        setUploadMessage("Ảnh tối đa 5MB.");
+        return;
+      }
+      setUploading(true);
+      setUploadMessage(null);
+      try {
+        const url = await postAdminImage(file);
+        editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+      } catch (e) {
+        setUploadMessage(e instanceof Error ? e.message : "Không upload được.");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [editor]
+  );
+
+  useEffect(() => {
+    if (!editor) return undefined;
+    const dom = editor.view.dom as HTMLElement;
+
+    const onPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === "file" && item.type.startsWith("image/")) {
+          const f = item.getAsFile();
+          if (f) {
+            e.preventDefault();
+            void uploadAndInsert(f);
+          }
+          break;
+        }
+      }
+    };
+
+    const onDrop = (e: DragEvent) => {
+      const files = e.dataTransfer?.files;
+      if (!files?.length) return;
+      const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+      if (images.length === 0) return;
+      e.preventDefault();
+      void (async () => {
+        for (const f of images) {
+          await uploadAndInsert(f);
+        }
+      })();
+    };
+
+    dom.addEventListener("paste", onPaste);
+    dom.addEventListener("drop", onDrop);
+    return () => {
+      dom.removeEventListener("paste", onPaste);
+      dom.removeEventListener("drop", onDrop);
+    };
+  }, [editor, uploadAndInsert]);
 
   const tools = useMemo(
     () => [
@@ -132,6 +222,23 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
 
   return (
     <div className={cn("overflow-hidden rounded-sm border border-gray-200 bg-white", className)}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="sr-only"
+        tabIndex={-1}
+        multiple
+        onChange={async (e) => {
+          const files = e.target.files;
+          if (files?.length) {
+            for (let i = 0; i < files.length; i++) {
+              await uploadAndInsert(files[i]);
+            }
+          }
+          e.target.value = "";
+        }}
+      />
       <div className="flex flex-wrap items-center gap-1 border-b border-gray-100 bg-gray-50 px-2 py-2">
         {tools.map((t) => (
           <ToolButton
@@ -144,6 +251,14 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
             {t.icon}
           </ToolButton>
         ))}
+        <div className="mx-1 h-6 w-px bg-gray-200" aria-hidden />
+        <ToolButton
+          label="Chèn ảnh"
+          disabled={!canToggle(editor) || uploading}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <ImageIcon size={16} />
+        </ToolButton>
         <div className="mx-1 h-6 w-px bg-gray-200" aria-hidden />
         <ToolButton
           label="Undo"
@@ -159,9 +274,14 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
         >
           <Redo2 size={16} />
         </ToolButton>
+        {uploading ? (
+          <span className="ml-2 font-sans text-xs text-gray-500">Đang tải ảnh…</span>
+        ) : null}
       </div>
+      {uploadMessage ? (
+        <p className="border-b border-amber-200 bg-amber-50 px-3 py-2 font-sans text-xs text-amber-900">{uploadMessage}</p>
+      ) : null}
       <EditorContent editor={editor} />
     </div>
   );
 }
-

@@ -3,6 +3,8 @@ import { ok, fail } from "@/lib/api/http";
 import { compactPatch, getProfileById } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 
+const APP_ROLES = new Set(["admin", "student"]);
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -30,6 +32,10 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
+    if (body.role !== undefined && !APP_ROLES.has(body.role)) {
+      return fail("Role không hợp lệ. Hệ thống hiện chỉ hỗ trợ admin hoặc student.", 400);
+    }
+
     const patch = compactPatch({
       full_name: body.fullName,
       avatar_url: body.avatarUrl,
