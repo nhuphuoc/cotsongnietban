@@ -53,9 +53,9 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
+      <div className="mx-auto max-w-6xl px-3 pt-4 sm:px-6 sm:pt-6">
         <div className="mb-6 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
-          <div className="relative aspect-video bg-neutral-900">
+          <div className="relative aspect-[16/10] bg-neutral-900 sm:aspect-video">
             <Image
               src={course.thumbnail}
               alt={course.title}
@@ -73,7 +73,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               {nextLesson ? (
                 <Link
                   href={`/courses/${routeCourseKey}/lessons/${nextLesson.id}`}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#1c1d1f] px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-black"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-[#1c1d1f] px-4 py-2.5 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-black sm:min-h-11 sm:px-5"
                 >
                   <Play className="size-4 shrink-0 fill-current" />
                   Tiếp tục học
@@ -86,7 +86,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
             </div>
           </div>
 
-          <div className="border-t border-neutral-100 p-5 sm:p-6">
+          <div className="border-t border-neutral-100 p-4 sm:p-6">
             <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-neutral-500">
               <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 font-medium text-emerald-800">{course.level}</span>
               <span className="flex items-center gap-1">
@@ -128,14 +128,14 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
 
         <section>
           <h3 className="mb-4 font-sans text-lg font-bold text-neutral-900">Giai đoạn</h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
             {phases.map((phase) => {
               const lessons = getLessonsForPhase(course, phase);
               const complete = isPhaseComplete(course, phase);
               const firstId = firstPlayableLessonIdInPhase(course, phase);
               const inner = (
-                <>
-                  <div className="relative aspect-[16/10] bg-neutral-100">
+                <div className="flex min-h-full items-stretch sm:block">
+                  <div className="relative h-24 w-28 shrink-0 bg-neutral-100 sm:h-auto sm:w-auto sm:aspect-[16/10]">
                     <Image
                       src={phase.thumbnail}
                       alt=""
@@ -144,19 +144,19 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                       className="object-cover"
                     />
                     {complete ? (
-                      <span className="absolute top-2 right-2 rounded bg-emerald-600 px-2 py-0.5 font-sans text-[10px] font-semibold text-white">
+                      <span className="absolute top-1.5 right-1.5 rounded bg-emerald-600 px-2 py-0.5 font-sans text-[10px] font-semibold text-white sm:top-2 sm:right-2">
                         Hoàn thành
                       </span>
                     ) : null}
                   </div>
-                  <div className="p-4">
-                    <h4 className="font-sans text-sm font-bold text-neutral-900">{phase.title}</h4>
-                    <p className="mt-1 line-clamp-3 font-sans text-xs leading-relaxed text-neutral-600">{phase.description}</p>
-                    <span className="mt-3 inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 font-sans text-[11px] font-medium text-emerald-800">
+                  <div className="min-w-0 flex-1 p-3 sm:p-4">
+                    <h4 className="line-clamp-2 font-sans text-[13px] font-bold leading-snug text-neutral-900 sm:text-sm">{phase.title}</h4>
+                    <p className="mt-1 line-clamp-2 font-sans text-[11px] leading-relaxed text-neutral-600 sm:line-clamp-3 sm:text-xs">{phase.description}</p>
+                    <span className="mt-2 inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 font-sans text-[11px] font-medium text-emerald-800 sm:mt-3">
                       {lessons.length} bài
                     </span>
                   </div>
-                </>
+                </div>
               );
 
               if (!firstId) {

@@ -7,7 +7,8 @@ import { CheckCircle2, Star, User, Layers, Clock, BookOpen, Infinity, Smartphone
 import { getDemoCourse, getCoursePhases, getLessonsForPhase } from "@/lib/demo-courses";
 import { getCatalogMarketingExtras, getDetailMarketingMeta } from "@/lib/marketing-course-dummies";
 import { CourseProgramAccordion, type ProgramPhase } from "@/components/marketing/course-program-accordion";
-import { getPublicCourseByIdentifier } from "@/lib/api/repositories";
+import { getSessionActor } from "@/lib/api/auth";
+import { getCoursePurchaseStateForUser, getPublicCourseByIdentifier } from "@/lib/api/repositories";
 import { formatVnd } from "@/lib/format-vnd";
 
 const FALLBACK_THUMB =
@@ -43,6 +44,7 @@ type MarketingVm = {
   trustLine: string;
   lmsHref: string;
   isDemo: boolean;
+  purchasableCourseId: string | null;
 };
 
 async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
@@ -137,6 +139,7 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
         "Thanh toán và quyền truy cập theo gói đăng ký. Liên hệ nếu bạn cần tư vấn trước khi mua.",
       lmsHref: `/courses/${slugOrId}`,
       isDemo: false,
+      purchasableCourseId: String(pub.id),
     };
   }
 
@@ -172,6 +175,7 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
     trustLine: meta.trustLine,
     lmsHref: `/courses/${demo.id}`,
     isDemo: true,
+    purchasableCourseId: null,
   };
 }
 
@@ -179,6 +183,13 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
   const { courseId } = await params;
   const vm = await loadMarketingVm(courseId);
   if (!vm) notFound();
+
+  const actor = await getSessionActor();
+  const purchaseState = actor?.id && vm.purchasableCourseId
+    ? await getCoursePurchaseStateForUser(actor.id, vm.purchasableCourseId)
+    : null;
+  const alreadyPurchased = Boolean(purchaseState?.alreadyPurchased);
+  const checkoutHref = vm.purchasableCourseId ? `/checkout/${vm.purchasableCourseId}` : "#";
 
   return (
     <div className="min-h-screen overflow-x-clip bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pb-16 pt-20 sm:pb-20">
@@ -305,19 +316,35 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
               </div>
               <div className="p-5 sm:p-6">
                 <p className="font-sans text-2xl font-extrabold tabular-nums text-csnb-orange-deep">{vm.priceLabel}</p>
-                <Link
-                  href="/login"
-                  className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-csnb-orange px-4 py-3 font-sans text-sm font-bold text-white transition-colors hover:bg-csnb-orange-deep"
-                >
-                  <span className="text-lg leading-none">▶</span>
-                  Bắt đầu học ngay
-                </Link>
-                <Link
-                  href={vm.lmsHref}
-                  className="mt-2 flex min-h-11 w-full items-center justify-center rounded-md border border-csnb-border/40 px-4 py-2.5 font-sans text-sm font-semibold text-csnb-ink transition-colors hover:border-csnb-orange/40 hover:text-csnb-orange-deep"
-                >
-                  Đã có tài khoản — vào LMS
-                </Link>
+                {vm.purchasableCourseId ? (
+                  actor ? (
+                    alreadyPurchased ? (
+                      <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3 font-sans text-sm text-emerald-800">
+                        Bạn đã có đơn hoặc đã được cấp quyền cho khóa học này. Admin sẽ duyệt trong dashboard sau khi nhận chuyển khoản.
+                      </div>
+                    ) : (
+                      <Link
+                        href={checkoutHref}
+                        className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-csnb-orange px-4 py-3 font-sans text-sm font-bold text-white transition-colors hover:bg-csnb-orange-deep"
+                      >
+                        <span className="text-lg leading-none">▶</span>
+                        Đăng ký & đi tới checkout
+                      </Link>
+                    )
+                  ) : (
+                    <Link
+                      href="/login?mode=signin"
+                      className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-csnb-orange px-4 py-3 font-sans text-sm font-bold text-white transition-colors hover:bg-csnb-orange-deep"
+                    >
+                      <span className="text-lg leading-none">▶</span>
+                      Đăng nhập để đăng ký khóa học
+                    </Link>
+                  )
+                ) : (
+                  <div className="mt-4 rounded-md border border-csnb-border/35 bg-csnb-panel/45 px-3 py-3 font-sans text-sm text-neutral-700">
+                    Khóa học demo chưa bật checkout trực tiếp.
+                  </div>
+                )}
 
                 <ul className="mt-6 space-y-3 border-t border-csnb-border/15 pt-5 font-sans text-sm text-neutral-600">
                   <li className="flex gap-3">

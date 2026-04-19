@@ -14,6 +14,8 @@
     "supabase:reset": "supabase db reset",
     "seed:auth": "node scripts/seed-local-auth.js",
     "seed:auth:remote": "SEED_REMOTE_SUPABASE=true node scripts/seed-local-auth.js",
+    "seed:admin": "node scripts/seed-admin-csnb.js",
+    "seed:admin:remote": "node scripts/seed-admin-csnb.js --remote",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { Clock, BookOpen, CheckCircle2, AlertCircle, Play } from "lucide-react";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { listAccessibleEnrollmentsForUser } from "@/lib/api/repositories";
 
@@ -55,6 +56,17 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.role === "admin") {
+    redirect("/admin");
+  }
 
   const enrollmentsRows = (await listAccessibleEnrollmentsForUser(user.id)) as EnrollmentRow[];
 

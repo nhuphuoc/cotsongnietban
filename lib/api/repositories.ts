@@ -12,6 +12,11 @@ function admin() {
   return createAdminClient();
 }
 
+/** PostgREST `id.eq.x` ép `x` sang kiểu cột `id` (uuid) → slug có chữ như `i` gây lỗi 22P02. */
+function isUuidString(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
+}
+
 function enrichEnrollmentRows(
   enrollments: Array<Record<string, unknown>>,
   coursesById: Map<string, unknown>,
@@ -42,13 +47,10 @@ function mapPublicLesson(lesson: Record<string, unknown>) {
 
 export async function getPublicCourseByIdentifier(identifier: string) {
   const client = admin();
-  const { data: course, error } = await client
-    .from("courses")
-    .select(PUBLIC_COURSE_FIELDS)
-    .or(`id.eq.${identifier},slug.eq.${identifier}`)
-    .eq("status", "published")
-    .limit(1)
-    .maybeSingle();
+  const key = identifier.trim();
+  let q = client.from("courses").select(PUBLIC_COURSE_FIELDS).eq("status", "published");
+  q = isUuidString(key) ? q.or(`id.eq.${key},slug.eq.${key}`) : q.eq("slug", key);
+  const { data: course, error } = await q.limit(1).maybeSingle();
 
   if (error) throw error;
   if (!course) return null;
@@ -133,14 +135,10 @@ export async function listCourses(options?: { publishedOnly?: boolean }) {
 
 export async function getCourseByIdentifier(identifier: string) {
   const client = admin();
-  const base = client
-    .from("courses")
-    .select("*")
-    .or(`id.eq.${identifier},slug.eq.${identifier}`)
-    .limit(1)
-    .maybeSingle();
-
-  const { data: course, error } = await base;
+  const key = identifier.trim();
+  let base = client.from("courses").select("*");
+  base = isUuidString(key) ? base.or(`id.eq.${key},slug.eq.${key}`) : base.eq("slug", key);
+  const { data: course, error } = await base.limit(1).maybeSingle();
   if (error) throw error;
   if (!course) return null;
 
@@ -203,12 +201,10 @@ export async function listBlogPosts(options?: { publishedOnly?: boolean }) {
 
 export async function getBlogPostByIdentifier(identifier: string) {
   const client = admin();
-  const { data: post, error } = await client
-    .from("blog_posts")
-    .select("*")
-    .or(`id.eq.${identifier},slug.eq.${identifier}`)
-    .limit(1)
-    .maybeSingle();
+  const key = identifier.trim();
+  let q = client.from("blog_posts").select("*");
+  q = isUuidString(key) ? q.or(`id.eq.${key},slug.eq.${key}`) : q.eq("slug", key);
+  const { data: post, error } = await q.limit(1).maybeSingle();
 
   if (error) throw error;
   if (!post) return null;
@@ -568,15 +564,67 @@ export async function applyLessonProgressForUser(
   return getEnrollmentCourseBundleForUser(userId, courseIdentifier);
 }
 
+export async function getCoursePurchaseStateForUser(userId: string, courseId: string) {
+  const client = admin();
+
+  const { data: enrollmentRows, error: enrollmentError } = await client
+    .from("enrollments")
+    .select("id, status, created_at")
+    .eq("user_id", userId)
+    .eq("course_id", courseId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (enrollmentError) throw enrollmentError;
+  const enrollment = enrollmentRows?.[0] ?? null;
+
+  const { data: itemRows, error: itemError } = await client
+    .from("order_items")
+    .select("order_id")
+    .eq("course_id", courseId);
+
+  if (itemError) throw itemError;
+
+  const orderIds = [...new Set((itemRows ?? []).map((row) => row.order_id).filter(Boolean))];
+  let latestOrder: {
+    id: string;
+    order_code: string;
+    status: string;
+    total_vnd: number;
+    payment_reference: string | null;
+    created_at: string;
+  } | null = null;
+
+  if (orderIds.length > 0) {
+    const { data: orders, error: ordersError } = await client
+      .from("orders")
+      .select("id, order_code, status, total_vnd, payment_reference, created_at")
+      .eq("user_id", userId)
+      .in("id", orderIds)
+      .in("status", ["pending", "paid", "approved"])
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (ordersError) throw ordersError;
+    latestOrder = orders?.[0] ?? null;
+  }
+
+  return {
+    hasEnrollment: Boolean(enrollment),
+    enrollment,
+    hasOpenOrder: Boolean(latestOrder),
+    latestOrder,
+    alreadyPurchased: Boolean(enrollment || latestOrder),
+  };
+}
+
 export async function resolveCategoryId(table: "course_categories" | "blog_categories", input?: string | null) {
   if (!input) return null;
   const client = admin();
-  const { data, error } = await client
-    .from(table)
-    .select("id")
-    .or(`id.eq.${input},slug.eq.${input}`)
-    .limit(1)
-    .maybeSingle();
+  const key = input.trim();
+  let q = client.from(table).select("id");
+  q = isUuidString(key) ? q.or(`id.eq.${key},slug.eq.${key}`) : q.eq("slug", key);
+  const { data, error } = await q.limit(1).maybeSingle();
 
   if (error) throw error;
   return data?.id ?? null;

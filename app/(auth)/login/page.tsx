@@ -6,11 +6,12 @@ import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { getSupabasePublicEnv } from "@/utils/supabase/env";
 import { createClient } from "@/utils/supabase/server";
 
-type Props = { searchParams?: Promise<{ error?: string }> };
+type Props = { searchParams?: Promise<{ error?: string; mode?: string }> };
 
 export default async function LoginPage({ searchParams }: Props) {
   const params = searchParams ? await searchParams : {};
   const errorKey = params.error;
+  const initialAuthMode = params.mode === "signup" ? "signup" : "signin";
 
   if (getSupabasePublicEnv()) {
     try {
@@ -63,7 +64,7 @@ export default async function LoginPage({ searchParams }: Props) {
             </p>
           ) : null}
 
-          <EmailPasswordAuthForm />
+          <EmailPasswordAuthForm initialMode={initialAuthMode} />
 
           <div className="my-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-csnb-border" />

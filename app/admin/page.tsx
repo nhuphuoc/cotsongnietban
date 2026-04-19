@@ -1,28 +1,77 @@
 import Link from "next/link";
 import { BarChart3, BookOpen, DollarSign, MessageSquareQuote, ShoppingCart, Users, CheckCircle2, Clock } from "lucide-react";
+import { listCourses, listFeedbacks, listOrders, listProfiles } from "@/lib/api/repositories";
+import { formatVnd } from "@/lib/format-vnd";
 
-const stats = [
-  { label: "Doanh thu (demo)", value: "148,500,000đ", icon: DollarSign, trend: "+12.5%", color: "bg-green-50 text-green-700 border-green-200" },
-  { label: "Người dùng", value: "1,247", icon: Users, trend: "+8.3%", color: "bg-blue-50 text-blue-700 border-blue-200" },
-  { label: "Khóa học", value: "4", icon: BookOpen, trend: "+1", color: "bg-purple-50 text-purple-700 border-purple-200" },
-  { label: "Feedback mới", value: "6", icon: MessageSquareQuote, trend: "+2", color: "bg-orange-50 text-[#c0392b] border-orange-200" },
-];
+type AdminOrder = {
+  id: string;
+  order_code: string;
+  customer_name: string;
+  customer_email: string;
+  total_vnd: number;
+  status: "pending" | "paid" | "approved" | "cancelled" | "refunded";
+  created_at: string;
+  items?: Array<{ course_title_snapshot?: string | null }>;
+};
 
-const recentOrders = [
-  { id: "ORD001", user: "Nguyễn Thị Lan", email: "lan@gmail.com", course: "Phục Hồi Lưng Cơ Bản", amount: "1,500,000đ", status: "pending", time: "5 phút trước" },
-  { id: "ORD002", user: "Trần Minh Tuấn", email: "tuan@gmail.com", course: "Corrective Exercise Nâng Cao", amount: "3,500,000đ", status: "pending", time: "23 phút trước" },
-  { id: "ORD003", user: "Lê Thu Hương", email: "huong@gmail.com", course: "VIP Coach 1-1", amount: "8,000,000đ", status: "approved", time: "1 tiếng trước" },
-  { id: "ORD004", user: "Phạm Quốc Hùng", email: "hung@gmail.com", course: "Phục Hồi Lưng Cơ Bản", amount: "1,500,000đ", status: "approved", time: "2 tiếng trước" },
-];
+function formatRelativeVi(iso: string) {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "—";
+  const diff = Date.now() - t;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "Vừa xong";
+  if (m < 60) return `${m} phút trước`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} giờ trước`;
+  const d = Math.floor(h / 24);
+  if (d < 14) return `${d} ngày trước`;
+  return new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function statusLabel(status: AdminOrder["status"]) {
+  if (status === "approved") return "Đã Duyệt";
+  if (status === "paid") return "Đã báo CK";
+  if (status === "cancelled") return "Đã Hủy";
+  if (status === "refunded") return "Hoàn tiền";
+  return "Chờ Duyệt";
+}
+
+function statusClass(status: AdminOrder["status"]) {
+  if (status === "approved") return "bg-green-50 text-green-600";
+  if (status === "paid") return "bg-blue-50 text-blue-700";
+  if (status === "cancelled" || status === "refunded") return "bg-neutral-100 text-neutral-600";
+  return "bg-orange-50 text-orange-600";
+}
 
 const quickLinks = [
   { href: "/admin/orders", label: "Duyệt đơn hàng", icon: ShoppingCart, desc: "Xem đơn chờ duyệt và xác nhận thanh toán" },
-  { href: "/admin/courses", label: "Quản lý khóa học", icon: BookOpen, desc: "Thêm/sửa/xuất bản khóa học (demo)" },
+  { href: "/admin/courses", label: "Quản lý khóa học", icon: BookOpen, desc: "Thêm/sửa/xuất bản khóa học" },
   { href: "/admin/blog", label: "Quản lý blog", icon: BarChart3, desc: "Đăng bài & cập nhật nội dung" },
   { href: "/admin/feedback", label: "Quản lý feedback", icon: MessageSquareQuote, desc: "Duyệt, ghim, ẩn phản hồi" },
 ];
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  const [ordersRaw, profiles, courses, feedbacks] = await Promise.all([
+    listOrders(),
+    listProfiles(),
+    listCourses(),
+    listFeedbacks(),
+  ]);
+
+  const orders = ordersRaw as unknown as AdminOrder[];
+  const recentOrders = orders.slice(0, 6);
+  const revenue = orders
+    .filter((order) => order.status === "approved")
+    .reduce((sum, order) => sum + (Number(order.total_vnd) || 0), 0);
+  const newFeedbackCount = (feedbacks as Array<{ status?: string }>).filter((fb) => fb.status === "new").length;
+
+  const stats = [
+    { label: "Doanh thu đã duyệt", value: formatVnd(revenue), icon: DollarSign, hint: `${orders.filter((o) => o.status === "approved").length} đơn`, color: "bg-green-50 text-green-700 border-green-200" },
+    { label: "Người dùng", value: String(profiles.length), icon: Users, hint: "Tổng tài khoản", color: "bg-blue-50 text-blue-700 border-blue-200" },
+    { label: "Khóa học", value: String(courses.length), icon: BookOpen, hint: "Tổng khóa học", color: "bg-purple-50 text-purple-700 border-purple-200" },
+    { label: "Feedback mới", value: String(newFeedbackCount), icon: MessageSquareQuote, hint: `Tổng feedback: ${feedbacks.length}`, color: "bg-orange-50 text-[#c0392b] border-orange-200" },
+  ];
+
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-8">
@@ -36,7 +85,7 @@ export default function AdminDashboardPage() {
           <div key={i} className={`bg-white border rounded-sm p-5 ${stat.color}`}>
             <div className="flex items-center justify-between mb-3">
               <stat.icon size={20} />
-              <span className="text-xs font-semibold">{stat.trend}</span>
+              <span className="text-xs font-semibold">{stat.hint}</span>
             </div>
             <div className="font-heading font-black text-gray-900 text-xl">{stat.value}</div>
             <div className="text-gray-500 text-xs mt-0.5">{stat.label}</div>
@@ -89,27 +138,33 @@ export default function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {recentOrders.map((order) => (
-                <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-5 py-3">
-                    <div className="font-semibold text-gray-900">{order.user}</div>
-                    <div className="text-gray-400 text-xs">{order.email}</div>
+              {recentOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">
+                    Chưa có đơn hàng nào.
                   </td>
-                  <td className="px-5 py-3 text-gray-600">{order.course}</td>
-                  <td className="px-5 py-3 font-semibold text-gray-900">{order.amount}</td>
-                  <td className="px-5 py-3">
-                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${
-                      order.status === "approved"
-                        ? "bg-green-50 text-green-600"
-                        : "bg-orange-50 text-orange-600"
-                    }`}>
-                      {order.status === "approved" ? <CheckCircle2 size={11} /> : <Clock size={11} />}
-                      {order.status === "approved" ? "Đã Duyệt" : "Chờ Duyệt"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-gray-400 text-xs">{order.time}</td>
                 </tr>
-              ))}
+              ) : (
+                recentOrders.map((order) => (
+                  <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="px-5 py-3">
+                      <div className="font-semibold text-gray-900">{order.customer_name}</div>
+                      <div className="text-gray-400 text-xs">{order.customer_email}</div>
+                    </td>
+                    <td className="px-5 py-3 text-gray-600 line-clamp-2">
+                      {order.items?.map((item) => item.course_title_snapshot).filter(Boolean).join(", ") || "—"}
+                    </td>
+                    <td className="px-5 py-3 font-semibold text-gray-900">{formatVnd(order.total_vnd)}</td>
+                    <td className="px-5 py-3">
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${statusClass(order.status)}`}>
+                        {order.status === "approved" ? <CheckCircle2 size={11} /> : <Clock size={11} />}
+                        {statusLabel(order.status)}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-gray-400 text-xs">{formatRelativeVi(order.created_at)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

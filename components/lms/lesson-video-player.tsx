@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { youtubeNocookieEmbedUrl } from "@/lib/youtube-embed";
 
 function formatTime(sec: number) {
   if (!Number.isFinite(sec) || sec < 0) return "0:00";
@@ -21,6 +22,55 @@ type LessonVideoPlayerProps = {
 };
 
 export function LessonVideoPlayer({
+  src,
+  poster,
+  title,
+  className,
+  variant = "default",
+}: LessonVideoPlayerProps) {
+  const ytEmbed = useMemo(() => youtubeNocookieEmbedUrl(src), [src]);
+
+  if (ytEmbed) {
+    return (
+      <div
+        className={cn(
+          "relative aspect-video w-full overflow-hidden bg-black",
+          variant === "embed"
+            ? "max-h-[min(70vh,calc(100vh-260px))] rounded-none shadow-none ring-0"
+            : "max-h-[min(72vh,calc(100vh-220px))] rounded-xl shadow-xl ring-1 ring-csnb-border/50",
+          className
+        )}
+      >
+        <iframe
+          src={ytEmbed}
+          title={title}
+          className="absolute inset-0 h-full w-full border-0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+        <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/70 via-black/25 to-transparent px-4 pb-8 pt-3 sm:pt-4">
+          <p className="line-clamp-2 text-center font-sans text-xs font-semibold text-white/95 drop-shadow-md sm:text-left sm:text-sm">
+            {title}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <LessonVideoPlayerHtml5
+      src={src}
+      poster={poster}
+      title={title}
+      className={className}
+      variant={variant}
+    />
+  );
+}
+
+function LessonVideoPlayerHtml5({
   src,
   poster,
   title,

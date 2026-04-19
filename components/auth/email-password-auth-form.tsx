@@ -12,9 +12,13 @@ interface EmailCheckResult {
   error: string | null;
 }
 
-export function EmailPasswordAuthForm() {
+type EmailPasswordAuthFormProps = {
+  initialMode?: Mode;
+};
+
+export function EmailPasswordAuthForm({ initialMode = "signin" }: EmailPasswordAuthFormProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("signin");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
@@ -26,6 +30,10 @@ export function EmailPasswordAuthForm() {
     error: null,
   });
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
