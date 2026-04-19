@@ -1,11 +1,25 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Clock, BookOpen } from "lucide-react";
-import { SITE_CONTACT } from "@/lib/site-contact";
-import { demoCourses } from "@/lib/demo-courses";
-import { getCatalogMarketingExtras } from "@/lib/marketing-course-dummies";
 
-export default function CoursesPage() {
+export const dynamic = "force-dynamic";
+import { SITE_CONTACT } from "@/lib/site-contact";
+import { listCourses } from "@/lib/api/repositories";
+import { formatVnd } from "@/lib/format-vnd";
+
+const FALLBACK_THUMB =
+  "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop";
+
+function formatCatalogDuration(sec: number | null | undefined): string {
+  if (sec == null || Number.isNaN(sec) || sec <= 0) return "—";
+  const h = sec / 3600;
+  if (h >= 1) return `~${h.toFixed(1)} giờ`.replace(".0", "");
+  return `~${Math.round(sec / 60)} phút`;
+}
+
+export default async function CoursesPage() {
+  const rows = await listCourses({ publishedOnly: true });
+
   return (
     <div className="relative min-h-screen overflow-x-clip bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pt-20">
       <div className="pointer-events-none absolute inset-0 z-0">
@@ -25,60 +39,91 @@ export default function CoursesPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            {demoCourses.map((c) => {
-              const extras = getCatalogMarketingExtras(c.id);
-              return (
-                <article
-                  key={c.id}
-                  className="flex flex-col overflow-hidden rounded-xl border border-csnb-border/25 bg-white shadow-sm transition-shadow hover:border-csnb-orange/25 hover:shadow-md sm:flex-row"
-                >
-                  <Link
-                    href={`/courses/view/${c.id}`}
-                    className="relative aspect-[16/10] w-full shrink-0 sm:aspect-auto sm:h-auto sm:w-[min(42%,240px)] sm:min-h-[200px]"
+            {rows.length === 0 ? (
+              <p className="col-span-full text-center font-sans text-sm text-neutral-600">
+                Hiện chưa có khóa học công khai. Vui lòng quay lại sau.
+              </p>
+            ) : (
+              rows.map((raw) => {
+                const c = raw as {
+                  id: string;
+                  slug?: string | null;
+                  title?: string | null;
+                  short_description?: string | null;
+                  description?: string | null;
+                  level_label?: string | null;
+                  thumbnail_url?: string | null;
+                  total_duration_seconds?: number | null;
+                  lesson_count?: number | null;
+                  price_vnd?: number | null;
+                };
+                const viewSlug = (typeof c.slug === "string" && c.slug.trim()) || c.id;
+                const title = (typeof c.title === "string" && c.title) || "Khóa học";
+                const desc =
+                  (typeof c.short_description === "string" && c.short_description.trim()) ||
+                  (typeof c.description === "string" && c.description.trim()) ||
+                  "";
+                const level = (typeof c.level_label === "string" && c.level_label.trim()) || "—";
+                const thumb = (typeof c.thumbnail_url === "string" && c.thumbnail_url.trim()) || FALLBACK_THUMB;
+                const nLessons = Math.max(0, Number(c.lesson_count ?? 0));
+                const durationLabel = formatCatalogDuration(
+                  typeof c.total_duration_seconds === "number" ? c.total_duration_seconds : null
+                );
+                const priceLabel = formatVnd(typeof c.price_vnd === "number" ? c.price_vnd : null);
+
+                return (
+                  <article
+                    key={c.id}
+                    className="flex flex-col overflow-hidden rounded-xl border border-csnb-border/25 bg-white shadow-sm transition-shadow hover:border-csnb-orange/25 hover:shadow-md sm:flex-row"
                   >
-                    <Image
-                      src={c.thumbnail}
-                      alt=""
-                      fill
-                      sizes="(max-width: 1023px) 100vw, 240px"
-                      className="object-cover transition-transform duration-300 hover:scale-[1.02]"
-                    />
-                  </Link>
-                  <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-                      <h3 className="min-w-0 font-sans text-base font-bold leading-snug text-csnb-ink sm:text-lg">{c.title}</h3>
-                      <span className="w-fit shrink-0 rounded-md border border-csnb-border/40 bg-csnb-panel/80 px-2 py-0.5 text-center font-sans text-[10px] font-bold uppercase tracking-wide text-csnb-ink">
-                        {c.level}
-                      </span>
+                    <Link
+                      href={`/courses/view/${viewSlug}`}
+                      className="relative aspect-[16/10] w-full shrink-0 sm:aspect-auto sm:h-auto sm:w-[min(42%,240px)] sm:min-h-[200px]"
+                    >
+                      <Image
+                        src={thumb}
+                        alt=""
+                        fill
+                        sizes="(max-width: 1023px) 100vw, 240px"
+                        className="object-cover transition-transform duration-300 hover:scale-[1.02]"
+                      />
+                    </Link>
+                    <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                        <h3 className="min-w-0 font-sans text-base font-bold leading-snug text-csnb-ink sm:text-lg">{title}</h3>
+                        <span className="w-fit shrink-0 rounded-md border border-csnb-border/40 bg-csnb-panel/80 px-2 py-0.5 text-center font-sans text-[10px] font-bold uppercase tracking-wide text-csnb-ink">
+                          {level}
+                        </span>
+                      </div>
+                      <p className="mt-2 line-clamp-2 flex-1 font-sans text-sm leading-relaxed text-neutral-600">{desc || "Khóa học trực tuyến."}</p>
+                      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 font-sans text-xs text-neutral-500">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock className="size-3.5 shrink-0 text-csnb-orange-deep" strokeWidth={2} />
+                          {durationLabel}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <BookOpen className="size-3.5 shrink-0 text-csnb-orange-deep" strokeWidth={2} />
+                          {nLessons} bài
+                        </span>
+                      </div>
+                      <div className="my-4 h-px bg-csnb-border/20" />
+                      <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+                        <span className="font-sans text-lg font-extrabold tabular-nums text-csnb-orange-deep sm:text-xl">
+                          {priceLabel}
+                        </span>
+                        <Link
+                          href={`/courses/view/${viewSlug}`}
+                          className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border border-csnb-border/35 bg-white px-3 py-2 font-sans text-sm font-semibold text-csnb-ink transition-colors hover:border-csnb-orange/40 hover:text-csnb-orange-deep sm:w-auto sm:justify-start"
+                        >
+                          Chi tiết
+                          <ArrowRight className="size-4 shrink-0" />
+                        </Link>
+                      </div>
                     </div>
-                    <p className="mt-2 line-clamp-2 flex-1 font-sans text-sm leading-relaxed text-neutral-600">{c.description}</p>
-                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 font-sans text-xs text-neutral-500">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Clock className="size-3.5 shrink-0 text-csnb-orange-deep" strokeWidth={2} />
-                        {c.totalDurationLabel}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <BookOpen className="size-3.5 shrink-0 text-csnb-orange-deep" strokeWidth={2} />
-                        {c.lessons.length} bài
-                      </span>
-                    </div>
-                    <div className="my-4 h-px bg-csnb-border/20" />
-                    <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-                      <span className="font-sans text-lg font-extrabold tabular-nums text-csnb-orange-deep sm:text-xl">
-                        {extras.priceLabel}
-                      </span>
-                      <Link
-                        href={`/courses/view/${c.id}`}
-                        className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border border-csnb-border/35 bg-white px-3 py-2 font-sans text-sm font-semibold text-csnb-ink transition-colors hover:border-csnb-orange/40 hover:text-csnb-orange-deep sm:w-auto sm:justify-start"
-                      >
-                        Chi tiết
-                        <ArrowRight className="size-4 shrink-0" />
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+                  </article>
+                );
+              })
+            )}
           </div>
         </div>
       </section>

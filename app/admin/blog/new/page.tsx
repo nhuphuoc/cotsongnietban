@@ -8,7 +8,7 @@ import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { ApiError, apiFetch, slugifyClient } from "@/lib/admin/api-client";
 import { ApiTestPanel } from "@/components/admin/api-test-panel";
 
-const categories = ["Liệu Pháp", "Đau Lưng", "Kiến Thức", "Tư Thế", "Dinh Dưỡng"];
+const categories = ["Liệu Pháp", "Đau Lưng", "Kiến Thức"];
 
 export default function AdminBlogCreatePage() {
   const router = useRouter();

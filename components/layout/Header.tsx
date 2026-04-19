@@ -6,12 +6,17 @@ import { useState, useEffect } from "react";
 import { Menu, X, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SiteLogoMark } from "@/components/brand/site-logo-mark";
+import { createClient } from "@/utils/supabase/client";
 
-const navLinks = [
+const navLinksGuest = [
   { href: "/", label: "Trang chủ" },
   { href: "/results", label: "Kết quả" },
   { href: "/blog", label: "Blog" },
   { href: "/courses", label: "Khóa học" },
+];
+
+const navLinksSignedIn = [
+  ...navLinksGuest,
   { href: "/hoc-cua-toi", label: "Khóa học của tôi" },
 ];
 
@@ -31,11 +36,32 @@ export default function Header() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  const navLinks = isSignedIn ? navLinksSignedIn : navLinksGuest;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 12);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    void supabase.auth.getUser().then(({ data }) => {
+      setIsSignedIn(Boolean(data.user));
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsSignedIn(Boolean(session?.user));
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -86,19 +112,39 @@ export default function Header() {
         </nav>
 
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
-          <Link
-            href="/login"
-            className="rounded-md px-3 py-2 font-sans text-sm font-medium text-csnb-muted transition-colors hover:text-white"
-          >
-            Đăng nhập
-          </Link>
-          <Link
-            href="/courses"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-csnb-orange px-4 py-2 font-sans text-sm font-bold text-white shadow-sm transition-colors hover:bg-csnb-orange-deep sm:px-5"
-          >
-            Khóa học
-            <ArrowRight className="size-4 shrink-0 opacity-90" aria-hidden />
-          </Link>
+          {isSignedIn ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="rounded-md px-3 py-2 font-sans text-sm font-medium text-csnb-muted transition-colors hover:text-white"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/auth/signout"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-csnb-orange px-4 py-2 font-sans text-sm font-bold text-white shadow-sm transition-colors hover:bg-csnb-orange-deep sm:px-5"
+              >
+                Đăng xuất
+                <ArrowRight className="size-4 shrink-0 opacity-90" aria-hidden />
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="rounded-md px-3 py-2 font-sans text-sm font-medium text-csnb-muted transition-colors hover:text-white"
+              >
+                Đăng nhập
+              </Link>
+              <Link
+                href="/courses"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-csnb-orange px-4 py-2 font-sans text-sm font-bold text-white shadow-sm transition-colors hover:bg-csnb-orange-deep sm:px-5"
+              >
+                Khóa học
+                <ArrowRight className="size-4 shrink-0 opacity-90" aria-hidden />
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -135,19 +181,39 @@ export default function Header() {
               );
             })}
             <div className="mt-3 flex flex-col gap-2 border-t border-csnb-border/40 pt-4">
-              <Link
-                href="/login"
-                className="rounded-lg py-3 text-center font-sans text-sm text-csnb-muted hover:bg-white/5 hover:text-white"
-              >
-                Đăng nhập
-              </Link>
-              <Link
-                href="/courses"
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-csnb-orange px-5 py-3 text-center font-sans text-sm font-bold text-white hover:bg-csnb-orange-deep"
-              >
-                Khóa học
-                <ArrowRight className="size-4 shrink-0" aria-hidden />
-              </Link>
+              {isSignedIn ? (
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="rounded-lg py-3 text-center font-sans text-sm text-csnb-muted hover:bg-white/5 hover:text-white"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/auth/signout"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-csnb-orange px-5 py-3 text-center font-sans text-sm font-bold text-white hover:bg-csnb-orange-deep"
+                  >
+                    Đăng xuất
+                    <ArrowRight className="size-4 shrink-0" aria-hidden />
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="rounded-lg py-3 text-center font-sans text-sm text-csnb-muted hover:bg-white/5 hover:text-white"
+                  >
+                    Đăng nhập
+                  </Link>
+                  <Link
+                    href="/courses"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-csnb-orange px-5 py-3 text-center font-sans text-sm font-bold text-white hover:bg-csnb-orange-deep"
+                  >
+                    Khóa học
+                    <ArrowRight className="size-4 shrink-0" aria-hidden />
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         </div>

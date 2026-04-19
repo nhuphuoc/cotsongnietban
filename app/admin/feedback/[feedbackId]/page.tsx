@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Trash2 } from "lucide-react";
+import { CourseSelect } from "@/components/admin/course-select";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { apiFetch } from "@/lib/admin/api-client";
 import type { AdminFeedbackSource, AdminFeedbackStatus } from "@/lib/admin/feedback-types";
@@ -20,7 +21,7 @@ export default function AdminFeedbackDetailPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState("");
-  const [course, setCourse] = useState("");
+  const [courseId, setCourseId] = useState("");
   const [source, setSource] = useState<AdminFeedbackSource>("website");
   const [status, setStatus] = useState<AdminFeedbackStatus>("new");
   const [rating, setRating] = useState<1 | 2 | 3 | 4 | 5>(5);
@@ -50,7 +51,7 @@ export default function AdminFeedbackDetailPage() {
     setName(item.name ?? "");
     setEmail(item.email ?? "");
     setAvatar(item.avatar_url ?? "");
-    setCourse(item.course?.title ?? "");
+    setCourseId(item.course?.id ?? "");
     setSource(item.source);
     setStatus(item.status);
     setRating(item.rating);
@@ -72,12 +73,12 @@ export default function AdminFeedbackDetailPage() {
             name: name.trim(),
             email: email.trim(),
             avatarUrl: avatar.trim() || null,
+            courseId: courseId || null,
             source,
             status,
             rating,
             messageHtml,
             internalNoteHtml: internalNoteHtml.trim() === "<p></p>" ? null : internalNoteHtml,
-            // TODO: wire courseId when we have course picker
           }),
         });
         setItem(updated);
@@ -196,15 +197,7 @@ export default function AdminFeedbackDetailPage() {
                 className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]"
               />
             </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Khóa học</label>
-              <input
-                value={course}
-                onChange={(e) => setCourse(e.target.value)}
-                placeholder="Tên khóa học (tuỳ chọn)"
-                className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]"
-              />
-            </div>
+            <CourseSelect value={courseId} onChange={setCourseId} />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Nguồn</label>

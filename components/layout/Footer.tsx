@@ -69,6 +69,7 @@ export default function Footer() {
                 { href: "/results", label: "Kết Quả Học Viên" },
                 { href: "/blog", label: "Blog Kiến Thức" },
                 { href: "/courses", label: "Khóa Học" },
+                { href: "/feedback", label: "Gửi Feedback" },
                 { href: SITE_CONTACT.facebookUrl, label: "Facebook" },
                 { href: SITE_CONTACT.instagramUrl, label: "Instagram" },
                 { href: SITE_CONTACT.zaloUrl, label: "Tư vấn trực tiếp" },
@@ -122,13 +123,13 @@ export default function Footer() {
           <p className="text-xs text-csnb-muted">© 2026 Cột Sống Niết Bàn. Tất cả quyền được bảo lưu.</p>
           <div className="flex items-center gap-4">
             <Link
-              href="#"
+              href="/legal/privacy"
               className="rounded-sm px-1 py-1 text-xs text-csnb-muted underline-offset-2 transition-colors hover:text-white hover:underline"
             >
               Chính sách bảo mật
             </Link>
             <Link
-              href="#"
+              href="/legal/terms"
               className="rounded-sm px-1 py-1 text-xs text-csnb-muted underline-offset-2 transition-colors hover:text-white hover:underline"
             >
               Điều khoản dịch vụ

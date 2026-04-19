@@ -46,6 +46,18 @@ describe("public POST /api/feedback", () => {
     expect(body.error?.message).toMatch(/rating/);
   });
 
+  it("returns 400 when email invalid", async () => {
+    const req = new Request("http://x", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "A", messageHtml: "<p>x</p>", rating: 5, email: "bad-email" }),
+    });
+    const res = await publicSubmitHandler(req);
+    expect(res.status).toBe(400);
+    const body = await jsonResponse(res);
+    expect(body.error?.message).toMatch(/email không hợp lệ/);
+  });
+
   it("creates row and returns 201", async () => {
     const single = vi.fn().mockResolvedValue({
       data: { id: "new-fb", created_at: "2026-01-01T00:00:00Z" },
@@ -100,5 +112,59 @@ describe("public POST /api/feedback", () => {
         name: "U",
       })
     );
+  });
+
+  it("trims and persists normalized email", async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: { id: "fb-3", created_at: "2026-01-01T00:00:00Z" },
+      error: null,
+    });
+    const insert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({ single }),
+    });
+    const from = vi.fn().mockReturnValue({ insert });
+    vi.mocked(createAdminClient).mockReturnValue({ from } as never);
+
+    const req = new Request("http://x", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Khách",
+        messageHtml: "<p>x</p>",
+        rating: 4,
+        email: "  hello@test.com  ",
+      }),
+    });
+
+    const res = await publicSubmitHandler(req);
+    expect(res.status).toBe(201);
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ email: "hello@test.com" }));
+  });
+
+  it("stores null when email is empty or whitespace", async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: { id: "fb-4", created_at: "2026-01-01T00:00:00Z" },
+      error: null,
+    });
+    const insert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({ single }),
+    });
+    const from = vi.fn().mockReturnValue({ insert });
+    vi.mocked(createAdminClient).mockReturnValue({ from } as never);
+
+    const req = new Request("http://x", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Khách",
+        messageHtml: "<p>x</p>",
+        rating: 4,
+        email: "   ",
+      }),
+    });
+
+    const res = await publicSubmitHandler(req);
+    expect(res.status).toBe(201);
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ email: null }));
   });
 });

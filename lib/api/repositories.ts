@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/utils/supabase/admin";
+import { listPublishedLessonIdsInCourse } from "@/lib/lms/build-lms-course-view-model";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -409,7 +410,10 @@ export async function listEnrollmentsForUser(userId: string) {
 
   const [coursesResult, lessonsResult] = await Promise.all([
     courseIds.length
-      ? client.from("courses").select("id, title, slug, thumbnail_url, level_label, lesson_count").in("id", courseIds)
+      ? client
+          .from("courses")
+          .select("id, title, slug, thumbnail_url, level_label, lesson_count, short_description")
+          .in("id", courseIds)
       : Promise.resolve({ data: [], error: null }),
     lessonIds.length
       ? client.from("lessons").select("id, title, slug, course_id").in("id", lessonIds)
@@ -444,7 +448,10 @@ export async function listAccessibleEnrollmentsForUser(userId: string) {
 
   const [coursesResult, lessonsResult] = await Promise.all([
     courseIds.length
-      ? client.from("courses").select("id, title, slug, thumbnail_url, level_label, lesson_count").in("id", courseIds)
+      ? client
+          .from("courses")
+          .select("id, title, slug, thumbnail_url, level_label, lesson_count, short_description")
+          .in("id", courseIds)
       : Promise.resolve({ data: [], error: null }),
     lessonIds.length
       ? client.from("lessons").select("id, title, slug, course_id").in("id", lessonIds)
@@ -458,6 +465,107 @@ export async function listAccessibleEnrollmentsForUser(userId: string) {
   const lessonsById = new Map((lessonsResult.data ?? []).map((item) => [item.id, item]));
 
   return enrichEnrollmentRows(enrollments ?? [], coursesById, lessonsById);
+}
+
+/** Khóa học đầy đủ + enrollment active + tiến độ bài học (chỉ khi user đã đăng ký hợp lệ). */
+export async function getEnrollmentCourseBundleForUser(userId: string, courseIdentifier: string) {
+  const fullCourse = await getCourseByIdentifier(courseIdentifier);
+  if (!fullCourse) return null;
+
+  const client = admin();
+  const nowIso = new Date().toISOString();
+  const { data: enrollment, error: enrErr } = await client
+    .from("enrollments")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("course_id", fullCourse.id)
+    .eq("status", "active")
+    .or(`expires_at.is.null,expires_at.gt."${nowIso}"`)
+    .maybeSingle();
+
+  if (enrErr) throw enrErr;
+  if (!enrollment) return null;
+
+  const { data: progRows, error: progErr } = await client
+    .from("lesson_progress")
+    .select("lesson_id, is_completed")
+    .eq("enrollment_id", enrollment.id);
+
+  if (progErr) throw progErr;
+
+  const completedLessonIds = new Set<string>();
+  for (const row of progRows ?? []) {
+    if (row.is_completed && row.lesson_id) {
+      completedLessonIds.add(String(row.lesson_id));
+    }
+  }
+
+  return { enrollment, course: fullCourse, completedLessonIds };
+}
+
+/**
+ * Ghi nhận hoàn thành / bỏ hoàn thành một bài (đã publish) trong khóa user đang học;
+ * upsert `lesson_progress` và đồng bộ `completed_lessons`, `progress_percent`, `last_lesson_id` trên enrollment.
+ */
+export async function applyLessonProgressForUser(
+  userId: string,
+  courseIdentifier: string,
+  lessonId: string,
+  isCompleted: boolean
+) {
+  const bundle = await getEnrollmentCourseBundleForUser(userId, courseIdentifier);
+  if (!bundle) return null;
+
+  const publishedIds = listPublishedLessonIdsInCourse(bundle.course);
+  const publishedSet = new Set(publishedIds);
+  const lid = String(lessonId);
+  if (!publishedSet.has(lid)) return null;
+
+  const client = admin();
+  const enrollmentId = String(bundle.enrollment.id);
+  const now = new Date().toISOString();
+
+  const { error: upErr } = await client.from("lesson_progress").upsert(
+    {
+      enrollment_id: enrollmentId,
+      lesson_id: lid,
+      is_completed: isCompleted,
+      completed_at: isCompleted ? now : null,
+    },
+    { onConflict: "enrollment_id,lesson_id" }
+  );
+  if (upErr) throw upErr;
+
+  const { data: progRows, error: progErr2 } = await client
+    .from("lesson_progress")
+    .select("lesson_id, is_completed")
+    .eq("enrollment_id", enrollmentId);
+
+  if (progErr2) throw progErr2;
+
+  let completedCount = 0;
+  for (const row of progRows ?? []) {
+    if (row.is_completed && row.lesson_id && publishedSet.has(String(row.lesson_id))) {
+      completedCount += 1;
+    }
+  }
+
+  const total = publishedIds.length;
+  const progressPercent = total > 0 ? Math.min(100, Math.round((completedCount / total) * 100)) : 0;
+
+  const { error: enUpErr } = await client
+    .from("enrollments")
+    .update({
+      completed_lessons: completedCount,
+      progress_percent: progressPercent,
+      last_lesson_id: lid,
+      last_activity_at: now,
+    })
+    .eq("id", enrollmentId);
+
+  if (enUpErr) throw enUpErr;
+
+  return getEnrollmentCourseBundleForUser(userId, courseIdentifier);
 }
 
 export async function resolveCategoryId(table: "course_categories" | "blog_categories", input?: string | null) {

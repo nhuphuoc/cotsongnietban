@@ -1,9 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Play, Clock } from "lucide-react";
+import { createClient } from "@/utils/supabase/server";
+import { getEnrollmentCourseBundleForUser } from "@/lib/api/repositories";
+import { buildLmsCourseViewModel } from "@/lib/lms/build-lms-course-view-model";
 import {
-  getDemoCourse,
   getCourseProgressPercent,
   getCompletedLessonCount,
   getCoursePhases,
@@ -12,15 +14,28 @@ import {
   firstPlayableLessonIdInPhase,
 } from "@/lib/demo-courses";
 
-export default function CourseDetailPage({ params }: { params: { courseId: string } }) {
-  const course = getDemoCourse(params.courseId);
-  if (!course) notFound();
+export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
+  const { courseId: routeCourseKey } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const bundle = await getEnrollmentCourseBundleForUser(user.id, routeCourseKey);
+  if (!bundle) notFound();
+
+  const course = buildLmsCourseViewModel({
+    enrollment: bundle.enrollment as { id: string; expires_at: string | null },
+    course: bundle.course,
+    completedLessonIds: bundle.completedLessonIds,
+  });
 
   const progress = getCourseProgressPercent(course);
   const completedCount = getCompletedLessonCount(course);
   const nextLesson = course.lessons.find((l) => !l.completed && !l.locked);
   const phases = getCoursePhases(course);
-  const showExpiryBanner = course.daysLeft <= 60;
+  const showExpiryBanner = course.daysLeft <= 60 && course.daysLeft < 9000;
 
   return (
     <div className="min-h-full bg-neutral-100 pb-10">
@@ -57,7 +72,7 @@ export default function CourseDetailPage({ params }: { params: { courseId: strin
             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
               {nextLesson ? (
                 <Link
-                  href={`/courses/${course.id}/lessons/${nextLesson.id}`}
+                  href={`/courses/${routeCourseKey}/lessons/${nextLesson.id}`}
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#1c1d1f] px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-black"
                 >
                   <Play className="size-4 shrink-0 fill-current" />
@@ -90,8 +105,13 @@ export default function CourseDetailPage({ params }: { params: { courseId: strin
             <h2 className="font-sans text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl">{course.title}</h2>
             <p className="mt-2 max-w-3xl font-sans text-sm leading-relaxed text-neutral-600">{course.description}</p>
             <p className="mt-2 font-sans text-xs text-neutral-500">
-              Truy cập đến <span className="font-medium text-neutral-700">{course.expiresAt}</span> — còn{" "}
-              <span className="tabular-nums font-medium text-neutral-700">{course.daysLeft}</span> ngày
+              Truy cập đến <span className="font-medium text-neutral-700">{course.expiresAt}</span>
+              {course.daysLeft < 9000 ? (
+                <>
+                  {" "}
+                  — còn <span className="tabular-nums font-medium text-neutral-700">{course.daysLeft}</span> ngày
+                </>
+              ) : null}
             </p>
 
             <div className="mt-5">
@@ -153,7 +173,7 @@ export default function CourseDetailPage({ params }: { params: { courseId: strin
               return (
                 <Link
                   key={phase.id}
-                  href={`/courses/${course.id}/lessons/${firstId}`}
+                  href={`/courses/${routeCourseKey}/lessons/${firstId}`}
                   className="block overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md"
                 >
                   {inner}

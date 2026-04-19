@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { SITE_CONTACT } from "@/lib/site-contact";
-import { demoCourses, getCourseProgressPercent } from "@/lib/demo-courses";
 import { LayoutDashboard, MessageCircle, LogOut, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SiteLogoMark } from "@/components/brand/site-logo-mark";
@@ -14,10 +14,38 @@ type Props = {
   onNavigate?: () => void;
 };
 
+type ApiEnrollmentRow = {
+  id: string;
+  progress_percent?: number;
+  course?: {
+    id: string;
+    title?: string;
+    slug?: string | null;
+    lesson_count?: number | null;
+  } | null;
+};
+
 export default function LmsSidebar({ className, onNavigate }: Props) {
   const pathname = usePathname();
-  const sidebarCourses = demoCourses.slice(0, 4);
+  const [rows, setRows] = useState<ApiEnrollmentRow[]>([]);
   const nav = () => onNavigate?.();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/me/enrollments", { credentials: "same-origin" });
+        const json = (await res.json()) as { data?: ApiEnrollmentRow[] };
+        if (!res.ok || !Array.isArray(json.data)) return;
+        if (!cancelled) setRows(json.data.slice(0, 8));
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div
@@ -49,31 +77,40 @@ export default function LmsSidebar({ className, onNavigate }: Props) {
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <div className="mb-3 px-1 font-heading text-xs uppercase tracking-wider text-neutral-500">Khóa học của tôi</div>
         <div className="space-y-2">
-          {sidebarCourses.map((course) => {
-            const progress = getCourseProgressPercent(course);
-            return (
-              <Link
-                key={course.id}
-                href={`/courses/${course.id}`}
-                onClick={nav}
-                className="group block rounded-lg border border-neutral-200 bg-neutral-50/80 p-3 transition-colors hover:border-neutral-300 hover:bg-white"
-              >
-                <div className="mb-2 flex items-start justify-between gap-2">
-                  <span className="font-heading text-xs font-bold leading-snug text-neutral-900 transition-colors group-hover:text-violet-700">
-                    {course.title}
-                  </span>
-                  <ChevronRight size={14} className="mt-0.5 shrink-0 text-neutral-400" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-1 flex-1 overflow-hidden rounded-full bg-neutral-200">
-                    <div className="h-full rounded-full bg-violet-600" style={{ width: `${progress}%` }} />
+          {rows.length === 0 ? (
+            <p className="px-1 font-sans text-xs text-neutral-500">Chưa có khóa hoạt động hoặc đang tải…</p>
+          ) : (
+            rows.map((row) => {
+              const course = row.course;
+              if (!course?.id) return null;
+              const progress = Math.min(100, Math.max(0, row.progress_percent ?? 0));
+              const hrefId = course.slug || course.id;
+              const title = course.title ?? "Khóa học";
+              const nLessons = course.lesson_count ?? 0;
+              return (
+                <Link
+                  key={row.id}
+                  href={`/courses/${hrefId}`}
+                  onClick={nav}
+                  className="group block rounded-lg border border-neutral-200 bg-neutral-50/80 p-3 transition-colors hover:border-neutral-300 hover:bg-white"
+                >
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <span className="font-heading text-xs font-bold leading-snug text-neutral-900 transition-colors group-hover:text-violet-700">
+                      {title}
+                    </span>
+                    <ChevronRight size={14} className="mt-0.5 shrink-0 text-neutral-400" />
                   </div>
-                  <span className="font-heading text-xs tabular-nums text-neutral-500">{progress}%</span>
-                </div>
-                <div className="mt-1 font-sans text-xs text-neutral-500">{course.lessons.length} bài giảng</div>
-              </Link>
-            );
-          })}
+                  <div className="flex items-center gap-2">
+                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-neutral-200">
+                      <div className="h-full rounded-full bg-violet-600" style={{ width: `${progress}%` }} />
+                    </div>
+                    <span className="font-heading text-xs tabular-nums text-neutral-500">{progress}%</span>
+                  </div>
+                  <div className="mt-1 font-sans text-xs text-neutral-500">{nLessons} bài giảng</div>
+                </Link>
+              );
+            })
+          )}
         </div>
       </div>
 

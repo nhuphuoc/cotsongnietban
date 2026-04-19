@@ -7,7 +7,7 @@ import { ArrowLeft, ExternalLink, Trash2 } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { apiFetch, slugifyClient } from "@/lib/admin/api-client";
 
-const categories = ["Liệu Pháp", "Đau Lưng", "Kiến Thức", "Tư Thế", "Dinh Dưỡng"];
+const categories = ["Liệu Pháp", "Đau Lưng", "Kiến Thức"];
 
 export default function AdminBlogEditPage() {
   const params = useParams<{ postId: string }>();

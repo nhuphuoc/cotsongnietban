@@ -979,12 +979,20 @@ export default function LandingPage() {
           </Tabs>
 
           <div className="mt-10 text-center">
-            <Link
-              href="/results"
-              className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md border border-csnb-border/70 px-6 py-3 font-heading text-sm font-semibold uppercase tracking-wide text-csnb-muted transition-colors hover:border-csnb-orange hover:text-white sm:w-auto sm:max-w-none sm:rounded-sm"
-            >
-              Xem thêm kết quả <ArrowRight size={16} />
-            </Link>
+            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                href="/results"
+                className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md border border-csnb-border/70 px-6 py-3 font-heading text-sm font-semibold uppercase tracking-wide text-csnb-muted transition-colors hover:border-csnb-orange hover:text-white sm:w-auto sm:max-w-none sm:rounded-sm"
+              >
+                Xem thêm kết quả <ArrowRight size={16} />
+              </Link>
+              <Link
+                href="/feedback"
+                className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-csnb-orange px-6 py-3 font-heading text-sm font-semibold uppercase tracking-wide text-white transition-colors hover:bg-csnb-orange-deep sm:w-auto sm:max-w-none sm:rounded-sm"
+              >
+                Gửi feedback <ArrowRight size={16} />
+              </Link>
+            </div>
           </div>
         </div>
       </section>

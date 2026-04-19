@@ -3,6 +3,7 @@ import { getSessionActor } from "@/lib/api/auth";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ALLOWED_SOURCES = new Set(["website", "zalo", "facebook", "email", "other"]);
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Gửi feedback công khai (không cần đăng nhập) — dùng cho form trên site.
@@ -23,6 +24,11 @@ export async function POST(request: Request) {
       return fail("rating phải là số nguyên trong khoảng 1–5.");
     }
 
+    const email = typeof body.email === "string" ? body.email.trim() : "";
+    if (email && !EMAIL_REGEX.test(email)) {
+      return fail("email không hợp lệ.");
+    }
+
     const rawSource = typeof body.source === "string" ? body.source : "website";
     const source = ALLOWED_SOURCES.has(rawSource) ? rawSource : "website";
 
@@ -34,7 +40,7 @@ export async function POST(request: Request) {
         course_id: body.courseId ?? null,
         source,
         name,
-        email: typeof body.email === "string" ? body.email.trim() || null : null,
+        email: email || null,
         avatar_url: typeof body.avatarUrl === "string" ? body.avatarUrl.trim() || null : null,
         rating,
         message_html: messageHtml,

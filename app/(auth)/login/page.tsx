@@ -76,11 +76,11 @@ export default async function LoginPage({ searchParams }: Props) {
           <div className="mt-6 border-t border-csnb-border pt-6 text-center">
             <p className="font-sans text-xs leading-relaxed text-csnb-muted">
               Bằng cách đăng nhập, bạn đồng ý với{" "}
-              <Link href="#" className="text-white transition-colors hover:text-csnb-orange-bright">
+              <Link href="/legal/terms" className="text-white transition-colors hover:text-csnb-orange-bright">
                 Điều khoản dịch vụ
               </Link>{" "}
               và{" "}
-              <Link href="#" className="text-white transition-colors hover:text-csnb-orange-bright">
+              <Link href="/legal/privacy" className="text-white transition-colors hover:text-csnb-orange-bright">
                 Chính sách bảo mật
               </Link>{" "}
               của chúng tôi.
