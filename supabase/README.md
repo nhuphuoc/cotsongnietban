@@ -36,4 +36,5 @@ node scripts/seed-local-auth.js
 ### Notes
 - Schema nằm ở `supabase/migrations/*` và seed ở `supabase/seed.sql`.
 - `supabase/schema.sql` là bản tổng hợp tham khảo (đồng bộ với migration).
+- Dummy seed script cho feedback + blog nằm ở `supabase/snippets/seed_dummy_feedbacks_and_blog.sql` (chạy trong Supabase SQL Editor khi cần dữ liệu demo nhanh).
 
