@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import {
   CirclePlay,
   CheckCircle2,
@@ -9,10 +10,12 @@ import {
   Eye,
   EyeOff,
   FileText,
+  ImageIcon,
   Loader2,
   Plus,
   Search,
   Trash2,
+  Upload,
   Video,
   X,
 } from "lucide-react";
@@ -26,6 +29,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { notify } from "@/lib/ui/notify";
+import { uploadAdminImage } from "@/lib/admin/upload-image";
+
+function isValidUrl(s: string): boolean {
+  try { new URL(s); return true; } catch { return false; }
+}
 
 function formatMmSs(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -256,6 +265,10 @@ function providerLabel(value: string | null): string {
 const COURSE_PAGE_SIZE = 10;
 
 export default function LessonVideosPage() {
+  const router = useRouter();
+  const params = useParams<{ courseId?: string }>();
+  const routeCourseId = typeof params?.courseId === "string" ? params.courseId : "";
+
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [courseLoading, setCourseLoading] = useState(true);
   const [courseError, setCourseError] = useState<string | null>(null);
@@ -303,6 +316,8 @@ export default function LessonVideosPage() {
   const [courseInfoSaving, setCourseInfoSaving] = useState(false);
   const [courseInfoError, setCourseInfoError] = useState<string | null>(null);
   const [courseInfoSavedAt, setCourseInfoSavedAt] = useState<number | null>(null);
+  const [courseInfoErrors, setCourseInfoErrors] = useState<Record<string, string>>({});
+  const [thumbnailUploading, setThumbnailUploading] = useState(false);
 
   // Create-course dialog
   const [createCourseOpen, setCreateCourseOpen] = useState(false);
@@ -333,6 +348,24 @@ export default function LessonVideosPage() {
   const [addLessonIsPreview, setAddLessonIsPreview] = useState(false);
   const [addLessonSaving, setAddLessonSaving] = useState(false);
   const [addLessonError, setAddLessonError] = useState<string | null>(null);
+
+  // Add-section dialog
+  const [addSectionOpen, setAddSectionOpen] = useState(false);
+  const [addSectionTitle, setAddSectionTitle] = useState("");
+  const [addSectionSaving, setAddSectionSaving] = useState(false);
+  const [addSectionError, setAddSectionError] = useState<string | null>(null);
+  const [editSectionOpen, setEditSectionOpen] = useState(false);
+  const [editSectionId, setEditSectionId] = useState<string | null>(null);
+  const [editSectionTitle, setEditSectionTitle] = useState("");
+  const [editSectionSaving, setEditSectionSaving] = useState(false);
+  const [editSectionError, setEditSectionError] = useState<string | null>(null);
+
+  // Confirm dialog
+  type ConfirmDialogState = { open: false } | { open: true; title: string; description: string; onConfirm: () => void };
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ open: false });
+  const showConfirm = (title: string, description: string, onConfirm: () => void) =>
+    setConfirmDialog({ open: true, title, description, onConfirm });
+  const closeConfirm = () => setConfirmDialog({ open: false });
 
   useEffect(() => {
     let mounted = true;
@@ -432,12 +465,24 @@ export default function LessonVideosPage() {
     }
   }, []);
 
+  useEffect(() => {
+    const id = routeCourseId?.trim();
+    if (!id) {
+      setView("list");
+      return;
+    }
+    setView("detail");
+    setSelectedCourseId(id);
+    setActiveTab("info");
+    void loadDetail(id);
+  }, [routeCourseId, loadDetail]);
+
   const openCourse = useCallback((courseId: string) => {
     setSelectedCourseId(courseId);
     setActiveTab("info");
     setView("detail");
-    void loadDetail(courseId);
-  }, [loadDetail]);
+    router.push(`/admin/lesson-videos/${encodeURIComponent(courseId)}`);
+  }, [router]);
 
   const goBack = useCallback(() => {
     setView("list");
@@ -448,20 +493,19 @@ export default function LessonVideosPage() {
     setCourseInfoError(null);
     setQuery("");
     setOnlyMissing(false);
-  }, []);
+    router.push("/admin/lesson-videos");
+  }, [router]);
 
   const lessonsBySection = useMemo<LessonGroup[]>(() => {
     if (!detail) return [];
     const groups: LessonGroup[] = [];
     for (const section of [...detail.sections].sort((a, b) => a.sort_order - b.sort_order)) {
       const ls = [...(section.lessons ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-      if (ls.length) {
-        groups.push({
-          id: section.id,
-          title: section.title ?? "(Không tên)",
-          lessons: ls,
-        });
-      }
+      groups.push({
+        id: section.id,
+        title: section.title ?? "(Không tên)",
+        lessons: ls,
+      });
     }
     const rootless = [...(detail.ungroupedLessons ?? [])].sort((a, b) => a.sort_order - b.sort_order);
     if (rootless.length) {
@@ -511,7 +555,7 @@ export default function LessonVideosPage() {
     };
     return lessonsBySection
       .map((g) => ({ ...g, lessons: g.lessons.filter(match) }))
-      .filter((g) => g.lessons.length > 0);
+      .filter((g) => g.lessons.length > 0 || (g.id !== "__ungrouped__" && (lessonsBySection.find((orig) => orig.id === g.id)?.lessons.length ?? 0) === 0));
   }, [lessonsBySection, query, onlyMissing]);
 
   const filteredLessonCount = useMemo(() => {
@@ -662,13 +706,16 @@ export default function LessonVideosPage() {
     }
   };
 
-  const handleDeleteLesson = async (lesson: LessonRow) => {
+  const handleDeleteLesson = (lesson: LessonRow) => {
     if (rowBusy[lesson.id]) return;
-    const confirmed = window.confirm(
-      `Xoá bài "${lesson.title}"?\n\nHành động này không thể hoàn tác và sẽ xoá luôn tiến độ học viên liên quan.`
+    showConfirm(
+      `Xoá bài "${lesson.title}"?`,
+      "Hành động này không thể hoàn tác và sẽ xoá luôn tiến độ học viên liên quan.",
+      () => { void doDeleteLesson(lesson); },
     );
-    if (!confirmed) return;
+  };
 
+  const doDeleteLesson = async (lesson: LessonRow) => {
     setRowBusy((prev) => ({ ...prev, [lesson.id]: "delete" }));
     setRowError((prev) => ({ ...prev, [lesson.id]: null }));
     try {
@@ -681,6 +728,7 @@ export default function LessonVideosPage() {
         throw new Error(json.error?.message ?? "Không xoá được bài học.");
       }
       removeLessonFromState(lesson.id);
+      notify.success("Đã xoá bài học.", lesson.title);
     } catch (error) {
       setRowError((prev) => ({
         ...prev,
@@ -796,6 +844,7 @@ export default function LessonVideosPage() {
       if (!res.ok) throw new Error(json.error?.message ?? "Không lưu được nội dung.");
       if (json.data) patchLessonInState(json.data);
       setSavedAt((prev) => ({ ...prev, [contentDialogLesson.id]: Date.now() }));
+      notify.success("Lưu nội dung thành công.");
       setContentDialogLessonId(null);
       setContentDraft(null);
     } catch (error) {
@@ -818,6 +867,7 @@ export default function LessonVideosPage() {
         // eslint-disable-next-line no-await-in-loop
         await handleSave(lesson);
       }
+      notify.success(`Đã lưu ${toSave.length} thay đổi.`);
     } finally {
       setSavingAll(false);
     }
@@ -834,37 +884,83 @@ export default function LessonVideosPage() {
     if (!detail || courseInfoSaving) return;
     setCourseInfoDraft(courseInfoDraftFromDetail(detail));
     setCourseInfoError(null);
+    setCourseInfoErrors({});
     setCourseInfoEdit(false);
+  };
+
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setThumbnailUploading(true);
+    try {
+      const url = await uploadAdminImage(file);
+      setCourseInfoDraft((prev) => prev ? { ...prev, thumbnailUrl: url } : prev);
+      setCourseInfoErrors((prev) => { const next = { ...prev }; delete next.thumbnailUrl; return next; });
+    } catch (error) {
+      notify.error("Upload ảnh thất bại.", error instanceof Error ? error.message : undefined);
+    } finally {
+      setThumbnailUploading(false);
+      e.target.value = "";
+    }
   };
 
   const handleSaveCourseInfo = async () => {
     if (!detail || !courseInfoDraft) return;
 
+    const errs: Record<string, string> = {};
+
     const title = courseInfoDraft.title.trim();
-    if (!title) {
-      setCourseInfoError("Tiêu đề không được để trống.");
-      return;
-    }
+    if (!title) errs.title = "Tiêu đề không được để trống.";
+
+    const shortDescription = courseInfoDraft.shortDescription.trim();
+    if (!shortDescription) errs.shortDescription = "Mô tả ngắn không được để trống.";
+
+    const description = courseInfoDraft.description.trim();
+    if (!description) errs.description = "Mô tả đầy đủ không được để trống.";
+
+    const thumbnailUrl = courseInfoDraft.thumbnailUrl.trim();
+    if (!thumbnailUrl) errs.thumbnailUrl = "Ảnh bìa không được để trống.";
+    else if (!isValidUrl(thumbnailUrl)) errs.thumbnailUrl = "Ảnh bìa phải là URL hợp lệ.";
+
+    const heroImageUrl = courseInfoDraft.heroImageUrl.trim();
+    if (!heroImageUrl) errs.heroImageUrl = "Ảnh hero không được để trống.";
+    else if (!isValidUrl(heroImageUrl)) errs.heroImageUrl = "Ảnh hero phải là URL hợp lệ.";
+
+    const trailerUrl = courseInfoDraft.trailerUrl.trim();
+    if (!trailerUrl) errs.trailerUrl = "Trailer URL không được để trống.";
+    else if (!isValidUrl(trailerUrl)) errs.trailerUrl = "Trailer URL phải là URL hợp lệ.";
 
     let priceVnd: number | null = null;
-    if (courseInfoDraft.priceVnd.trim() !== "") {
-      const n = Number(courseInfoDraft.priceVnd);
-      if (!Number.isFinite(n) || n < 0) {
-        setCourseInfoError("Giá không hợp lệ.");
-        return;
+    const priceStr = courseInfoDraft.priceVnd.trim();
+    if (priceStr === "") {
+      errs.priceVnd = "Giá không được để trống.";
+    } else {
+      const n = Number(priceStr);
+      if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) {
+        errs.priceVnd = "Giá phải là số nguyên không âm.";
+      } else {
+        priceVnd = n;
       }
-      priceVnd = Math.floor(n);
     }
 
     let accessDurationDays: number | null = null;
-    if (courseInfoDraft.accessDurationDays.trim() !== "") {
-      const n = Number(courseInfoDraft.accessDurationDays);
-      if (!Number.isFinite(n) || n <= 0) {
-        setCourseInfoError("Thời hạn truy cập phải lớn hơn 0.");
-        return;
+    const durationStr = courseInfoDraft.accessDurationDays.trim();
+    if (durationStr === "") {
+      errs.accessDurationDays = "Thời hạn truy cập không được để trống.";
+    } else {
+      const n = Number(durationStr);
+      if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) {
+        errs.accessDurationDays = "Thời hạn truy cập phải là số nguyên lớn hơn 0.";
+      } else {
+        accessDurationDays = n;
       }
-      accessDurationDays = Math.floor(n);
     }
+
+    if (Object.keys(errs).length > 0) {
+      setCourseInfoErrors(errs);
+      return;
+    }
+    setCourseInfoErrors({});
 
     setCourseInfoSaving(true);
     setCourseInfoError(null);
@@ -968,6 +1064,7 @@ export default function LessonVideosPage() {
       };
       setCourseInfoDraft(courseInfoDraftFromDetail(nextDetail));
       setCourseInfoSavedAt(Date.now());
+      notify.success("Lưu thông tin khoá học thành công.");
       setCourseInfoEdit(false);
     } catch (error) {
       setCourseInfoError(error instanceof Error ? error.message : "Không lưu được thông tin khoá học.");
@@ -1067,6 +1164,7 @@ export default function LessonVideosPage() {
         },
         ...prev,
       ]);
+      notify.success("Tạo khoá học thành công.", newCourse.title);
       setCreateCourseOpen(false);
     } catch (error) {
       setCcError(error instanceof Error ? error.message : "Không tạo được khoá học.");
@@ -1086,6 +1184,171 @@ export default function LessonVideosPage() {
     setAddLessonIsPreview(false);
     setAddLessonError(null);
     setAddLessonOpen(true);
+  };
+
+  const openAddSectionDialog = () => {
+    setAddSectionTitle("");
+    setAddSectionError(null);
+    setAddSectionOpen(true);
+  };
+
+  const openEditSectionDialog = (section: SectionRow) => {
+    setEditSectionId(section.id);
+    setEditSectionTitle(section.title ?? "");
+    setEditSectionError(null);
+    setEditSectionOpen(true);
+  };
+
+  const handleAddSection = async () => {
+    if (!detail) return;
+    const title = addSectionTitle.trim();
+    if (!title) {
+      setAddSectionError("Tên phần học không được để trống.");
+      return;
+    }
+
+    setAddSectionSaving(true);
+    setAddSectionError(null);
+    try {
+      const res = await fetch("/api/admin/course-sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          courseId: detail.id,
+          title,
+        }),
+      });
+
+      const json = (await res.json()) as {
+        data?: { id?: string; course_id?: string; title?: string | null; sort_order?: number | null };
+        error?: { message?: string };
+      };
+      if (!res.ok) throw new Error(json.error?.message ?? "Không tạo được phần học.");
+
+      const section = json.data;
+      if (!section?.id) throw new Error("Dữ liệu phần học trả về không hợp lệ.");
+
+      setDetail((prev) => {
+        if (!prev) return prev;
+        const nextSection: SectionRow = {
+          id: String(section.id),
+          course_id: String(section.course_id ?? prev.id),
+          title: (section.title as string) ?? title,
+          sort_order: Number(section.sort_order ?? 0),
+          lessons: [],
+        };
+        const nextSections = [...prev.sections, nextSection].sort((a, b) => a.sort_order - b.sort_order);
+        return {
+          ...prev,
+          sections: nextSections,
+        };
+      });
+      setOpenSections((prev) => ({ ...prev, [String(section.id)]: true }));
+      setAddLessonSectionId(String(section.id));
+      notify.success("Tạo phần học thành công.", String(section.title ?? title));
+      setAddSectionOpen(false);
+    } catch (error) {
+      setAddSectionError(error instanceof Error ? error.message : "Không tạo được phần học.");
+    } finally {
+      setAddSectionSaving(false);
+    }
+  };
+
+  const handleEditSection = async () => {
+    if (!detail || !editSectionId) return;
+    const title = editSectionTitle.trim();
+    if (!title) {
+      setEditSectionError("Tên phần học không được để trống.");
+      return;
+    }
+
+    setEditSectionSaving(true);
+    setEditSectionError(null);
+    try {
+      const res = await fetch(`/api/admin/course-sections/${encodeURIComponent(editSectionId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ title }),
+      });
+      const json = (await res.json()) as {
+        data?: { id?: string; title?: string | null };
+        error?: { message?: string };
+      };
+      if (!res.ok) throw new Error(json.error?.message ?? "Không cập nhật được phần học.");
+      const section = json.data;
+
+      setDetail((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          sections: prev.sections.map((s) =>
+            s.id === editSectionId ? { ...s, title: String(section?.title ?? title) } : s
+          ),
+        };
+      });
+      notify.success("Cập nhật phần học thành công.");
+      setEditSectionOpen(false);
+      setEditSectionId(null);
+    } catch (error) {
+      setEditSectionError(error instanceof Error ? error.message : "Không cập nhật được phần học.");
+    } finally {
+      setEditSectionSaving(false);
+    }
+  };
+
+  const handleDeleteSection = (section: SectionRow) => {
+    if (!detail) return;
+    showConfirm(
+      `Xoá phần học "${section.title ?? "(Không tên)"}"?`,
+      "Chỉ xoá được khi phần học không còn bài học nào.",
+      () => { void doDeleteSection(section); },
+    );
+  };
+
+  const doDeleteSection = async (section: SectionRow) => {
+    try {
+      const res = await fetch(`/api/admin/course-sections/${encodeURIComponent(section.id)}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+      if (!res.ok) {
+        throw new Error(
+          json.error?.message ??
+            "Phần học đang chứa bài học. Vui lòng xoá hết bài học trước khi xoá phần học."
+        );
+      }
+
+      setDetail((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          sections: prev.sections.filter((s) => s.id !== section.id),
+          ungroupedLessons: [...prev.ungroupedLessons, ...(section.lessons ?? [])].sort(
+            (a, b) => a.sort_order - b.sort_order
+          ),
+          lessons: prev.lessons.map((l) => (l.section_id === section.id ? { ...l, section_id: null } : l)),
+        };
+      });
+      notify.success("Đã xoá phần học.", section.title ?? undefined);
+      setOpenSections((prev) => {
+        const next = { ...prev };
+        delete next[section.id];
+        return next;
+      });
+      if (addLessonSectionId === section.id) {
+        setAddLessonSectionId("");
+      }
+    } catch (error) {
+      notify.error(
+        "Không xoá được phần học.",
+        error instanceof Error
+          ? error.message
+          : "Phần học đang chứa bài học. Vui lòng xoá hết bài học trước khi xoá phần học."
+      );
+    }
   };
 
   const handleAddLesson = async () => {
@@ -1136,6 +1399,7 @@ export default function LessonVideosPage() {
         };
       });
       setDrafts((prev) => ({ ...prev, [newLesson.id]: toDraft(newLesson) }));
+      notify.success("Tạo bài học thành công.", newLesson.title);
       setAddLessonOpen(false);
     } catch (error) {
       setAddLessonError(error instanceof Error ? error.message : "Không tạo được bài học.");
@@ -1514,96 +1778,88 @@ export default function LessonVideosPage() {
                             <div className="grid gap-4 lg:grid-cols-2">
                               <div>
                                 <label className="mb-1 block text-xs font-medium text-gray-500">Tiêu đề</label>
+                                <label className="mb-1 block text-xs font-medium text-gray-500">Tiêu đề <span className="text-red-500">*</span></label>
                                 <input
                                   type="text"
                                   value={courseInfoDraft.title}
-                                  onChange={(e) =>
-                                    setCourseInfoDraft((prev) => (prev ? { ...prev, title: e.target.value } : prev))
-                                  }
-                                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                                  onChange={(e) => {
+                                    setCourseInfoDraft((prev) => (prev ? { ...prev, title: e.target.value } : prev));
+                                    if (courseInfoErrors.title) setCourseInfoErrors((p) => { const n = { ...p }; delete n.title; return n; });
+                                  }}
+                                  className={`w-full rounded-md border ${courseInfoErrors.title ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
                                   disabled={courseInfoSaving}
                                 />
+                                {courseInfoErrors.title && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.title}</p>}
                               </div>
                               <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-500">Slug</label>
-                                <input
-                                  type="text"
-                                  value={courseInfoDraft.slug}
-                                  onChange={(e) =>
-                                    setCourseInfoDraft((prev) => (prev ? { ...prev, slug: e.target.value } : prev))
-                                  }
-                                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
-                                  disabled={courseInfoSaving}
-                                />
-                              </div>
-                              <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-500">Giá (VND)</label>
+                                <label className="mb-1 block text-xs font-medium text-gray-500">Giá (VND) <span className="text-red-500">*</span></label>
                                 <input
                                   type="number"
                                   min={0}
                                   step={1000}
                                   value={courseInfoDraft.priceVnd}
-                                  onChange={(e) =>
-                                    setCourseInfoDraft((prev) => (prev ? { ...prev, priceVnd: e.target.value } : prev))
-                                  }
-                                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                                  onChange={(e) => {
+                                    setCourseInfoDraft((prev) => (prev ? { ...prev, priceVnd: e.target.value } : prev));
+                                    if (courseInfoErrors.priceVnd) setCourseInfoErrors((p) => { const n = { ...p }; delete n.priceVnd; return n; });
+                                  }}
+                                  className={`w-full rounded-md border ${courseInfoErrors.priceVnd ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
                                   disabled={courseInfoSaving}
                                 />
+                                {courseInfoErrors.priceVnd && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.priceVnd}</p>}
                               </div>
                               <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-500">Thời hạn truy cập (ngày)</label>
+                                <label className="mb-1 block text-xs font-medium text-gray-500">Thời hạn truy cập (ngày) <span className="text-red-500">*</span></label>
                                 <input
                                   type="number"
                                   min={1}
                                   step={1}
                                   value={courseInfoDraft.accessDurationDays}
-                                  onChange={(e) =>
-                                    setCourseInfoDraft((prev) =>
-                                      prev ? { ...prev, accessDurationDays: e.target.value } : prev
-                                    )
-                                  }
-                                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                                  onChange={(e) => {
+                                    setCourseInfoDraft((prev) => prev ? { ...prev, accessDurationDays: e.target.value } : prev);
+                                    if (courseInfoErrors.accessDurationDays) setCourseInfoErrors((p) => { const n = { ...p }; delete n.accessDurationDays; return n; });
+                                  }}
+                                  className={`w-full rounded-md border ${courseInfoErrors.accessDurationDays ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
                                   disabled={courseInfoSaving}
                                 />
+                                {courseInfoErrors.accessDurationDays && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.accessDurationDays}</p>}
                               </div>
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-xs font-medium text-gray-500">Mô tả ngắn</label>
+                              <label className="mb-1 block text-xs font-medium text-gray-500">Mô tả ngắn <span className="text-red-500">*</span></label>
                               <textarea
                                 value={courseInfoDraft.shortDescription}
-                                onChange={(e) =>
-                                  setCourseInfoDraft((prev) =>
-                                    prev ? { ...prev, shortDescription: e.target.value } : prev
-                                  )
-                                }
+                                onChange={(e) => {
+                                  setCourseInfoDraft((prev) => prev ? { ...prev, shortDescription: e.target.value } : prev);
+                                  if (courseInfoErrors.shortDescription) setCourseInfoErrors((p) => { const n = { ...p }; delete n.shortDescription; return n; });
+                                }}
                                 rows={2}
-                                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                                className={`w-full rounded-md border ${courseInfoErrors.shortDescription ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
                                 disabled={courseInfoSaving}
                               />
+                              {courseInfoErrors.shortDescription && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.shortDescription}</p>}
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-xs font-medium text-gray-500">Mô tả đầy đủ</label>
+                              <label className="mb-1 block text-xs font-medium text-gray-500">Mô tả đầy đủ <span className="text-red-500">*</span></label>
                               <textarea
                                 value={courseInfoDraft.description}
-                                onChange={(e) =>
-                                  setCourseInfoDraft((prev) =>
-                                    prev ? { ...prev, description: e.target.value } : prev
-                                  )
-                                }
+                                onChange={(e) => {
+                                  setCourseInfoDraft((prev) => prev ? { ...prev, description: e.target.value } : prev);
+                                  if (courseInfoErrors.description) setCourseInfoErrors((p) => { const n = { ...p }; delete n.description; return n; });
+                                }}
                                 rows={6}
-                                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                                className={`w-full rounded-md border ${courseInfoErrors.description ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
                                 disabled={courseInfoSaving}
                               />
+                              {courseInfoErrors.description && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.description}</p>}
                             </div>
 
                             <div>
                               <label className="mb-1 block text-xs font-medium text-gray-500">Thông tin thêm / Bạn sẽ học được gì?</label>
                               <textarea
                                 value={courseInfoDraft.extraInfo}
-                                onChange={(e) =>
-                                  setCourseInfoDraft((prev) =>
+                                onChange={(e) => setCourseInfoDraft((prev) =>
                                     prev ? { ...prev, extraInfo: e.target.value } : prev
                                   )
                                 }
@@ -1615,50 +1871,70 @@ export default function LessonVideosPage() {
 
                             <div>
                               <label className="mb-1 block text-xs font-medium text-gray-500">Ảnh bìa (URL)</label>
-                              <input
-                                type="url"
-                                value={courseInfoDraft.thumbnailUrl}
-                                onChange={(e) =>
-                                  setCourseInfoDraft((prev) =>
-                                    prev ? { ...prev, thumbnailUrl: e.target.value } : prev
-                                  )
-                                }
-                                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
-                                disabled={courseInfoSaving}
-                                spellCheck={false}
-                              />
+                              <label className="mb-1 block text-xs font-medium text-gray-500">Ảnh bìa <span className="text-red-500">*</span></label>
+                              <div className="flex items-start gap-3">
+                                {courseInfoDraft.thumbnailUrl ? (
+                                  <img
+                                    src={courseInfoDraft.thumbnailUrl}
+                                    alt="Ảnh bìa"
+                                    className="h-20 w-32 shrink-0 rounded-md border border-gray-200 object-cover"
+                                  />
+                                ) : (
+                                  <div className={`flex h-20 w-32 shrink-0 items-center justify-center rounded-md border-2 border-dashed ${courseInfoErrors.thumbnailUrl ? "border-red-300 bg-red-50" : "border-gray-200 bg-gray-50"}`}>
+                                    <ImageIcon className="size-6 text-gray-300" />
+                                  </div>
+                                )}
+                                <div className="flex-1">
+                                  <input
+                                    id="thumbnail-upload-edit"
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleThumbnailUpload}
+                                    disabled={courseInfoSaving || thumbnailUploading}
+                                  />
+                                  <label
+                                    htmlFor="thumbnail-upload-edit"
+                                    className={`inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 ${courseInfoSaving || thumbnailUploading ? "pointer-events-none opacity-50" : ""}`}
+                                  >
+                                    {thumbnailUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                                    {thumbnailUploading ? "Đang tải lên…" : courseInfoDraft.thumbnailUrl ? "Đổi ảnh" : "Chọn ảnh"}
+                                  </label>
+                                  {courseInfoErrors.thumbnailUrl && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.thumbnailUrl}</p>}
+                                </div>
+                              </div>
                             </div>
 
                             <div className="grid gap-4 lg:grid-cols-2">
                               <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-500">Ảnh hero (URL)</label>
+                                <label className="mb-1 block text-xs font-medium text-gray-500">Ảnh hero (URL) <span className="text-red-500">*</span></label>
                                 <input
                                   type="url"
                                   value={courseInfoDraft.heroImageUrl}
-                                  onChange={(e) =>
-                                    setCourseInfoDraft((prev) =>
-                                      prev ? { ...prev, heroImageUrl: e.target.value } : prev
-                                    )
-                                  }
-                                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                                  onChange={(e) => {
+                                    setCourseInfoDraft((prev) => prev ? { ...prev, heroImageUrl: e.target.value } : prev);
+                                    if (courseInfoErrors.heroImageUrl) setCourseInfoErrors((p) => { const n = { ...p }; delete n.heroImageUrl; return n; });
+                                  }}
+                                  className={`w-full rounded-md border ${courseInfoErrors.heroImageUrl ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
                                   disabled={courseInfoSaving}
                                   spellCheck={false}
                                 />
+                                {courseInfoErrors.heroImageUrl && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.heroImageUrl}</p>}
                               </div>
                               <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-500">Trailer URL</label>
+                                <label className="mb-1 block text-xs font-medium text-gray-500">Trailer URL <span className="text-red-500">*</span></label>
                                 <input
                                   type="url"
                                   value={courseInfoDraft.trailerUrl}
-                                  onChange={(e) =>
-                                    setCourseInfoDraft((prev) =>
-                                      prev ? { ...prev, trailerUrl: e.target.value } : prev
-                                    )
-                                  }
-                                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                                  onChange={(e) => {
+                                    setCourseInfoDraft((prev) => prev ? { ...prev, trailerUrl: e.target.value } : prev);
+                                    if (courseInfoErrors.trailerUrl) setCourseInfoErrors((p) => { const n = { ...p }; delete n.trailerUrl; return n; });
+                                  }}
+                                  className={`w-full rounded-md border ${courseInfoErrors.trailerUrl ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
                                   disabled={courseInfoSaving}
                                   spellCheck={false}
                                 />
+                                {courseInfoErrors.trailerUrl && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.trailerUrl}</p>}
                               </div>
                             </div>
 
@@ -1843,6 +2119,13 @@ export default function LessonVideosPage() {
                         )}
                         <button
                           type="button"
+                          onClick={openAddSectionDialog}
+                          className="flex h-9 items-center gap-1.5 rounded-lg border border-[#c0392b] bg-white px-3 text-sm font-semibold text-[#c0392b] hover:bg-red-50"
+                        >
+                          <Plus className="size-4" /> Thêm phần học
+                        </button>
+                        <button
+                          type="button"
                           onClick={openAddLessonDialog}
                           className="flex h-9 items-center gap-1.5 rounded-lg bg-[#c0392b] px-3 text-sm font-semibold text-white hover:bg-[#96281b]"
                         >
@@ -1892,6 +2175,10 @@ export default function LessonVideosPage() {
                         {filteredGroups.map((group, idx) => {
                           const isOpen = openSections[group.id] ?? true;
                           const missingInGroup = group.lessons.filter((l) => !l.video_url).length;
+                          const sourceSection =
+                            group.id === "__ungrouped__"
+                              ? null
+                              : detail.sections.find((s) => s.id === group.id) ?? null;
                           return (
                             <div key={idx}>
                               <button
@@ -1904,6 +2191,46 @@ export default function LessonVideosPage() {
                                 <span className="text-xs text-gray-400">{group.lessons.length} bài</span>
                                 {missingInGroup > 0 && (
                                   <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-600">{missingInGroup} thiếu video</span>
+                                )}
+                                {sourceSection && (
+                                  <span className="ml-auto flex items-center gap-1.5">
+                                    <span
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openEditSectionDialog(sourceSection);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          openEditSectionDialog(sourceSection);
+                                        }
+                                      }}
+                                      className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50"
+                                    >
+                                      Sửa phần học
+                                    </span>
+                                    <span
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleDeleteSection(sourceSection);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          void handleDeleteSection(sourceSection);
+                                        }
+                                      }}
+                                      className="rounded-md border border-red-100 bg-white px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50"
+                                    >
+                                      Xoá phần học
+                                    </span>
+                                  </span>
                                 )}
                               </button>
                               {isOpen && group.lessons.map((lesson) => {
@@ -2420,6 +2747,112 @@ export default function LessonVideosPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ── ADD SECTION DIALOG ── */}
+      <Dialog open={addSectionOpen} onOpenChange={(open) => { if (!addSectionSaving) setAddSectionOpen(open); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Thêm phần học mới</DialogTitle>
+            <DialogDescription>
+              Tạo một phần học để nhóm các bài giảng theo module/chủ đề.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                Tên phần học <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={addSectionTitle}
+                onChange={(e) => setAddSectionTitle(e.target.value)}
+                placeholder="VD: Module 1 - Nền tảng"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                disabled={addSectionSaving}
+                autoFocus
+              />
+            </div>
+            {addSectionError && (
+              <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{addSectionError}</p>
+            )}
+          </div>
+          <DialogFooter className="mt-2">
+            <DialogClose
+              disabled={addSectionSaving}
+              render={
+                <button
+                  type="button"
+                  className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                />
+              }
+            >
+              Huỷ
+            </DialogClose>
+            <button
+              type="button"
+              onClick={handleAddSection}
+              disabled={addSectionSaving || !addSectionTitle.trim()}
+              className="flex items-center gap-2 rounded-md bg-[#c0392b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#96281b] disabled:bg-gray-300 disabled:text-gray-400"
+            >
+              {addSectionSaving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+              Tạo phần học
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── EDIT SECTION DIALOG ── */}
+      <Dialog open={editSectionOpen} onOpenChange={(open) => { if (!editSectionSaving) setEditSectionOpen(open); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sửa phần học</DialogTitle>
+            <DialogDescription>
+              Cập nhật tên phần học. Slug sẽ tự đồng bộ theo tên mới.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                Tên phần học <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={editSectionTitle}
+                onChange={(e) => setEditSectionTitle(e.target.value)}
+                placeholder="VD: Module 1 - Nền tảng"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                disabled={editSectionSaving}
+                autoFocus
+              />
+            </div>
+            {editSectionError && (
+              <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{editSectionError}</p>
+            )}
+          </div>
+          <DialogFooter className="mt-2">
+            <DialogClose
+              disabled={editSectionSaving}
+              render={
+                <button
+                  type="button"
+                  className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                />
+              }
+            >
+              Huỷ
+            </DialogClose>
+            <button
+              type="button"
+              onClick={handleEditSection}
+              disabled={editSectionSaving || !editSectionTitle.trim()}
+              className="flex items-center gap-2 rounded-md bg-[#c0392b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#96281b] disabled:bg-gray-300 disabled:text-gray-400"
+            >
+              {editSectionSaving ? <Loader2 className="size-4 animate-spin" /> : null}
+              Lưu phần học
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog
         open={Boolean(contentDialogLessonId)}
         onOpenChange={(open) => {
@@ -2529,6 +2962,42 @@ export default function LessonVideosPage() {
               ) : (
                 "Lưu nội dung"
               )}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── CONFIRM DELETE DIALOG ── */}
+      <Dialog open={confirmDialog.open} onOpenChange={(open) => { if (!open) closeConfirm(); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">
+              {confirmDialog.open ? confirmDialog.title : ""}
+            </DialogTitle>
+            {confirmDialog.open && confirmDialog.description && (
+              <DialogDescription>{confirmDialog.description}</DialogDescription>
+            )}
+          </DialogHeader>
+          <DialogFooter className="mt-1">
+            <DialogClose
+              render={
+                <button
+                  type="button"
+                  className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                />
+              }
+            >
+              Huỷ
+            </DialogClose>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirmDialog.open) confirmDialog.onConfirm();
+                closeConfirm();
+              }}
+              className="flex items-center gap-2 rounded-md bg-[#c0392b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#96281b]"
+            >
+              <Trash2 className="size-4" /> Xoá
             </button>
           </DialogFooter>
         </DialogContent>
