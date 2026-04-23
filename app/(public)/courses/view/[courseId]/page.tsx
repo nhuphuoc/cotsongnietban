@@ -31,6 +31,7 @@ function formatCourseDurationFromSeconds(sec: number | null | undefined): string
 type MarketingVm = {
   title: string;
   description: string;
+  hero: string;
   thumbnail: string;
   level: string;
   totalDurationLabel: string;
@@ -52,6 +53,8 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
   if (pub) {
     const thumbnail =
       (typeof pub.thumbnail_url === "string" && pub.thumbnail_url.trim()) || FALLBACK_THUMB;
+    const hero =
+      (typeof pub.hero_image_url === "string" && pub.hero_image_url.trim()) || thumbnail;
     const description =
       (typeof pub.description === "string" && pub.description.trim()) ||
       (typeof pub.short_description === "string" && pub.short_description.trim()) ||
@@ -125,6 +128,7 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
     return {
       title: String(pub.title ?? ""),
       description,
+      hero,
       thumbnail,
       level,
       totalDurationLabel,
@@ -162,6 +166,7 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
   return {
     title: demo.title,
     description: demo.description,
+    hero: demo.thumbnail,
     thumbnail: demo.thumbnail,
     level: demo.level,
     totalDurationLabel: demo.totalDurationLabel,
@@ -198,7 +203,7 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
           <div className="relative overflow-hidden rounded-b-2xl sm:rounded-b-3xl">
             <div className="relative aspect-[21/9] min-h-[200px] w-full sm:aspect-[21/8] sm:min-h-[240px]">
               <Image
-                src={vm.thumbnail}
+                src={vm.hero}
                 alt=""
                 fill
                 priority

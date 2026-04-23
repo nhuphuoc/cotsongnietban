@@ -923,8 +923,7 @@ export default function LessonVideosPage() {
     else if (!isValidUrl(thumbnailUrl)) errs.thumbnailUrl = "Ảnh bìa phải là URL hợp lệ.";
 
     const heroImageUrl = courseInfoDraft.heroImageUrl.trim();
-    if (!heroImageUrl) errs.heroImageUrl = "Ảnh hero không được để trống.";
-    else if (!isValidUrl(heroImageUrl)) errs.heroImageUrl = "Ảnh hero phải là URL hợp lệ.";
+    if (heroImageUrl && !isValidUrl(heroImageUrl)) errs.heroImageUrl = "Ảnh hero phải là URL hợp lệ.";
 
     const trailerUrl = courseInfoDraft.trailerUrl.trim();
     if (!trailerUrl) errs.trailerUrl = "Trailer URL không được để trống.";
@@ -972,12 +971,11 @@ export default function LessonVideosPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
-          slug: courseInfoDraft.slug.trim() || undefined,
           shortDescription: courseInfoDraft.shortDescription.trim() || null,
           description: courseInfoDraft.description.trim() || null,
           extraInfo: courseInfoDraft.extraInfo.trim() || null,
           thumbnailUrl: courseInfoDraft.thumbnailUrl.trim() || null,
-          heroImageUrl: courseInfoDraft.heroImageUrl.trim() || null,
+          heroImageUrl: courseInfoDraft.heroImageUrl.trim() || courseInfoDraft.thumbnailUrl.trim() || null,
           trailerUrl: courseInfoDraft.trailerUrl.trim() || null,
           priceVnd,
           accessDurationDays,
@@ -1777,7 +1775,6 @@ export default function LessonVideosPage() {
                           <div className="space-y-4">
                             <div className="grid gap-4 lg:grid-cols-2">
                               <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-500">Tiêu đề</label>
                                 <label className="mb-1 block text-xs font-medium text-gray-500">Tiêu đề <span className="text-red-500">*</span></label>
                                 <input
                                   type="text"
@@ -1870,7 +1867,6 @@ export default function LessonVideosPage() {
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-xs font-medium text-gray-500">Ảnh bìa (URL)</label>
                               <label className="mb-1 block text-xs font-medium text-gray-500">Ảnh bìa <span className="text-red-500">*</span></label>
                               <div className="flex items-start gap-3">
                                 {courseInfoDraft.thumbnailUrl ? (
@@ -1907,7 +1903,7 @@ export default function LessonVideosPage() {
 
                             <div className="grid gap-4 lg:grid-cols-2">
                               <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-500">Ảnh hero (URL) <span className="text-red-500">*</span></label>
+                                <label className="mb-1 block text-xs font-medium text-gray-500">Ảnh hero (URL)</label>
                                 <input
                                   type="url"
                                   value={courseInfoDraft.heroImageUrl}
