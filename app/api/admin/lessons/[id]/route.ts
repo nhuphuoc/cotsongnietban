@@ -15,16 +15,6 @@ function normalizeNullableText(value: unknown): string | null | undefined {
   return str;
 }
 
-function normalizeNotesJson(value: unknown): string[] | null | undefined {
-  if (value === undefined) return undefined;
-  if (value === null) return null;
-  if (!Array.isArray(value)) return undefined;
-  const bullets = value
-    .map((item) => (typeof item === "string" ? item.trim() : ""))
-    .filter((item) => item.length > 0);
-  return bullets;
-}
-
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -57,11 +47,12 @@ export async function PATCH(
       videoProvider?: string | null;
       videoUrl?: string | null;
       durationSeconds?: number | null;
+      sectionId?: string | null;
+      sortOrder?: number;
       title?: string;
       summary?: string | null;
       contentHtml?: string | null;
-      notesIntro?: string | null;
-      notesJson?: unknown;
+      isPreview?: boolean;
       isPublished?: boolean;
     };
 
@@ -109,6 +100,22 @@ export async function PATCH(
       durationSeconds = Math.floor(n);
     }
 
+    let sortOrder: number | undefined;
+    if (body.sortOrder !== undefined) {
+      const n = Number(body.sortOrder);
+      if (!Number.isFinite(n) || n < 0) {
+        return fail("sortOrder phải là số nguyên không âm.", 400);
+      }
+      sortOrder = Math.floor(n);
+    }
+
+    const sectionId =
+      body.sectionId === undefined
+        ? undefined
+        : body.sectionId === null || String(body.sectionId).trim() === ""
+          ? null
+          : String(body.sectionId).trim();
+
     let title: string | undefined;
     if (body.title !== undefined) {
       const trimmed = String(body.title).trim();
@@ -120,23 +127,27 @@ export async function PATCH(
 
     const summary = normalizeNullableText(body.summary);
     const contentHtml = normalizeNullableText(body.contentHtml);
-    const notesIntro = normalizeNullableText(body.notesIntro);
-    const notesJson = normalizeNotesJson(body.notesJson);
 
     let isPublished: boolean | undefined;
     if (body.isPublished !== undefined) {
       isPublished = Boolean(body.isPublished);
     }
 
+    let isPreview: boolean | undefined;
+    if (body.isPreview !== undefined) {
+      isPreview = Boolean(body.isPreview);
+    }
+
     const patch = compactPatch({
       video_provider: videoProvider,
       video_url: videoUrl,
       duration_seconds: durationSeconds,
+      section_id: sectionId,
+      sort_order: sortOrder,
       title,
       summary,
       content_html: contentHtml,
-      notes_intro: notesIntro,
-      notes_json: notesJson,
+      is_preview: isPreview,
       is_published: isPublished,
     });
 

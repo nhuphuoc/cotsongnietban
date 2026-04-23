@@ -17,6 +17,10 @@ export async function POST(request: Request) {
       videoProvider?: string | null;
       videoUrl?: string | null;
       durationSeconds?: number | null;
+      summary?: string | null;
+      contentHtml?: string | null;
+      isPreview?: boolean;
+      isPublished?: boolean;
     };
 
     if (!body.courseId) return fail("Thiếu courseId.", 400);
@@ -66,9 +70,11 @@ export async function POST(request: Request) {
         video_provider: videoProvider,
         video_url: body.videoUrl?.trim() || null,
         duration_seconds: body.durationSeconds ?? 0,
+        summary: body.summary?.trim() || null,
+        content_html: body.contentHtml?.trim() || null,
         sort_order: nextSortOrder,
-        is_published: false,
-        kind: "video",
+        is_preview: Boolean(body.isPreview),
+        is_published: Boolean(body.isPublished),
       })
       .select("*")
       .single();

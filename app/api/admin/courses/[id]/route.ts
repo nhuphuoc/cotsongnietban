@@ -1,7 +1,9 @@
 import { requireAdminActor } from "@/lib/api/auth";
 import { ok, fail } from "@/lib/api/http";
-import { compactPatch, getCourseByIdentifier, resolveCategoryId, slugify } from "@/lib/api/repositories";
+import { compactPatch, getCourseByIdentifier, slugify } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
+
+const ALLOWED_STATUS = new Set(["draft", "published", "archived"]);
 
 export async function GET(
   _request: Request,
@@ -29,28 +31,65 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const body = await request.json();
-    const categoryId = body.categoryId || body.categorySlug
-      ? await resolveCategoryId("course_categories", body.categoryId ?? body.categorySlug)
-      : undefined;
+    const body = (await request.json()) as {
+      title?: string;
+      slug?: string;
+      shortDescription?: string | null;
+      description?: string | null;
+      extraInfo?: string | null;
+      thumbnailUrl?: string | null;
+      heroImageUrl?: string | null;
+      trailerUrl?: string | null;
+      priceVnd?: number | null;
+      accessDurationDays?: number | null;
+      accessNote?: string | null;
+      isFeatured?: boolean;
+      status?: string;
+      publishedAt?: string | null;
+    };
+
+    if (body.title !== undefined && !String(body.title).trim()) {
+      return fail("title không được để trống.", 400);
+    }
+
+    if (body.slug !== undefined && !String(body.slug).trim()) {
+      return fail("slug không được để trống.", 400);
+    }
+
+    let priceVnd: number | undefined;
+    if (body.priceVnd !== undefined) {
+      const n = Number(body.priceVnd);
+      if (!Number.isFinite(n) || n < 0) return fail("priceVnd phải >= 0.", 400);
+      priceVnd = Math.floor(n);
+    }
+
+    let accessDurationDays: number | null | undefined;
+    if (body.accessDurationDays !== undefined) {
+      if (body.accessDurationDays === null) {
+        accessDurationDays = null;
+      } else {
+        const n = Number(body.accessDurationDays);
+        if (!Number.isFinite(n) || n <= 0) return fail("accessDurationDays phải > 0.", 400);
+        accessDurationDays = Math.floor(n);
+      }
+    }
+
+    if (body.status !== undefined && !ALLOWED_STATUS.has(String(body.status))) {
+      return fail("status không hợp lệ (draft/published/archived).", 400);
+    }
 
     const patch = compactPatch({
-      category_id: categoryId,
-      title: body.title,
+      title: body.title?.trim(),
       slug: body.slug ?? (body.title ? slugify(body.title) : undefined),
-      short_description: body.shortDescription,
-      description: body.description,
-      level_label: body.levelLabel,
-      thumbnail_url: body.thumbnailUrl,
-      trailer_url: body.trailerUrl,
-      price_vnd: body.priceVnd,
-      access_duration_days: body.accessDurationDays,
-      total_duration_seconds: body.totalDurationSeconds,
-      lesson_count: body.lessonCount,
-      instructor_name: body.instructorName,
-      instructor_title: body.instructorTitle,
-      rating_avg: body.ratingAvg,
-      rating_count: body.ratingCount,
+      short_description: body.shortDescription?.trim() || (body.shortDescription === null ? null : undefined),
+      description: body.description?.trim() || (body.description === null ? null : undefined),
+      extra_info: body.extraInfo?.trim() || (body.extraInfo === null ? null : undefined),
+      thumbnail_url: body.thumbnailUrl?.trim() || (body.thumbnailUrl === null ? null : undefined),
+      hero_image_url: body.heroImageUrl?.trim() || (body.heroImageUrl === null ? null : undefined),
+      trailer_url: body.trailerUrl?.trim() || (body.trailerUrl === null ? null : undefined),
+      price_vnd: priceVnd,
+      access_duration_days: accessDurationDays,
+      access_note: body.accessNote?.trim() || (body.accessNote === null ? null : undefined),
       is_featured: body.isFeatured,
       status: body.status,
       published_at:

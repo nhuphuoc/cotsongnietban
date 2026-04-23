@@ -4,9 +4,9 @@ import { listPublishedLessonIdsInCourse } from "@/lib/lms/build-lms-course-view-
 type JsonRecord = Record<string, unknown>;
 
 const PUBLIC_COURSE_FIELDS =
-  "id, category_id, title, slug, short_description, description, level_label, thumbnail_url, trailer_url, price_vnd, access_duration_days, total_duration_seconds, lesson_count, instructor_name, instructor_title, rating_avg, rating_count, is_featured, status, published_at, created_at, updated_at";
+  "id, title, slug, short_description, description, extra_info, thumbnail_url, hero_image_url, trailer_url, price_vnd, access_duration_days, access_note, is_featured, status, published_at, created_at, updated_at";
 const PUBLIC_LESSON_FIELDS =
-  "id, course_id, section_id, title, slug, summary, kind, duration_seconds, is_preview, is_published, sort_order";
+  "id, course_id, section_id, title, slug, summary, duration_seconds, is_preview, is_published, sort_order";
 
 function admin() {
   return createAdminClient();
@@ -37,7 +37,6 @@ function mapPublicLesson(lesson: Record<string, unknown>) {
     title: lesson.title,
     slug: lesson.slug,
     summary: lesson.summary,
-    kind: lesson.kind,
     duration_seconds: lesson.duration_seconds,
     is_preview: lesson.is_preview,
     is_published: lesson.is_published,
@@ -390,7 +389,7 @@ export async function listEnrollmentsForUser(userId: string) {
     courseIds.length
       ? client
           .from("courses")
-          .select("id, title, slug, thumbnail_url, level_label, lesson_count, short_description")
+          .select("id, title, slug, thumbnail_url, short_description")
           .in("id", courseIds)
       : Promise.resolve({ data: [], error: null }),
     lessonIds.length
@@ -428,7 +427,7 @@ export async function listAccessibleEnrollmentsForUser(userId: string) {
     courseIds.length
       ? client
           .from("courses")
-          .select("id, title, slug, thumbnail_url, level_label, lesson_count, short_description")
+          .select("id, title, slug, thumbnail_url, short_description")
           .in("id", courseIds)
       : Promise.resolve({ data: [], error: null }),
     lessonIds.length

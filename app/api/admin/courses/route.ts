@@ -1,7 +1,9 @@
 import { requireAdminActor } from "@/lib/api/auth";
 import { ok, fail } from "@/lib/api/http";
-import { listCourses, resolveCategoryId, slugify } from "@/lib/api/repositories";
+import { listCourses, slugify } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
+
+const ALLOWED_STATUS = new Set(["draft", "published", "archived"]);
 
 export async function GET() {
   const auth = await requireAdminActor();
@@ -19,32 +21,60 @@ export async function POST(request: Request) {
   if (!auth.actor) return fail(auth.message ?? "Forbidden", auth.status);
 
   try {
-    const body = await request.json();
-    if (!body.title) return fail("Thiếu title.");
+    const body = (await request.json()) as {
+      title?: string;
+      slug?: string;
+      shortDescription?: string | null;
+      description?: string | null;
+      extraInfo?: string | null;
+      thumbnailUrl?: string | null;
+      heroImageUrl?: string | null;
+      trailerUrl?: string | null;
+      priceVnd?: number | null;
+      accessDurationDays?: number | null;
+      accessNote?: string | null;
+      status?: string;
+      isFeatured?: boolean;
+    };
+    if (!body.title?.trim()) return fail("Thiếu title.", 400);
+
+    const status = body.status?.trim() || "draft";
+    if (!ALLOWED_STATUS.has(status)) {
+      return fail("status không hợp lệ (draft/published/archived).", 400);
+    }
+
+    let priceVnd = 0;
+    if (body.priceVnd != null) {
+      const n = Number(body.priceVnd);
+      if (!Number.isFinite(n) || n < 0) return fail("priceVnd phải >= 0.", 400);
+      priceVnd = Math.floor(n);
+    }
+
+    let accessDurationDays: number | null = null;
+    if (body.accessDurationDays != null) {
+      const n = Number(body.accessDurationDays);
+      if (!Number.isFinite(n) || n <= 0) return fail("accessDurationDays phải > 0.", 400);
+      accessDurationDays = Math.floor(n);
+    }
 
     const client = createAdminClient();
-    const categoryId = await resolveCategoryId("course_categories", body.categoryId ?? body.categorySlug ?? null);
     const { data, error } = await client
       .from("courses")
       .insert({
-        category_id: categoryId,
-        title: body.title,
-        slug: body.slug ?? slugify(body.title),
-        short_description: body.shortDescription ?? null,
-        description: body.description ?? null,
-        level_label: body.levelLabel ?? null,
-        thumbnail_url: body.thumbnailUrl ?? null,
-        trailer_url: body.trailerUrl ?? null,
-        price_vnd: body.priceVnd ?? 0,
-        access_duration_days: body.accessDurationDays ?? null,
-        total_duration_seconds: body.totalDurationSeconds ?? 0,
-        lesson_count: body.lessonCount ?? 0,
-        instructor_name: body.instructorName ?? null,
-        instructor_title: body.instructorTitle ?? null,
-        is_featured: body.isFeatured ?? false,
-        status: body.status ?? "draft",
-        published_at: body.status === "published" ? new Date().toISOString() : null,
-        created_by: auth.actor.id,
+        title: body.title.trim(),
+        slug: body.slug?.trim() || slugify(body.title),
+        short_description: body.shortDescription?.trim() || null,
+        description: body.description?.trim() || null,
+        extra_info: body.extraInfo?.trim() || null,
+        thumbnail_url: body.thumbnailUrl?.trim() || null,
+        hero_image_url: body.heroImageUrl?.trim() || null,
+        trailer_url: body.trailerUrl?.trim() || null,
+        price_vnd: priceVnd,
+        access_duration_days: accessDurationDays,
+        access_note: body.accessNote?.trim() || null,
+        is_featured: Boolean(body.isFeatured),
+        status,
+        published_at: status === "published" ? new Date().toISOString() : null,
       })
       .select("*")
       .single();
