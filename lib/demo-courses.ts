@@ -1,5 +1,13 @@
 /** Dữ liệu demo khóa học video — LMS & public /courses */
 
+/**
+ * Nhà cung cấp video cho 1 bài học.
+ * - `youtube`  : URL YouTube (auto-detect khi thiếu provider).
+ * - `mp4`      : file MP4 (HTML5 <video>).
+ * - `bunny_stream`: iframe Bunny Stream với URL đã được ký ở server.
+ */
+export type LessonVideoProvider = "youtube" | "mp4" | "bunny_stream";
+
 export type DemoLesson = {
   id: string;
   title: string;
@@ -8,6 +16,7 @@ export type DemoLesson = {
   completed: boolean;
   locked?: boolean;
   videoUrl: string;
+  videoProvider?: LessonVideoProvider;
   notesIntro?: string;
   noteBullets?: string[];
 };

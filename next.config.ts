@@ -19,6 +19,12 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      // Bunny Stream thumbnail/preview trên CDN pull zone mặc định
+      // (hostname chuẩn: vz-<hash>-<region>.b-cdn.net).
+      {
+        protocol: "https",
+        hostname: "*.b-cdn.net",
+      },
     ],
   },
 };

@@ -1,5 +1,6 @@
-import type { DemoCourse, DemoLesson, DemoPhase } from "@/lib/demo-courses";
+import type { DemoCourse, DemoLesson, DemoPhase, LessonVideoProvider } from "@/lib/demo-courses";
 import { DEMO_VIDEO_MP4 } from "@/lib/demo-courses";
+import { signBunnyStreamEmbedUrl } from "@/lib/bunny/stream-signing";
 
 type DbLesson = Record<string, unknown>;
 type DbSection = Record<string, unknown> & { lessons?: DbLesson[] };
@@ -104,7 +105,27 @@ export function buildLmsCourseViewModel(bundle: EnrollmentCourseBundle): DemoCou
   const lessons: DemoLesson[] = flatLessons.map((l) => {
     const id = String(l.id);
     const sec = Number(l.duration_seconds ?? 0);
-    const videoUrl = typeof l.video_url === "string" && l.video_url.trim() ? l.video_url.trim() : DEMO_VIDEO_MP4;
+    const rawUrl = typeof l.video_url === "string" ? l.video_url.trim() : "";
+    const rawProvider =
+      typeof l.video_provider === "string" ? l.video_provider.trim().toLowerCase() : "";
+
+    let videoProvider: LessonVideoProvider | undefined;
+    let videoUrl = rawUrl || DEMO_VIDEO_MP4;
+
+    if (rawProvider === "bunny_stream") {
+      videoProvider = "bunny_stream";
+      const signed = signBunnyStreamEmbedUrl(rawUrl);
+      if (signed) {
+        videoUrl = signed.url;
+      } else {
+        // Thiếu env hoặc GUID không hợp lệ: fallback sang MP4 demo để không break UI.
+        videoProvider = undefined;
+        videoUrl = DEMO_VIDEO_MP4;
+      }
+    } else if (rawProvider === "youtube" || rawProvider === "mp4") {
+      videoProvider = rawProvider;
+    }
+
     return {
       id,
       title: String(l.title ?? ""),
@@ -113,6 +134,7 @@ export function buildLmsCourseViewModel(bundle: EnrollmentCourseBundle): DemoCou
       completed: completedLessonIds.has(id),
       locked: false,
       videoUrl,
+      ...(videoProvider ? { videoProvider } : {}),
       ...notesFromLesson(l),
     };
   });

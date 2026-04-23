@@ -75,7 +75,7 @@ export default async function AdminDashboardPage() {
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="font-sans font-extrabold tracking-tight text-gray-900 text-2xl">Admin Dashboard</h1>
+        <h1 className="font-sans font-bold text-gray-900 text-2xl">Admin Dashboard</h1>
         <p className="text-gray-500 text-sm mt-1">Tổng quan hệ thống Cột Sống Niết Bàn</p>
       </div>
 
@@ -106,7 +106,7 @@ export default async function AdminDashboardPage() {
                 <q.icon size={18} />
               </span>
               <div className="min-w-0">
-                <div className="font-heading font-black text-gray-900 text-sm uppercase tracking-wide">
+                <div className="font-sans font-semibold text-gray-900 text-sm">
                   {q.label}
                 </div>
                 <div className="mt-1 text-sm text-gray-500">{q.desc}</div>
@@ -119,7 +119,7 @@ export default async function AdminDashboardPage() {
       {/* Recent Orders */}
       <div className="bg-white border border-gray-200 rounded-sm">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-          <h2 className="font-heading font-bold text-gray-900 text-sm uppercase tracking-wide">
+          <h2 className="font-sans font-semibold text-gray-800 text-sm">
             Đơn Hàng Gần Đây
           </h2>
           <Link href="/admin/orders" className="text-[#c0392b] text-xs font-semibold hover:underline">
@@ -130,11 +130,11 @@ export default async function AdminDashboardPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Khách Hàng</th>
-                <th className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Khóa Học</th>
-                <th className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Số Tiền</th>
-                <th className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Trạng Thái</th>
-                <th className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">Thời Gian</th>
+                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">Khách hàng</th>
+                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">Khóa học</th>
+                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">Số tiền</th>
+                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">Trạng thái</th>
+                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">Thời gian</th>
               </tr>
             </thead>
             <tbody>

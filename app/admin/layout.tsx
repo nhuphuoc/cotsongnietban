@@ -1,13 +1,14 @@
 import AdminSidebar from "@/components/layout/AdminSidebar";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getSupabasePublicEnv } from "@/utils/supabase/env";
 
-const adminFont = Inter({
+const adminFont = Plus_Jakarta_Sans({
   subsets: ["latin", "latin-ext", "vietnamese"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -41,7 +42,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div
-      className={`${adminFont.className} flex h-screen bg-gray-50 overflow-hidden text-[15px] leading-relaxed text-gray-700`}
+      className={`${adminFont.className} flex h-screen bg-gray-50 overflow-hidden text-base leading-relaxed tracking-[0.01em] text-gray-800`}
     >
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto">{children}</main>

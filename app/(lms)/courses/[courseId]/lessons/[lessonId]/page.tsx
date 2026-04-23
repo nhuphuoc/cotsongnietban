@@ -213,6 +213,7 @@ function LessonViewLoaded({
             <LessonVideoPlayer
               variant="embed"
               src={lesson.videoUrl}
+              provider={lesson.videoProvider}
               poster={course.thumbnail}
               title={lesson.title}
               className="mx-auto w-full max-w-5xl lg:max-w-none"

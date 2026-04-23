@@ -4,6 +4,7 @@ import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { youtubeNocookieEmbedUrl } from "@/lib/youtube-embed";
+import type { LessonVideoProvider } from "@/lib/demo-courses";
 
 function formatTime(sec: number) {
   if (!Number.isFinite(sec) || sec < 0) return "0:00";
@@ -19,7 +20,46 @@ type LessonVideoPlayerProps = {
   className?: string;
   /** Gắn trong cột học (full-bleed, không bo góc) — giống Udemy */
   variant?: "default" | "embed";
+  /**
+   * Nhà cung cấp video. Khi không truyền sẽ auto-detect YouTube từ URL, còn lại dùng HTML5 video.
+   * - `bunny_stream`: `src` phải là URL iframe Bunny đã được ký ở server.
+   */
+  provider?: LessonVideoProvider;
 };
+
+function FrameContainer({
+  variant,
+  className,
+  children,
+}: {
+  variant: "default" | "embed";
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative aspect-video w-full overflow-hidden bg-black",
+        variant === "embed"
+          ? "max-h-[min(70vh,calc(100vh-260px))] rounded-none shadow-none ring-0"
+          : "max-h-[min(72vh,calc(100vh-220px))] rounded-xl shadow-xl ring-1 ring-csnb-border/50",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function VideoTitleOverlay({ title }: { title: string }) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/70 via-black/25 to-transparent px-4 pb-8 pt-3 sm:pt-4">
+      <p className="line-clamp-2 text-center font-sans text-xs font-semibold text-white/95 drop-shadow-md sm:text-left sm:text-sm">
+        {title}
+      </p>
+    </div>
+  );
+}
 
 export function LessonVideoPlayer({
   src,
@@ -27,20 +67,33 @@ export function LessonVideoPlayer({
   title,
   className,
   variant = "default",
+  provider,
 }: LessonVideoPlayerProps) {
-  const ytEmbed = useMemo(() => youtubeNocookieEmbedUrl(src), [src]);
+  const ytEmbed = useMemo(
+    () => (provider && provider !== "youtube" ? null : youtubeNocookieEmbedUrl(src)),
+    [src, provider]
+  );
+
+  if (provider === "bunny_stream") {
+    return (
+      <FrameContainer variant={variant} className={className}>
+        <iframe
+          src={src}
+          title={title}
+          className="absolute inset-0 h-full w-full border-0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+        <VideoTitleOverlay title={title} />
+      </FrameContainer>
+    );
+  }
 
   if (ytEmbed) {
     return (
-      <div
-        className={cn(
-          "relative aspect-video w-full overflow-hidden bg-black",
-          variant === "embed"
-            ? "max-h-[min(70vh,calc(100vh-260px))] rounded-none shadow-none ring-0"
-            : "max-h-[min(72vh,calc(100vh-220px))] rounded-xl shadow-xl ring-1 ring-csnb-border/50",
-          className
-        )}
-      >
+      <FrameContainer variant={variant} className={className}>
         <iframe
           src={ytEmbed}
           title={title}
@@ -50,12 +103,8 @@ export function LessonVideoPlayer({
           loading="lazy"
           referrerPolicy="strict-origin-when-cross-origin"
         />
-        <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/70 via-black/25 to-transparent px-4 pb-8 pt-3 sm:pt-4">
-          <p className="line-clamp-2 text-center font-sans text-xs font-semibold text-white/95 drop-shadow-md sm:text-left sm:text-sm">
-            {title}
-          </p>
-        </div>
-      </div>
+        <VideoTitleOverlay title={title} />
+      </FrameContainer>
     );
   }
 
@@ -76,7 +125,7 @@ function LessonVideoPlayerHtml5({
   title,
   className,
   variant = "default",
-}: LessonVideoPlayerProps) {
+}: Omit<LessonVideoPlayerProps, "provider">) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
