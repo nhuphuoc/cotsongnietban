@@ -113,7 +113,7 @@ describe("public POST /api/orders", () => {
     vi.clearAllMocks();
     vi.mocked(getCoursePurchaseStateForUser).mockResolvedValue({
       hasEnrollment: false,
-      enrollment: null,
+      enrollment: null as never,
       hasOpenOrder: false,
       latestOrder: null,
       alreadyPurchased: false,
@@ -184,7 +184,7 @@ describe("public POST /api/orders", () => {
     });
     vi.mocked(getCoursePurchaseStateForUser).mockResolvedValue({
       hasEnrollment: false,
-      enrollment: null,
+      enrollment: null as never,
       hasOpenOrder: true,
       latestOrder: {
         id: "order-existing",

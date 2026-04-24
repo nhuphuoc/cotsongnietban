@@ -4,7 +4,7 @@ import { listPublishedLessonIdsInCourse } from "@/lib/lms/build-lms-course-view-
 type JsonRecord = Record<string, unknown>;
 
 const PUBLIC_COURSE_FIELDS =
-  "id, title, slug, short_description, description, extra_info, thumbnail_url, hero_image_url, trailer_url, price_vnd, access_duration_days, access_note, is_featured, status, published_at, created_at, updated_at";
+  "id, title, slug, category_id, short_description, description, extra_info, thumbnail_url, hero_image_url, trailer_url, price_vnd, access_duration_days, access_note, is_featured, status, published_at, created_at, updated_at";
 const PUBLIC_LESSON_FIELDS =
   "id, course_id, section_id, title, slug, summary, duration_seconds, is_preview, is_published, sort_order";
 

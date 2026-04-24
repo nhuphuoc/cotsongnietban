@@ -51,6 +51,8 @@ type MarketingVm = {
 async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
   const pub = await getPublicCourseByIdentifier(courseId);
   if (pub) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pubEx = pub as typeof pub & Record<string, unknown>;
     const thumbnail =
       (typeof pub.thumbnail_url === "string" && pub.thumbnail_url.trim()) || FALLBACK_THUMB;
     const hero =
@@ -59,13 +61,13 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
       (typeof pub.description === "string" && pub.description.trim()) ||
       (typeof pub.short_description === "string" && pub.short_description.trim()) ||
       "";
-    const level = (typeof pub.level_label === "string" && pub.level_label.trim()) || "—";
-    const totalSec = Number(pub.total_duration_seconds ?? 0);
+    const level = (typeof pubEx.level_label === "string" && (pubEx.level_label as string).trim()) || "—";
+    const totalSec = Number(pubEx.total_duration_seconds ?? 0);
     const totalDurationLabel =
       totalSec > 0 ? formatCourseDurationFromSeconds(totalSec) : "—";
     const lessonCount =
-      Number(pub.lesson_count ?? 0) > 0
-        ? Number(pub.lesson_count)
+      Number(pubEx.lesson_count ?? 0) > 0
+        ? Number(pubEx.lesson_count)
         : Array.isArray(pub.lessons)
           ? pub.lessons.length
           : 0;
@@ -118,12 +120,12 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
             "Theo dõi tiến độ trên LMS sau khi đăng ký",
           ];
 
-    const ratingAvg = pub.rating_avg != null ? Number(pub.rating_avg) : 0;
+    const ratingAvg = pubEx.rating_avg != null ? Number(pubEx.rating_avg) : 0;
     const ratingLabel = ratingAvg > 0 ? ratingAvg.toFixed(1) : "Mới";
     const instructorName =
-      (typeof pub.instructor_name === "string" && pub.instructor_name.trim()) || "Đội ngũ CSNB";
+      (typeof pubEx.instructor_name === "string" && (pubEx.instructor_name as string).trim()) || "Đội ngũ CSNB";
     const instructorTitle =
-      (typeof pub.instructor_title === "string" && pub.instructor_title.trim()) || "Coach";
+      (typeof pubEx.instructor_title === "string" && (pubEx.instructor_title as string).trim()) || "Coach";
 
     return {
       title: String(pub.title ?? ""),

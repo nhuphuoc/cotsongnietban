@@ -31,7 +31,7 @@ describe("admin feedback API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(requireAdminActor).mockResolvedValue({
-      actor: { id: "admin-id", email: "admin@test.com" },
+      actor: { id: "admin-id", email: "admin@test.com", role: "admin" as const, isActive: true },
       status: 200 as const,
       message: null,
     });
