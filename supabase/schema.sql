@@ -149,6 +149,15 @@ create table public.blog_posts (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
+create table public.blog_post_views (
+  post_id uuid not null references public.blog_posts(id) on delete cascade,
+  visitor_hash text not null,
+  first_viewed_at timestamptz not null default timezone('utc', now()),
+  last_viewed_at timestamptz not null default timezone('utc', now()),
+  view_count integer not null default 1 check (view_count >= 1),
+  primary key (post_id, visitor_hash)
+);
+
 create table public.orders (
   id uuid primary key default gen_random_uuid(),
   order_code text not null unique,
@@ -228,6 +237,8 @@ create index idx_course_sections_course_sort on public.course_sections (course_i
 create index idx_lessons_course_sort on public.lessons (course_id, sort_order);
 create index idx_lessons_section_sort on public.lessons (section_id, sort_order);
 create index idx_blog_posts_status_published on public.blog_posts (status, published_at desc);
+create index idx_blog_post_views_post_last_viewed on public.blog_post_views (post_id, last_viewed_at desc);
+create index idx_blog_post_views_last_viewed on public.blog_post_views (last_viewed_at desc);
 create index idx_orders_status_created on public.orders (status, created_at desc);
 create index idx_orders_user_created on public.orders (user_id, created_at desc);
 create index idx_order_items_course on public.order_items (course_id);
@@ -288,6 +299,7 @@ comment on table public.orders is 'Commercial order/payment approval workflow.';
 comment on table public.enrollments is 'Granted access to a course for one learner.';
 comment on table public.lesson_progress is 'Per-lesson learner progress state.';
 comment on table public.blog_posts is 'Public knowledge/blog content.';
+comment on table public.blog_post_views is 'Unique visitor tracking per blog post.';
 comment on table public.feedbacks is 'Social proof content: before/after, testimonials, and comments.';
 
 -- Suggested next step:

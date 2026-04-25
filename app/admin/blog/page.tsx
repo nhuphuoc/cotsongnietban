@@ -76,17 +76,22 @@ export default function AdminBlogPage() {
   };
 
   const rows = useMemo(() => posts, [posts]);
+  const formatDate = (iso: string) => {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString("vi-VN");
+  };
 
   return (
-    <div className="p-6 lg:p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading font-black text-gray-900 text-2xl">Quản Lý Blog</h1>
           <p className="text-gray-500 text-sm mt-1">Đăng bài viết và nội dung kiến thức</p>
         </div>
         <Link
           href="/admin/blog/new"
-          className="flex items-center gap-2 bg-[#c0392b] hover:bg-[#96281b] text-white text-sm font-semibold px-4 py-2.5 rounded-sm transition-colors"
+          className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-[#c0392b] hover:bg-[#96281b] text-white text-sm font-semibold px-4 py-2.5 rounded-sm transition-colors"
         >
           <Plus size={16} /> Bài Viết Mới
         </Link>
@@ -101,12 +106,76 @@ export default function AdminBlogPage() {
         </div>
       ) : null}
 
-      <div className="bg-white border border-gray-200 rounded-sm overflow-hidden">
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="rounded-sm border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-400">
+            Đang tải...
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="rounded-sm border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-400">
+            Chưa có bài viết.
+          </div>
+        ) : (
+          rows.map((post) => (
+            <div key={post.id} className="rounded-sm border border-gray-200 bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <Link href={`/admin/blog/${post.id}`} className="line-clamp-2 font-semibold text-gray-900 hover:underline">
+                  {post.title}
+                </Link>
+                <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ${
+                  post.status === "published"
+                    ? "bg-green-50 text-green-600"
+                    : post.status === "archived"
+                      ? "bg-gray-200 text-gray-700"
+                      : "bg-gray-100 text-gray-500"
+                }`}>
+                  {post.status === "published" ? "Đã Đăng" : post.status === "archived" ? "Lưu trữ" : "Bản Nháp"}
+                </span>
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-[#c0392b]/10 px-2 py-1 text-xs font-semibold text-[#c0392b]">
+                  {post.category?.name ?? "—"}
+                </span>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-500">
+                <div>
+                  <div className="text-gray-400">Lượt xem</div>
+                  <div className="font-semibold text-gray-800">{post.view_count.toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400">Cập nhật</div>
+                  <div className="font-semibold text-gray-800">{formatDate(post.updated_at)}</div>
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between">
+                <button
+                  onClick={() => toggleStatus(post.id, post.status)}
+                  className="text-xs font-semibold text-gray-500 hover:text-gray-900"
+                >
+                  {post.status === "published" ? "Chuyển draft" : "Xuất bản"}
+                </button>
+                <button
+                  onClick={() => removePost(post.id)}
+                  className="text-gray-400 transition-colors hover:text-[#c0392b]"
+                  title="Xoá bài viết"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="hidden md:block bg-white border border-gray-200 rounded-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                {["Tiêu Đề", "Danh Mục", "Slug", "Lượt Xem", "Cập nhật", "Trạng Thái", "Hành Động"].map((h) => (
+                {["Tiêu Đề", "Danh Mục", "Lượt Xem", "Cập nhật", "Trạng Thái", "Hành Động"].map((h) => (
                   <th key={h} className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -114,7 +183,7 @@ export default function AdminBlogPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-5 py-10 text-center text-sm text-gray-400" colSpan={7}>
+                  <td className="px-5 py-10 text-center text-sm text-gray-400" colSpan={6}>
                     Đang tải...
                   </td>
                 </tr>
@@ -131,9 +200,8 @@ export default function AdminBlogPage() {
                       {post.category?.name ?? "—"}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-gray-600 text-xs font-mono">{post.slug}</td>
                   <td className="px-5 py-3 text-gray-600">{post.view_count.toLocaleString()}</td>
-                  <td className="px-5 py-3 text-gray-500 text-xs">{new Date(post.updated_at).toLocaleDateString("vi-VN")}</td>
+                  <td className="px-5 py-3 text-gray-500 text-xs">{formatDate(post.updated_at)}</td>
                   <td className="px-5 py-3">
                     <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
                       post.status === "published"

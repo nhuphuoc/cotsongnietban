@@ -1,8 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock, Calendar } from "lucide-react";
-import { getBlogPostByIdentifier, incrementBlogPostViewCount } from "@/lib/api/repositories";
+import { getBlogPostByIdentifier } from "@/lib/api/repositories";
+import { trackBlogPostView } from "@/lib/api/blog-view-tracker";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,13 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
   }
 
   try {
-    await incrementBlogPostViewCount(post.id);
+    const requestHeaders = await headers();
+    await trackBlogPostView({
+      postId: post.id,
+      ip: requestHeaders.get("x-forwarded-for") ?? requestHeaders.get("x-real-ip"),
+      userAgent: requestHeaders.get("user-agent"),
+      acceptLanguage: requestHeaders.get("accept-language"),
+    });
   } catch {
     // Ignore view-count write failures.
   }

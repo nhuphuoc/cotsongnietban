@@ -1,8 +1,9 @@
 import { ok, fail } from "@/lib/api/http";
-import { getBlogPostByIdentifier, incrementBlogPostViewCount } from "@/lib/api/repositories";
+import { getBlogPostByIdentifier } from "@/lib/api/repositories";
+import { trackBlogPostView } from "@/lib/api/blog-view-tracker";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
@@ -11,12 +12,23 @@ export async function GET(
     if (!post || post.status !== "published") {
       return fail("Không tìm thấy bài viết.", 404);
     }
+
+    const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip");
+    const userAgent = request.headers.get("user-agent");
+    const acceptLanguage = request.headers.get("accept-language");
+
     try {
-      await incrementBlogPostViewCount(post.id);
+      await trackBlogPostView({
+        postId: post.id,
+        ip,
+        userAgent,
+        acceptLanguage,
+      });
     } catch {
       // Ignore view-count errors; still return the post.
     }
-    return ok({ ...post, view_count: (post.view_count ?? 0) + 1 });
+    const refreshed = await getBlogPostByIdentifier(post.id);
+    return ok(refreshed ?? post);
   } catch (error) {
     return fail("Không thể tải bài viết.", 500, error);
   }

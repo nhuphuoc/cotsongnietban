@@ -4,14 +4,13 @@ import Link from "next/link";
 import { SiteLogoMark } from "@/components/brand/site-logo-mark";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Users, BookOpen, ShoppingCart, FileText, LogOut, MessageSquareQuote, Clapperboard
+  LayoutDashboard, Users, ShoppingCart, FileText, LogOut, MessageSquareQuote, Clapperboard
 } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Đơn Hàng", icon: ShoppingCart },
-  { href: "/admin/courses", label: "Khóa Học", icon: BookOpen },
-  { href: "/admin/lesson-videos", label: "Video Bài Học", icon: Clapperboard },
+  { href: "/admin/course", label: "Khóa Học", icon: Clapperboard },
   { href: "/admin/blog", label: "Blog", icon: FileText },
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquareQuote },
   { href: "/admin/users", label: "Người Dùng", icon: Users },

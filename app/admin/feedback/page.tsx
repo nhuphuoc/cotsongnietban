@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { MessageSquareQuote, Plus, Search, Trash2, User } from "lucide-react";
+import { Eye, EyeOff, MessageSquareQuote, Plus, Search, Trash2, User } from "lucide-react";
 import { apiFetch } from "@/lib/admin/api-client";
 import { crudNotify, notifyApiProblem } from "@/lib/ui/notify";
 import type { AdminFeedback, AdminFeedbackType } from "@/lib/admin/feedback-types";
@@ -111,34 +111,38 @@ export default function AdminFeedbackPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/admin/feedback/new"
-            className="inline-flex items-center gap-2 rounded-sm bg-[#c0392b] px-3 py-2 text-xs font-semibold text-white hover:bg-[#96281b]"
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#c0392b] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-[#96281b]"
           >
             <Plus size={14} />
             Tạo feedback
           </Link>
-          {([
-            { k: "all", label: "Tất cả" },
-            { k: "before_after", label: "Trước & Sau" },
-            { k: "testimonial", label: "Chia sẻ" },
-            { k: "comment", label: "Bình luận" },
-          ] as const).map((b) => {
-            const active = typeFilter === b.k;
-            return (
-              <button
-                key={b.k}
-                onClick={() => setTypeFilter(b.k)}
-                className={`inline-flex items-center gap-2 rounded-sm border px-3 py-2 text-xs font-semibold transition-colors ${
-                  active ? "bg-[#c0392b] text-white border-[#c0392b]" : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <MessageSquareQuote size={14} />
-                {b.label}
-                <span className={`ml-0.5 rounded-full px-2 py-0.5 text-[10px] ${active ? "bg-white/20" : "bg-gray-100 text-gray-600"}`}>
-                  {counts[b.k] ?? 0}
-                </span>
-              </button>
-            );
-          })}
+          <div className="w-full sm:w-auto overflow-x-auto rounded-lg border border-gray-200 bg-white">
+            <div className="flex min-w-max items-center">
+              {([
+                { k: "all", label: "Tất cả" },
+                { k: "before_after", label: "Trước & Sau" },
+                { k: "testimonial", label: "Chia sẻ" },
+                { k: "comment", label: "Bình luận" },
+              ] as const).map((b) => {
+                const active = typeFilter === b.k;
+                return (
+                  <button
+                    key={b.k}
+                    onClick={() => setTypeFilter(b.k)}
+                    className={`inline-flex h-10 items-center gap-2 border-r border-gray-100 px-3 text-xs font-semibold transition-colors last:border-r-0 ${
+                      active ? "bg-[#c0392b] text-white" : "text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    <MessageSquareQuote size={14} />
+                    {b.label}
+                    <span className={`ml-0.5 rounded-full px-2 py-0.5 text-[10px] ${active ? "bg-white/20" : "bg-gray-100 text-gray-600"}`}>
+                      {counts[b.k] ?? 0}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -212,21 +216,25 @@ export default function AdminFeedbackPage() {
                   <td className="px-5 py-3 text-gray-400 text-xs whitespace-nowrap">
                     {new Date(f.created_at).toLocaleString("vi-VN")}
                   </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      <Link href={`/admin/feedback/${f.id}`} className="text-gray-500 hover:text-gray-900 text-xs font-semibold">
+                  <td className="px-5 py-3 whitespace-nowrap">
+                    <div className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
+                      <Link
+                        href={`/admin/feedback/${f.id}`}
+                        className="inline-flex h-8 items-center rounded-md px-2.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+                      >
                         Chi tiết
                       </Link>
                       <button
                         onClick={() => toggleActive(f.id, f.is_active)}
-                        className="text-gray-400 hover:text-gray-900 transition-colors text-xs font-semibold"
+                        className="inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
                         title={f.is_active ? "Ẩn" : "Hiện"}
                       >
+                        {f.is_active ? <EyeOff size={12} /> : <Eye size={12} />}
                         {f.is_active ? "Ẩn" : "Hiện"}
                       </button>
                       <button
                         onClick={() => remove(f.id)}
-                        className="text-gray-400 hover:text-[#c0392b] transition-colors"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-white hover:text-red-600"
                         title="Xóa"
                       >
                         <Trash2 size={15} />

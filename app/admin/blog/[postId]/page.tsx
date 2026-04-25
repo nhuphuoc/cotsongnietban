@@ -20,6 +20,7 @@ export default function AdminBlogEditPage() {
   const [post, setPost] = useState<any | null>(null);
 
   const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
   const [category, setCategory] = useState(categories[0]);
   const [excerpt, setExcerpt] = useState("");
   const [coverImage, setCoverImage] = useState("");
@@ -49,6 +50,7 @@ export default function AdminBlogEditPage() {
   useEffect(() => {
     if (!post) return;
     setTitle(post.title ?? "");
+    setSlug(post.slug ?? "");
     setCategory(post.category?.name ?? categories[0]);
     setExcerpt(post.excerpt ?? "");
     setCoverImage(post.cover_image_url ?? "");
@@ -71,6 +73,7 @@ export default function AdminBlogEditPage() {
               method: "PATCH",
               body: JSON.stringify({
                 title: title.trim(),
+                slug: slug.trim() || slugifyClient(title),
                 excerpt: excerpt.trim(),
                 coverImageUrl: coverImage.trim() || null,
                 contentHtml,
@@ -163,6 +166,7 @@ export default function AdminBlogEditPage() {
           <h1 className="mt-2 font-heading font-black text-gray-900 text-2xl line-clamp-2">{post.title}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
             <span className="rounded-full bg-gray-100 px-2 py-1 font-mono">id: {post.id}</span>
+            <span className="rounded-full bg-gray-100 px-2 py-1 font-mono">slug: {slug || post.slug}</span>
             <span className={`rounded-full px-2 py-1 font-semibold ${post.status === "published" ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"}`}>
               {post.status === "published" ? "Đã đăng" : "Bản nháp"}
             </span>
@@ -171,18 +175,18 @@ export default function AdminBlogEditPage() {
           </div>
         </div>
 
-        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <Link
             href={`/blog/${post.slug}`}
             target="_blank"
-            className="inline-flex items-center justify-center gap-2 rounded-sm border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50"
           >
             Xem public <ExternalLink size={16} />
           </Link>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as any)}
-            className="border border-gray-200 rounded-sm px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#c0392b]"
+            className="h-11 shrink-0 rounded-lg border border-gray-200 bg-white px-3.5 text-sm font-semibold text-gray-700 focus:border-[#c0392b] focus:outline-none"
           >
             <option value="draft">Bản nháp</option>
             <option value="published">Xuất bản</option>
@@ -190,14 +194,15 @@ export default function AdminBlogEditPage() {
           <button
             onClick={onSave}
             disabled={!canSave}
-            className="bg-[#c0392b] hover:bg-[#96281b] disabled:opacity-40 disabled:hover:bg-[#c0392b] text-white text-sm font-bold px-4 py-2.5 rounded-sm transition-colors"
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#c0392b] px-4 text-sm font-bold text-white transition-colors hover:bg-[#96281b] disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
           >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : null}
             {saving ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
           <button
             onClick={onDelete}
-            className="inline-flex items-center justify-center gap-2 rounded-sm border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 hover:border-[#c0392b]/40 hover:text-[#c0392b]"
-            title="Xóa (demo)"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-red-100 bg-white text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
+            title="Xóa bài viết"
           >
             <Trash2 size={16} />
           </button>
@@ -219,6 +224,14 @@ export default function AdminBlogEditPage() {
               onChange={(e) => setTitle(e.target.value)}
               className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]"
             />
+            <label className="mt-4 text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Slug *</label>
+            <input
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="vi-du-ten-bai-viet"
+              className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-[#c0392b]"
+            />
+            <p className="mt-1 text-xs text-gray-400">Dùng cho URL public của bài viết.</p>
             <label className="mt-4 text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Tóm tắt *</label>
             <textarea
               rows={3}

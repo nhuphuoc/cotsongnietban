@@ -45,7 +45,7 @@ function statusClass(status: AdminOrder["status"]) {
 
 const quickLinks = [
   { href: "/admin/orders", label: "Duyệt đơn hàng", icon: ShoppingCart, desc: "Xem đơn chờ duyệt và xác nhận thanh toán" },
-  { href: "/admin/courses", label: "Quản lý khóa học", icon: BookOpen, desc: "Thêm/sửa/xuất bản khóa học" },
+  { href: "/admin/course", label: "Quản lý khóa học", icon: BookOpen, desc: "Thêm/sửa/xuất bản khóa học" },
   { href: "/admin/blog", label: "Quản lý blog", icon: BarChart3, desc: "Đăng bài & cập nhật nội dung" },
   { href: "/admin/feedback", label: "Quản lý feedback", icon: MessageSquareQuote, desc: "Duyệt, ghim, ẩn phản hồi" },
 ];

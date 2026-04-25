@@ -481,7 +481,7 @@ export default function LessonVideosPage() {
     setSelectedCourseId(courseId);
     setActiveTab("info");
     setView("detail");
-    router.push(`/admin/lesson-videos/${encodeURIComponent(courseId)}`);
+    router.push(`/admin/course/${encodeURIComponent(courseId)}`);
   }, [router]);
 
   const goBack = useCallback(() => {
@@ -493,7 +493,7 @@ export default function LessonVideosPage() {
     setCourseInfoError(null);
     setQuery("");
     setOnlyMissing(false);
-    router.push("/admin/lesson-videos");
+    router.push("/admin/course");
   }, [router]);
 
   const lessonsBySection = useMemo<LessonGroup[]>(() => {
@@ -1411,7 +1411,7 @@ export default function LessonVideosPage() {
       {/* ── LIST VIEW ── */}
       {view === "list" && (
         <>
-          <div className="border-b border-gray-200 bg-white px-6 py-5 lg:px-8">
+          <div className="border-b border-gray-200 bg-white px-4 py-5 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h1 className="font-sans font-bold text-gray-900 text-2xl">Quản lý khoá học</h1>
@@ -1427,10 +1427,10 @@ export default function LessonVideosPage() {
             </div>
           </div>
           {/* Search / Filter bar */}
-          <div className="border-b border-gray-200 bg-white px-6 py-3 lg:px-8">
+          <div className="border-b border-gray-200 bg-white px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center gap-2">
               {/* Search */}
-              <div className="relative flex-1 min-w-48">
+              <div className="relative basis-full sm:flex-1 sm:min-w-48">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
@@ -1451,26 +1451,28 @@ export default function LessonVideosPage() {
               </div>
 
               {/* Status filter */}
-              <div className="flex items-center rounded-lg border border-gray-200 bg-white text-sm overflow-hidden">
-                {(["all", "draft", "published", "archived"] as const).map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => handleCourseStatusFilterChange(s)}
-                    className={`h-9 px-3.5 font-medium transition-colors ${
-                      courseStatusFilter === s
-                        ? "bg-[#c0392b] text-white"
-                        : "text-gray-600 hover:bg-gray-50"
-                    }`}
-                  >
-                    {s === "all" ? "Tất cả" : s === "draft" ? "Bản nháp" : s === "published" ? "Đã xuất bản" : "Lưu trữ"}
-                  </button>
-                ))}
+              <div className="w-full sm:w-auto overflow-x-auto rounded-lg border border-gray-200 bg-white text-sm">
+                <div className="flex min-w-max items-center overflow-hidden">
+                  {(["all", "draft", "published", "archived"] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => handleCourseStatusFilterChange(s)}
+                      className={`h-9 px-3.5 font-medium transition-colors ${
+                        courseStatusFilter === s
+                          ? "bg-[#c0392b] text-white"
+                          : "text-gray-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      {s === "all" ? "Tất cả" : s === "draft" ? "Bản nháp" : s === "published" ? "Đã xuất bản" : "Lưu trữ"}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Result count */}
               {!courseLoading && (
-                <span className="text-xs text-gray-400">
+                <span className="w-full text-xs text-gray-400 sm:w-auto">
                   {filteredCourses.length === courses.length
                     ? `${courses.length} khoá học`
                     : `${filteredCourses.length} / ${courses.length} khoá học`}
@@ -1479,7 +1481,7 @@ export default function LessonVideosPage() {
             </div>
           </div>
 
-          <div className="flex-1 bg-gray-50 px-6 py-5 lg:px-8">
+          <div className="flex-1 bg-gray-50 px-4 py-5 sm:px-6 lg:px-8">
             {courseLoading ? (
               <div className="flex items-center gap-2 py-8 text-sm text-gray-500">
                 <Loader2 className="size-4 animate-spin" /> Đang tải khóa học...
@@ -1501,7 +1503,8 @@ export default function LessonVideosPage() {
               </div>
             ) : (
               <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                <table className="w-full table-fixed text-sm">
+                <div className="overflow-x-auto">
+                <table className="min-w-[920px] w-full table-fixed text-sm">
                   <colgroup>
                     <col className="w-[38%]" />
                     <col className="w-[14%]" />
@@ -1581,14 +1584,15 @@ export default function LessonVideosPage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
 
                 {/* Pagination */}
                 {courseTotalPages > 1 && (
-                  <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 px-4 py-3 sm:px-5">
                     <span className="text-xs text-gray-500">
                       Trang {coursePage} / {courseTotalPages} &nbsp;·&nbsp; {filteredCourses.length} khoá học
                     </span>
-                    <div className="flex items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-1">
                       <button
                         type="button"
                         onClick={() => setCoursePage(1)}
@@ -1662,7 +1666,7 @@ export default function LessonVideosPage() {
       {view === "detail" && (
         <>
           {/* Header */}
-          <div className="border-b border-gray-200 bg-white px-6 py-4 lg:px-8">
+          <div className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6 lg:px-8">
             <button
               type="button"
               onClick={goBack}
@@ -1703,7 +1707,7 @@ export default function LessonVideosPage() {
           </div>
 
           {/* Tabs */}
-          <div className="border-b border-gray-200 bg-white px-6 lg:px-8">
+          <div className="border-b border-gray-200 bg-white px-4 sm:px-6 lg:px-8">
             <div className="flex gap-0">
               {(["info", "lessons"] as const).map((tab) => (
                 <button
@@ -1722,7 +1726,7 @@ export default function LessonVideosPage() {
             </div>
           </div>
 
-          <div className="flex-1 bg-gray-50 px-6 py-5 lg:px-8">
+          <div className="flex-1 bg-gray-50 px-4 py-5 sm:px-6 lg:px-8">
             {detailLoading ? (
               <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-8 text-sm text-gray-500">
                 <Loader2 className="size-4 animate-spin" /> Đang tải...
@@ -2072,14 +2076,14 @@ export default function LessonVideosPage() {
                           </>
                         )}
                       </div>
-                      <div className="ml-auto flex flex-wrap items-center gap-2">
-                        <div className="relative">
+                      <div className="w-full lg:ml-auto lg:w-auto flex flex-wrap items-center gap-2">
+                        <div className="relative w-full sm:w-auto">
                           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                           <input
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             placeholder="Tìm bài học…"
-                            className="h-9 w-48 rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm focus:border-[#c0392b] focus:outline-none"
+                            className="h-9 w-full sm:w-48 rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm focus:border-[#c0392b] focus:outline-none"
                           />
                         </div>
                         <label className="flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-600 hover:bg-gray-50">
@@ -2161,6 +2165,8 @@ export default function LessonVideosPage() {
                       <div className="rounded-lg border border-gray-200 bg-white p-6 text-center text-sm text-gray-500">Không tìm thấy bài phù hợp bộ lọc.</div>
                     ) : (
                       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                        <div className="overflow-x-auto">
+                        <div className="min-w-[980px]">
                         <div className="grid grid-cols-[minmax(180px,2fr)_150px_minmax(140px,1fr)_110px_200px] border-b border-gray-100 bg-gray-50 px-5 py-3">
                           <div className="text-xs font-medium text-gray-500">Bài học</div>
                           <div className="text-xs font-medium text-gray-500">Loại video</div>
@@ -2336,6 +2342,8 @@ export default function LessonVideosPage() {
                             </div>
                           );
                         })}
+                        </div>
+                        </div>
                       </div>
                     )}
                   </>

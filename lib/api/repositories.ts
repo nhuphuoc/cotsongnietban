@@ -44,6 +44,13 @@ function mapPublicLesson(lesson: Record<string, unknown>) {
   };
 }
 
+function isBlogViewTableMissing(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  const message = String((error as { message?: string } | null)?.message ?? "");
+  const details = String((error as { details?: string } | null)?.details ?? "");
+  return code === "42P01" || code === "PGRST205" || /blog_post_views/i.test(`${message} ${details}`);
+}
+
 export async function getPublicCourseByIdentifier(identifier: string) {
   const client = admin();
   const key = identifier.trim();
@@ -191,9 +198,24 @@ export async function listBlogPosts(options?: { publishedOnly?: boolean }) {
 
   if (categoriesError) throw categoriesError;
   const categoriesById = new Map((categories ?? []).map((item) => [item.id, item]));
+  const postIds = posts.map((post) => post.id);
+  const { data: viewRows, error: viewRowsError } = postIds.length
+    ? await client.from("blog_post_views").select("post_id").in("post_id", postIds)
+    : { data: [], error: null };
+  const viewTableMissing = isBlogViewTableMissing(viewRowsError);
+  if (viewRowsError && !viewTableMissing) throw viewRowsError;
+
+  const viewsByPostId = new Map<string, number>();
+  if (!viewTableMissing) {
+    for (const row of viewRows ?? []) {
+      const key = String(row.post_id);
+      viewsByPostId.set(key, (viewsByPostId.get(key) ?? 0) + 1);
+    }
+  }
 
   return posts.map((post) => ({
     ...post,
+    view_count: viewTableMissing ? Number(post.view_count ?? 0) : viewsByPostId.get(String(post.id)) ?? 0,
     category: post.category_id ? categoriesById.get(post.category_id) ?? null : null,
   }));
 }
@@ -211,9 +233,19 @@ export async function getBlogPostByIdentifier(identifier: string) {
   const { data: category, error: categoryError } = post.category_id
     ? await client.from("blog_categories").select("*").eq("id", post.category_id).maybeSingle()
     : { data: null, error: null };
+  const { count: viewCount, error: viewCountError } = await client
+    .from("blog_post_views")
+    .select("post_id", { head: true, count: "exact" })
+    .eq("post_id", post.id);
+  const viewTableMissing = isBlogViewTableMissing(viewCountError);
 
   if (categoryError) throw categoryError;
-  return { ...post, category: category ?? null };
+  if (viewCountError && !viewTableMissing) throw viewCountError;
+  return {
+    ...post,
+    view_count: viewTableMissing ? Number(post.view_count ?? 0) : viewCount ?? 0,
+    category: category ?? null,
+  };
 }
 
 export async function incrementBlogPostViewCount(postId: string) {
