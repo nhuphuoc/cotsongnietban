@@ -9,7 +9,12 @@ import { apiFetch, slugifyClient } from "@/lib/admin/api-client";
 import { uploadAdminImage } from "@/lib/admin/upload-image";
 import { crudNotify, notifyApiProblem, notify } from "@/lib/ui/notify";
 
-const categories = ["Liệu Pháp", "Đau Lưng", "Kiến Thức"];
+type BlogCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order: number | null;
+};
 
 export default function AdminBlogEditPage() {
   const params = useParams<{ postId: string }>();
@@ -21,7 +26,9 @@ export default function AdminBlogEditPage() {
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
-  const [category, setCategory] = useState(categories[0]);
+  const [categories, setCategories] = useState<BlogCategory[]>([]);
+  const [categoryId, setCategoryId] = useState("");
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [excerpt, setExcerpt] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [status, setStatus] = useState<"draft" | "published">("draft");
@@ -51,13 +58,37 @@ export default function AdminBlogEditPage() {
     if (!post) return;
     setTitle(post.title ?? "");
     setSlug(post.slug ?? "");
-    setCategory(post.category?.name ?? categories[0]);
+    setCategoryId(post.category?.id ?? "");
     setExcerpt(post.excerpt ?? "");
     setCoverImage(post.cover_image_url ?? "");
     setStatus(post.status === "published" ? "published" : "draft");
     setContentHtml(post.content_html ?? "<p></p>");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCategories = async () => {
+      setCategoriesLoading(true);
+      try {
+        const data = await apiFetch<BlogCategory[]>("/api/admin/blog-categories");
+        if (cancelled) return;
+        setCategories(data);
+        setCategoryId((prev) => prev || data[0]?.id || "");
+      } catch (e) {
+        if (!cancelled) {
+          notifyApiProblem(e, { fallbackTitle: "Không thể tải danh mục blog" });
+        }
+      } finally {
+        if (!cancelled) setCategoriesLoading(false);
+      }
+    };
+
+    void loadCategories();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const canSave = useMemo(() => title.trim().length >= 6 && excerpt.trim().length >= 12, [title, excerpt]);
 
@@ -78,7 +109,7 @@ export default function AdminBlogEditPage() {
                 coverImageUrl: coverImage.trim() || null,
                 contentHtml,
                 status,
-                categorySlug: slugifyClient(category),
+                categoryId: categoryId || null,
               }),
             }),
           { entity: "bài viết" }
@@ -254,13 +285,18 @@ export default function AdminBlogEditPage() {
           <div className="bg-white border border-gray-200 rounded-sm p-5">
             <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Danh mục</label>
             <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#c0392b]"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              disabled={categoriesLoading || categories.length === 0}
+              className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#c0392b] disabled:bg-gray-100 disabled:text-gray-400"
             >
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+              {categories.length === 0 ? (
+                <option value="">
+                  {categoriesLoading ? "Đang tải danh mục..." : "Không có danh mục"}
+                </option>
+              ) : categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
                 </option>
               ))}
             </select>

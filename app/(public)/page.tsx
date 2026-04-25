@@ -46,10 +46,10 @@ const heroWorkoutPhotoSrc =
   "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&h=800&fit=crop&q=75";
 
 const trustStats = [
-  { number: "200+", label: "Hơn 200 học viên" },
-  { number: "100%", label: "Có đánh giá tốt" },
-  { number: "10", label: "Năm kinh nghiệm" },
-  { number: "1:1", label: "Phương pháp cá nhân hóa" },
+  { number: "500+", label: "Học viên" },
+  { number: "91%", label: "Có kết quả rõ rệt" },
+  { number: "Mọi độ tuổi", label: "Phù hợp chương trình" },
+  { number: "Hầu hết", label: "Khắc phục bệnh lý xương khớp & chấn thương" },
 ];
 
 const targetAudience = [
@@ -353,7 +353,7 @@ export default function LandingPage() {
                 href="/#pricing"
                 className="group inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-csnb-orange px-5 py-3.5 font-sans text-sm font-semibold text-white shadow-[0_12px_40px_-12px_rgba(255,159,67,0.45)] ring-1 ring-white/10 transition-all duration-200 hover:bg-csnb-orange-deep active:scale-[0.99] sm:w-auto sm:min-h-11 sm:gap-3 sm:rounded-md sm:px-7 sm:shadow-lg sm:shadow-csnb-orange/30 sm:ring-0 sm:hover:scale-[1.02]"
               >
-                Bảng giá &amp; gói tập
+                Sứ mệnh
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition-transform duration-200 group-hover:translate-x-0.5">
                   <ArrowRight size={18} strokeWidth={2.5} />
                 </span>
@@ -363,7 +363,7 @@ export default function LandingPage() {
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/[0.07] px-5 py-3.5 font-sans text-sm font-medium text-white shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-white/40 hover:bg-white/[0.11] active:scale-[0.99] sm:w-auto sm:min-h-11 sm:rounded-md sm:hover:scale-[1.02]"
               >
                 <Play size={16} className="text-csnb-orange" />
-                Xem kết quả
+                Kết quả học viên
               </Link>
             </motion.div>
 
@@ -519,23 +519,18 @@ export default function LandingPage() {
                 Nội dung tập luyện
               </span>
               <h2 className="mt-3 font-sans text-2xl font-extrabold leading-snug tracking-normal text-white sm:text-3xl lg:text-4xl">
-                Phục hồi chức năng{" "}
-                <span className="text-csnb-orange-bright">cơ – xương – khớp</span>
+                Thực hư việc tập luyện có thể giúp cải thiện và giảm đau xương khớp và thoát vị
               </h2>
               <p className="mt-5 max-w-xl font-sans text-[0.9375rem] leading-[1.65] text-csnb-muted sm:text-base sm:leading-[1.7]">
-                Chương trình tập luyện phục hồi chức năng cơ – xương – khớp của Cột Sống Niết Bàn được chia làm{" "}
-                <strong className="text-white/95">3 phase</strong>. Mỗi phase có{" "}
-                <strong className="text-white/95">3 chu kỳ</strong> được luân phiên xen kẽ:{" "}
-                <span className="text-csnb-orange-bright">Mobilization</span>,{" "}
-                <span className="text-csnb-orange-bright">Activation</span>,{" "}
-                <span className="text-csnb-orange-bright">Integration</span> — tăng dần độ khó để khớp và tải thích
-                nghi, hướng tới cơ thể bền hơn trước đau cột sống và khớp.
+                Để chứng tỏ nỗ lực đưa phương pháp giúp tăng sức khỏe cơ xương khớp và mang lại nhiều kết quả tốt cho
+                học viên đến thời điểm này. Tuy nhiên, phương pháp này vẫn còn rất mới với nhiều người. Dưới đây là
+                thông tin chi tiết:
               </p>
               <Link
                 href="/#pricing"
                 className="mt-8 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-csnb-orange px-6 py-3 font-sans text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] hover:bg-csnb-orange-deep active:scale-[0.99]"
               >
-                Bảng giá &amp; gói tập
+                HIỂU RÕ HƠN
                 <ArrowRight size={16} />
               </Link>
             </div>
@@ -787,7 +782,7 @@ export default function LandingPage() {
                 href="/#pricing"
                 className="inline-flex min-h-11 items-center justify-center rounded-full bg-csnb-orange px-6 font-sans text-sm font-semibold text-white shadow-md shadow-csnb-orange/20 transition hover:bg-csnb-orange-deep"
               >
-                Bảng giá &amp; gói tập
+                Sứ mệnh
               </Link>
               <Link
                 href={SITE_CONTACT.zaloUrl}

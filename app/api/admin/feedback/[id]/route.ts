@@ -39,12 +39,30 @@ export async function PATCH(
 
     const patch = compactPatch({
       type: body.type,
-      customer_name: body.customerName,
-      customer_info: body.customerInfo,
-      content: body.content,
-      avatar_url: body.avatarUrl,
-      image_url_1: body.imageUrl1,
-      image_url_2: body.imageUrl2,
+      customer_name:
+        typeof body.customerName === "string"
+          ? body.customerName.trim() || null
+          : body.customerName,
+      customer_info:
+        typeof body.customerInfo === "string"
+          ? body.customerInfo.trim() || null
+          : body.customerInfo,
+      content:
+        typeof body.content === "string"
+          ? body.content.trim() || null
+          : body.content,
+      avatar_url:
+        typeof body.avatarUrl === "string"
+          ? body.avatarUrl.trim() || null
+          : body.avatarUrl,
+      image_url_1:
+        typeof body.imageUrl1 === "string"
+          ? body.imageUrl1.trim() || null
+          : body.imageUrl1,
+      image_url_2:
+        typeof body.imageUrl2 === "string"
+          ? body.imageUrl2.trim() || null
+          : body.imageUrl2,
       is_active: body.isActive,
     });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Clock, Loader2, Search } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, Clock, Loader2, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiFetch, ApiError } from "@/lib/admin/api-client";
 
@@ -54,6 +54,8 @@ export default function OrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "pending" | "approved">("all");
+  const [sortBy, setSortBy] = useState<"created_at" | "total_vnd" | "customer_name" | "status">("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [confirmOrder, setConfirmOrder] = useState<AdminOrder | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
@@ -98,6 +100,50 @@ export default function OrdersPage() {
       return matchSearch && matchFilter;
     });
   }, [orders, search, filter]);
+
+  const sorted = useMemo(() => {
+    const toTs = (value: string | null | undefined) => {
+      if (!value) return null;
+      const ts = new Date(value).getTime();
+      return Number.isNaN(ts) ? null : ts;
+    };
+    const list = [...filtered];
+    list.sort((a, b) => {
+      let result = 0;
+      if (sortBy === "total_vnd") {
+        result = (a.total_vnd ?? 0) - (b.total_vnd ?? 0);
+      } else if (sortBy === "customer_name") {
+        result = a.customer_name.localeCompare(b.customer_name, "vi");
+      } else if (sortBy === "status") {
+        result = a.status.localeCompare(b.status, "vi");
+      } else {
+        const aTs = toTs(a.created_at);
+        const bTs = toTs(b.created_at);
+        if (aTs == null && bTs == null) result = a.customer_name.localeCompare(b.customer_name, "vi");
+        else if (aTs == null) result = 1;
+        else if (bTs == null) result = -1;
+        else result = aTs - bTs;
+      }
+      return sortDir === "asc" ? result : -result;
+    });
+    return list;
+  }, [filtered, sortBy, sortDir]);
+
+  const handleSort = (next: "created_at" | "total_vnd" | "customer_name" | "status") => {
+    if (sortBy === next) {
+      setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortBy(next);
+    setSortDir("desc");
+  };
+
+  const SortMark = ({ active }: { active: boolean }) => (
+    <span className={`ml-1 inline-flex flex-col leading-none ${active ? "text-[#c0392b]" : "text-gray-300"}`}>
+      <ChevronUp size={10} className={active && sortDir === "asc" ? "opacity-100" : "opacity-50"} />
+      <ChevronDown size={10} className={`-mt-0.5 ${active && sortDir === "desc" ? "opacity-100" : "opacity-50"}`} />
+    </span>
+  );
 
   function getStatusMeta(status: AdminOrder["status"]) {
     if (status === "approved") {
@@ -187,11 +233,39 @@ export default function OrdersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                {["Mã Đơn", "Khách Hàng", "Khóa Học", "Số Tiền", "Trạng Thái", "Thời Gian", "Hành Động"].map((h) => (
-                  <th key={h} className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
-                    {h}
-                  </th>
-                ))}
+                <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Mã Đơn
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  <button type="button" onClick={() => handleSort("customer_name")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Khách Hàng
+                    <SortMark active={sortBy === "customer_name"} />
+                  </button>
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Khóa Học
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  <button type="button" onClick={() => handleSort("total_vnd")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Số Tiền
+                    <SortMark active={sortBy === "total_vnd"} />
+                  </button>
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  <button type="button" onClick={() => handleSort("status")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Trạng Thái
+                    <SortMark active={sortBy === "status"} />
+                  </button>
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  <button type="button" onClick={() => handleSort("created_at")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Thời Gian
+                    <SortMark active={sortBy === "created_at"} />
+                  </button>
+                </th>
+                <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Hành Động
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -204,14 +278,14 @@ export default function OrdersPage() {
                     </span>
                   </td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : sorted.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-8 text-center text-sm text-gray-500">
                     Không có đơn hàng phù hợp.
                   </td>
                 </tr>
               ) : (
-                filtered.map((order) => {
+                sorted.map((order) => {
                   const isApproved = order.status === "approved";
                   const statusMeta = getStatusMeta(order.status);
                   const courseTitle = order.items.map((i) => i.course_title_snapshot).join(", ") || "—";

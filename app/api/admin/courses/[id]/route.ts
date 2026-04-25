@@ -78,9 +78,16 @@ export async function PATCH(
       return fail("status không hợp lệ (draft/published/archived).", 400);
     }
 
+    const normalizedTitle = body.title?.trim();
+    const normalizedRawSlug = body.slug !== undefined ? String(body.slug).trim() : undefined;
+    const normalizedSlug = normalizedRawSlug !== undefined ? slugify(normalizedRawSlug || normalizedTitle || "") : undefined;
+    if (normalizedRawSlug !== undefined && !normalizedSlug) {
+      return fail("slug không hợp lệ.", 400);
+    }
+
     const patch = compactPatch({
-      title: body.title?.trim(),
-      slug: body.slug ?? (body.title ? slugify(body.title) : undefined),
+      title: normalizedTitle,
+      slug: normalizedSlug,
       short_description: body.shortDescription?.trim() || (body.shortDescription === null ? null : undefined),
       description: body.description?.trim() || (body.description === null ? null : undefined),
       extra_info: body.extraInfo?.trim() || (body.extraInfo === null ? null : undefined),

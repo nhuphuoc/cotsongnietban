@@ -3,6 +3,8 @@ import { ok, fail } from "@/lib/api/http";
 import { listBlogPosts, resolveCategoryId, slugify } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 
+const ALLOWED_STATUS = new Set(["draft", "published", "archived"]);
+
 export async function GET() {
   const auth = await requireAdminActor();
   if (!auth.actor) return fail(auth.message ?? "Forbidden", auth.status);
@@ -21,9 +23,18 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    if (!body.title || !body.contentHtml) {
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+    const contentHtml = typeof body.contentHtml === "string" ? body.contentHtml.trim() : "";
+    if (!title || !contentHtml) {
       return fail("Thiếu title hoặc contentHtml.");
     }
+    const status = typeof body.status === "string" ? body.status.trim() : "draft";
+    if (!ALLOWED_STATUS.has(status)) {
+      return fail("status không hợp lệ (draft/published/archived).", 400);
+    }
+    const rawSlug = typeof body.slug === "string" ? body.slug.trim() : "";
+    const finalSlug = slugify(rawSlug || title);
+    if (!finalSlug) return fail("slug không hợp lệ.", 400);
 
     const client = createAdminClient();
     const categoryId = await resolveCategoryId("blog_categories", body.categoryId ?? body.categorySlug ?? null);
@@ -32,13 +43,13 @@ export async function POST(request: Request) {
       .insert({
         author_id: auth.actor.id,
         category_id: categoryId,
-        title: body.title,
-        slug: body.slug ?? slugify(body.title),
-        excerpt: body.excerpt ?? null,
-        cover_image_url: body.coverImageUrl ?? null,
-        content_html: body.contentHtml,
-        status: body.status ?? "draft",
-        published_at: body.status === "published" ? new Date().toISOString() : null,
+        title,
+        slug: finalSlug,
+        excerpt: typeof body.excerpt === "string" ? body.excerpt.trim() || null : null,
+        cover_image_url: typeof body.coverImageUrl === "string" ? body.coverImageUrl.trim() || null : null,
+        content_html: contentHtml,
+        status,
+        published_at: status === "published" ? new Date().toISOString() : null,
       })
       .select("*")
       .single();

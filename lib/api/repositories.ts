@@ -4,7 +4,7 @@ import { listPublishedLessonIdsInCourse } from "@/lib/lms/build-lms-course-view-
 type JsonRecord = Record<string, unknown>;
 
 const PUBLIC_COURSE_FIELDS =
-  "id, title, slug, category_id, short_description, description, extra_info, thumbnail_url, hero_image_url, trailer_url, price_vnd, access_duration_days, access_note, is_featured, status, published_at, created_at, updated_at";
+  "id, title, slug, short_description, description, extra_info, thumbnail_url, hero_image_url, trailer_url, price_vnd, access_duration_days, access_note, is_featured, status, published_at, created_at, updated_at";
 const PUBLIC_LESSON_FIELDS =
   "id, course_id, section_id, title, slug, summary, duration_seconds, is_preview, is_published, sort_order";
 
@@ -54,17 +54,16 @@ function isBlogViewTableMissing(error: unknown): boolean {
 export async function getPublicCourseByIdentifier(identifier: string) {
   const client = admin();
   const key = identifier.trim();
-  let q = client.from("courses").select(PUBLIC_COURSE_FIELDS).eq("status", "published");
+  // Use "*" here because some deployed DBs may lag behind schema.sql
+  // and miss newer optional columns (e.g. extra_info, hero_image_url...).
+  let q = client.from("courses").select("*").eq("status", "published");
   q = isUuidString(key) ? q.or(`id.eq.${key},slug.eq.${key}`) : q.eq("slug", key);
   const { data: course, error } = await q.limit(1).maybeSingle();
 
   if (error) throw error;
   if (!course) return null;
 
-  const [{ data: category }, { data: sections }, { data: lessons }] = await Promise.all([
-    course.category_id
-      ? client.from("course_categories").select("*").eq("id", course.category_id).maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+  const [{ data: sections }, { data: lessons }] = await Promise.all([
     client.from("course_sections").select("*").eq("course_id", course.id).order("sort_order"),
     client
       .from("lessons")
@@ -90,7 +89,6 @@ export async function getPublicCourseByIdentifier(identifier: string) {
 
   return {
     ...course,
-    category: category ?? null,
     sections: (sections ?? []).map((section) => ({
       ...section,
       lessons: lessonsBySectionId.get(section.id) ?? [],
@@ -112,18 +110,54 @@ export async function listCourses(options?: { publishedOnly?: boolean }) {
   const courses = data ?? [];
   const courseIds = courses.map((course) => course.id);
 
-  const [{ data: categories, error: categoriesError }, { data: sections, error: sectionsError }] =
+  const [{ data: sections, error: sectionsError }] =
     await Promise.all([
-      client.from("course_categories").select("*"),
       courseIds.length
         ? client.from("course_sections").select("*").in("course_id", courseIds).order("sort_order")
         : Promise.resolve({ data: [], error: null }),
     ]);
 
-  if (categoriesError) throw categoriesError;
   if (sectionsError) throw sectionsError;
 
-  const categoriesById = new Map((categories ?? []).map((item) => [item.id, item]));
+  type LessonStatsRow = {
+    course_id: string;
+    duration_seconds?: number | null;
+    is_published?: boolean | null;
+  };
+  const isMissingColumn = (error: unknown) => {
+    const code = (error as { code?: string } | null)?.code;
+    const message = String((error as { message?: string } | null)?.message ?? "");
+    return code === "42703" || /column .* does not exist/i.test(message);
+  };
+
+  let lessons: LessonStatsRow[] = [];
+  if (courseIds.length) {
+    const fullStats = await client
+      .from("lessons")
+      .select("course_id, duration_seconds, is_published")
+      .in("course_id", courseIds);
+
+    if (fullStats.error && isMissingColumn(fullStats.error)) {
+      const durationOnly = await client
+        .from("lessons")
+        .select("course_id, duration_seconds")
+        .in("course_id", courseIds);
+      if (durationOnly.error && isMissingColumn(durationOnly.error)) {
+        const idOnly = await client.from("lessons").select("course_id").in("course_id", courseIds);
+        if (idOnly.error) throw idOnly.error;
+        lessons = (idOnly.data ?? []) as LessonStatsRow[];
+      } else if (durationOnly.error) {
+        throw durationOnly.error;
+      } else {
+        lessons = (durationOnly.data ?? []) as LessonStatsRow[];
+      }
+    } else if (fullStats.error) {
+      throw fullStats.error;
+    } else {
+      lessons = (fullStats.data ?? []) as LessonStatsRow[];
+    }
+  }
+
   const sectionsByCourseId = new Map<string, unknown[]>();
 
   for (const section of sections ?? []) {
@@ -132,10 +166,28 @@ export async function listCourses(options?: { publishedOnly?: boolean }) {
     sectionsByCourseId.set(section.course_id, current);
   }
 
+  const lessonStatsByCourseId = new Map<string, { lesson_count: number; total_duration_seconds: number }>();
+  for (const lesson of lessons ?? []) {
+    const courseId = String(lesson.course_id);
+    const current = lessonStatsByCourseId.get(courseId) ?? { lesson_count: 0, total_duration_seconds: 0 };
+    const includeInPublic =
+      options?.publishedOnly && lesson.is_published !== undefined
+        ? Boolean(lesson.is_published)
+        : true;
+    if (includeInPublic) {
+      current.lesson_count += 1;
+      current.total_duration_seconds += Math.max(0, Number(lesson.duration_seconds ?? 0));
+      lessonStatsByCourseId.set(courseId, current);
+    } else if (!lessonStatsByCourseId.has(courseId)) {
+      lessonStatsByCourseId.set(courseId, current);
+    }
+  }
+
   return courses.map((course) => ({
     ...course,
-    category: course.category_id ? categoriesById.get(course.category_id) ?? null : null,
     sections: sectionsByCourseId.get(course.id) ?? [],
+    lesson_count: lessonStatsByCourseId.get(String(course.id))?.lesson_count ?? 0,
+    total_duration_seconds: lessonStatsByCourseId.get(String(course.id))?.total_duration_seconds ?? 0,
   }));
 }
 
@@ -148,10 +200,7 @@ export async function getCourseByIdentifier(identifier: string) {
   if (error) throw error;
   if (!course) return null;
 
-  const [{ data: category }, { data: sections }, { data: lessons }] = await Promise.all([
-    course.category_id
-      ? client.from("course_categories").select("*").eq("id", course.category_id).maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+  const [{ data: sections }, { data: lessons }] = await Promise.all([
     client.from("course_sections").select("*").eq("course_id", course.id).order("sort_order"),
     client.from("lessons").select("*").eq("course_id", course.id).order("sort_order"),
   ]);
@@ -171,7 +220,6 @@ export async function getCourseByIdentifier(identifier: string) {
 
   return {
     ...course,
-    category: category ?? null,
     sections: (sections ?? []).map((section) => ({
       ...section,
       lessons: lessonsBySectionId.get(section.id) ?? [],
@@ -631,6 +679,51 @@ export async function getCoursePurchaseStateForUser(userId: string, courseId: st
   };
 }
 
+export async function listPurchasedCourseIdsForUser(userId: string, courseIds: string[]) {
+  const normalizedIds = [...new Set(courseIds.map((id) => String(id).trim()).filter(Boolean))];
+  if (normalizedIds.length === 0) return new Set<string>();
+
+  const client = admin();
+  const purchased = new Set<string>();
+
+  const { data: enrollments, error: enrollmentError } = await client
+    .from("enrollments")
+    .select("course_id")
+    .eq("user_id", userId)
+    .in("course_id", normalizedIds);
+  if (enrollmentError) throw enrollmentError;
+
+  for (const row of enrollments ?? []) {
+    if (row.course_id) purchased.add(String(row.course_id));
+  }
+
+  const { data: itemRows, error: itemError } = await client
+    .from("order_items")
+    .select("order_id, course_id")
+    .in("course_id", normalizedIds);
+  if (itemError) throw itemError;
+
+  const orderIds = [...new Set((itemRows ?? []).map((row) => row.order_id).filter(Boolean))];
+  if (orderIds.length > 0) {
+    const { data: orders, error: ordersError } = await client
+      .from("orders")
+      .select("id")
+      .eq("user_id", userId)
+      .in("id", orderIds)
+      .in("status", ["pending", "paid", "approved"]);
+    if (ordersError) throw ordersError;
+
+    const openOrderIds = new Set((orders ?? []).map((order) => String(order.id)));
+    for (const row of itemRows ?? []) {
+      if (row.course_id && row.order_id && openOrderIds.has(String(row.order_id))) {
+        purchased.add(String(row.course_id));
+      }
+    }
+  }
+
+  return purchased;
+}
+
 export async function resolveCategoryId(table: "course_categories" | "blog_categories", input?: string | null) {
   if (!input) return null;
   const client = admin();
@@ -641,6 +734,18 @@ export async function resolveCategoryId(table: "course_categories" | "blog_categ
 
   if (error) throw error;
   return data?.id ?? null;
+}
+
+export async function listBlogCategories() {
+  const client = admin();
+  const { data, error } = await client
+    .from("blog_categories")
+    .select("id, name, slug, sort_order")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
 }
 
 export function slugify(input: string) {

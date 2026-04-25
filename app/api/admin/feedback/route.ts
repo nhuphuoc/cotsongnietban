@@ -32,12 +32,12 @@ export async function POST(request: Request) {
       .from("feedbacks")
       .insert({
         type,
-        customer_name: body.customerName ?? null,
-        customer_info: body.customerInfo ?? null,
-        content: body.content ?? null,
-        avatar_url: body.avatarUrl ?? null,
-        image_url_1: body.imageUrl1 ?? null,
-        image_url_2: body.imageUrl2 ?? null,
+        customer_name: typeof body.customerName === "string" ? body.customerName.trim() || null : null,
+        customer_info: typeof body.customerInfo === "string" ? body.customerInfo.trim() || null : null,
+        content: typeof body.content === "string" ? body.content.trim() || null : null,
+        avatar_url: typeof body.avatarUrl === "string" ? body.avatarUrl.trim() || null : null,
+        image_url_1: typeof body.imageUrl1 === "string" ? body.imageUrl1.trim() || null : null,
+        image_url_2: typeof body.imageUrl2 === "string" ? body.imageUrl2.trim() || null : null,
         is_active: body.isActive !== false,
       })
       .select("*")

@@ -1,21 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Upload } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
-import { ApiError, apiFetch, slugifyClient } from "@/lib/admin/api-client";
+import { ApiError, apiFetch } from "@/lib/admin/api-client";
 import { uploadAdminImage } from "@/lib/admin/upload-image";
-import { crudNotify, notify } from "@/lib/ui/notify";
+import { crudNotify, notify, notifyApiProblem } from "@/lib/ui/notify";
 
-const categories = ["Liệu Pháp", "Đau Lưng", "Kiến Thức"];
+type BlogCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order: number | null;
+};
 
 export default function AdminBlogCreatePage() {
   const router = useRouter();
 
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState(categories[0]);
+  const [slug, setSlug] = useState("");
+  const [categories, setCategories] = useState<BlogCategory[]>([]);
+  const [categoryId, setCategoryId] = useState("");
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [excerpt, setExcerpt] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [status, setStatus] = useState<"draft" | "published">("draft");
@@ -25,6 +33,31 @@ export default function AdminBlogCreatePage() {
   const [error, setError] = useState<string | null>(null);
 
   const canSave = useMemo(() => title.trim().length >= 6 && excerpt.trim().length >= 12, [title, excerpt]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCategories = async () => {
+      setCategoriesLoading(true);
+      try {
+        const data = await apiFetch<BlogCategory[]>("/api/admin/blog-categories");
+        if (cancelled) return;
+        setCategories(data);
+        setCategoryId((prev) => prev || data[0]?.id || "");
+      } catch (e) {
+        if (!cancelled) {
+          notifyApiProblem(e, { fallbackTitle: "Không thể tải danh mục blog" });
+          setError((prev) => prev ?? "Không thể tải danh mục blog.");
+        }
+      } finally {
+        if (!cancelled) setCategoriesLoading(false);
+      }
+    };
+
+    void loadCategories();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const onSave = () => {
     void (async () => {
@@ -38,11 +71,12 @@ export default function AdminBlogCreatePage() {
               method: "POST",
               body: JSON.stringify({
                 title: title.trim(),
+                slug: slug.trim() || null,
                 excerpt: excerpt.trim(),
                 contentHtml,
                 status,
                 coverImageUrl: coverImage.trim() || null,
-                categorySlug: slugifyClient(category),
+                categoryId: categoryId || null,
               }),
             }),
           {
@@ -138,6 +172,14 @@ export default function AdminBlogCreatePage() {
               placeholder="1–2 câu mô tả ngắn..."
               className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-[#c0392b] resize-none"
             />
+            <label className="mt-4 text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Slug</label>
+            <input
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="tu-dong-theo-tieu-de-neu-bo-trong"
+              className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-[#c0392b]"
+            />
+            <p className="mt-1 text-xs text-gray-400">Để trống để hệ thống tự tạo slug từ tiêu đề.</p>
           </div>
 
           <div className="bg-white border border-gray-200 rounded-sm p-5">
@@ -152,13 +194,18 @@ export default function AdminBlogCreatePage() {
           <div className="bg-white border border-gray-200 rounded-sm p-5">
             <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5 block">Danh mục</label>
             <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#c0392b]"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              disabled={categoriesLoading || categories.length === 0}
+              className="w-full border border-gray-200 rounded-sm px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-[#c0392b] disabled:bg-gray-100 disabled:text-gray-400"
             >
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+              {categories.length === 0 ? (
+                <option value="">
+                  {categoriesLoading ? "Đang tải danh mục..." : "Không có danh mục"}
+                </option>
+              ) : categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
                 </option>
               ))}
             </select>

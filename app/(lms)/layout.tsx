@@ -31,10 +31,6 @@ export default async function LmsLayout({ children }: { children: React.ReactNod
     redirect("/login?error=auth");
   }
 
-  if (profile.role === "admin") {
-    redirect("/admin");
-  }
-
   if (!profile.is_active) {
     redirect("/");
   }

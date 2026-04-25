@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { BarChart3, BookOpen, DollarSign, MessageSquareQuote, ShoppingCart, Users, CheckCircle2, Clock } from "lucide-react";
 import { listCourses, listFeedbacks, listOrders, listProfiles } from "@/lib/api/repositories";
 import { formatVnd } from "@/lib/format-vnd";
@@ -50,7 +51,22 @@ const quickLinks = [
   { href: "/admin/feedback", label: "Quản lý feedback", icon: MessageSquareQuote, desc: "Duyệt, ghim, ẩn phản hồi" },
 ];
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ sort?: string; dir?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const dashboardSort =
+    resolvedSearchParams?.sort === "total_vnd"
+      ? "total_vnd"
+      : resolvedSearchParams?.sort === "customer_name"
+        ? "customer_name"
+        : resolvedSearchParams?.sort === "status"
+          ? "status"
+          : "created_at";
+  const dashboardDir = resolvedSearchParams?.dir === "asc" ? "asc" : "desc";
+
   const [ordersRaw, profiles, courses, feedbacks] = await Promise.all([
     listOrders(),
     listProfiles(),
@@ -59,7 +75,18 @@ export default async function AdminDashboardPage() {
   ]);
 
   const orders = ordersRaw as unknown as AdminOrder[];
-  const recentOrders = orders.slice(0, 6);
+  const sortedOrders = [...orders].sort((a, b) => {
+    const result =
+      dashboardSort === "total_vnd"
+        ? Number(a.total_vnd ?? 0) - Number(b.total_vnd ?? 0)
+        : dashboardSort === "customer_name"
+          ? a.customer_name.localeCompare(b.customer_name, "vi")
+          : dashboardSort === "status"
+            ? a.status.localeCompare(b.status, "vi")
+        : new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    return dashboardDir === "asc" ? result : -result;
+  });
+  const recentOrders = sortedOrders.slice(0, 6);
   const revenue = orders
     .filter((order) => order.status === "approved")
     .reduce((sum, order) => sum + (Number(order.total_vnd) || 0), 0);
@@ -71,6 +98,18 @@ export default async function AdminDashboardPage() {
     { label: "Khóa học", value: String(courses.length), icon: BookOpen, hint: "Tổng khóa học", color: "bg-purple-50 text-purple-700 border-purple-200" },
     { label: "Feedback mới", value: String(newFeedbackCount), icon: MessageSquareQuote, hint: `Tổng feedback: ${feedbacks.length}`, color: "bg-orange-50 text-[#c0392b] border-orange-200" },
   ];
+
+  const nextSortHref = (column: "customer_name" | "total_vnd" | "status" | "created_at") => {
+    const nextDir = dashboardSort === column && dashboardDir === "asc" ? "desc" : "asc";
+    return `/admin?sort=${column}&dir=${nextDir}`;
+  };
+
+  const sortMark = (column: "customer_name" | "total_vnd" | "status" | "created_at") => (
+    <span className={`ml-1 inline-flex flex-col leading-none ${dashboardSort === column ? "text-[#c0392b]" : "text-gray-300"}`}>
+      <ChevronUp size={10} className={dashboardSort === column && dashboardDir === "asc" ? "opacity-100" : "opacity-50"} />
+      <ChevronDown size={10} className={`-mt-0.5 ${dashboardSort === column && dashboardDir === "desc" ? "opacity-100" : "opacity-50"}`} />
+    </span>
+  );
 
   return (
     <div className="p-6 lg:p-8">
@@ -130,11 +169,31 @@ export default async function AdminDashboardPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">Khách hàng</th>
+                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">
+                  <Link href={nextSortHref("customer_name")} className="inline-flex w-full items-center justify-start hover:text-gray-700">
+                    Khách hàng
+                    {sortMark("customer_name")}
+                  </Link>
+                </th>
                 <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">Khóa học</th>
-                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">Số tiền</th>
-                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">Trạng thái</th>
-                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">Thời gian</th>
+                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">
+                  <Link href={nextSortHref("total_vnd")} className="inline-flex w-full items-center justify-start hover:text-gray-700">
+                    Số tiền
+                    {sortMark("total_vnd")}
+                  </Link>
+                </th>
+                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">
+                  <Link href={nextSortHref("status")} className="inline-flex w-full items-center justify-start hover:text-gray-700">
+                    Trạng thái
+                    {sortMark("status")}
+                  </Link>
+                </th>
+                <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">
+                  <Link href={nextSortHref("created_at")} className="inline-flex w-full items-center justify-start hover:text-gray-700">
+                    Thời gian
+                    {sortMark("created_at")}
+                  </Link>
+                </th>
               </tr>
             </thead>
             <tbody>

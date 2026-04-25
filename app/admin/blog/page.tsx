@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/admin/api-client";
 import { crudNotify, notifyApiProblem } from "@/lib/ui/notify";
 
@@ -22,9 +23,12 @@ type BlogPostRow = {
 };
 
 export default function AdminBlogPage() {
+  const router = useRouter();
   const [posts, setPosts] = useState<BlogPostRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<"published_at" | "view_count" | "title" | "status">("published_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const load = async () => {
     setLoading(true);
@@ -75,12 +79,55 @@ export default function AdminBlogPage() {
     }
   };
 
-  const rows = useMemo(() => posts, [posts]);
+  const rows = useMemo(() => {
+    const toPublishedTs = (post: BlogPostRow) => {
+      const source = post.published_at ?? post.created_at ?? null;
+      if (!source) return null;
+      const ts = new Date(source).getTime();
+      return Number.isNaN(ts) ? null : ts;
+    };
+    const sorted = [...posts];
+    sorted.sort((a, b) => {
+      let result = 0;
+      if (sortBy === "view_count") {
+        result = (a.view_count ?? 0) - (b.view_count ?? 0);
+      } else if (sortBy === "title") {
+        result = a.title.localeCompare(b.title, "vi");
+      } else if (sortBy === "status") {
+        result = a.status.localeCompare(b.status, "vi");
+      } else {
+        const aTs = toPublishedTs(a);
+        const bTs = toPublishedTs(b);
+        if (aTs == null && bTs == null) result = a.title.localeCompare(b.title, "vi");
+        else if (aTs == null) result = 1;
+        else if (bTs == null) result = -1;
+        else result = aTs - bTs;
+      }
+      return sortDir === "asc" ? result : -result;
+    });
+    return sorted;
+  }, [posts, sortBy, sortDir]);
   const formatDate = (iso: string) => {
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return "—";
     return date.toLocaleDateString("vi-VN");
   };
+
+  const handleSort = (next: "published_at" | "view_count" | "title" | "status") => {
+    if (sortBy === next) {
+      setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortBy(next);
+    setSortDir("desc");
+  };
+
+  const SortMark = ({ active }: { active: boolean }) => (
+    <span className={`ml-1 inline-flex flex-col leading-none ${active ? "text-[#c0392b]" : "text-gray-300"}`}>
+      <ChevronUp size={10} className={active && sortDir === "asc" ? "opacity-100" : "opacity-50"} />
+      <ChevronDown size={10} className={`-mt-0.5 ${active && sortDir === "desc" ? "opacity-100" : "opacity-50"}`} />
+    </span>
+  );
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -145,8 +192,8 @@ export default function AdminBlogPage() {
                   <div className="font-semibold text-gray-800">{post.view_count.toLocaleString()}</div>
                 </div>
                 <div>
-                  <div className="text-gray-400">Cập nhật</div>
-                  <div className="font-semibold text-gray-800">{formatDate(post.updated_at)}</div>
+                  <div className="text-gray-400">Ngày đăng</div>
+                  <div className="font-semibold text-gray-800">{formatDate(post.published_at ?? post.created_at)}</div>
                 </div>
               </div>
 
@@ -175,9 +222,32 @@ export default function AdminBlogPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                {["Tiêu Đề", "Danh Mục", "Lượt Xem", "Cập nhật", "Trạng Thái", "Hành Động"].map((h) => (
-                  <th key={h} className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide">{h}</th>
-                ))}
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  <button type="button" onClick={() => handleSort("title")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Tiêu Đề
+                    <SortMark active={sortBy === "title"} />
+                  </button>
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Danh Mục</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  <button type="button" onClick={() => handleSort("view_count")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Lượt Xem
+                    <SortMark active={sortBy === "view_count"} />
+                  </button>
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  <button type="button" onClick={() => handleSort("published_at")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Ngày Đăng
+                    <SortMark active={sortBy === "published_at"} />
+                  </button>
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  <button type="button" onClick={() => handleSort("status")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Trạng Thái
+                    <SortMark active={sortBy === "status"} />
+                  </button>
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Hành Động</th>
               </tr>
             </thead>
             <tbody>
@@ -189,9 +259,17 @@ export default function AdminBlogPage() {
                 </tr>
               ) : null}
               {rows.map((post) => (
-                <tr key={post.id} className="border-b border-gray-50 hover:bg-gray-50">
+                <tr
+                  key={post.id}
+                  className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => router.push(`/admin/blog/${post.id}`)}
+                >
                   <td className="px-5 py-3 font-semibold text-gray-900 max-w-xs">
-                    <Link href={`/admin/blog/${post.id}`} className="line-clamp-2 hover:underline">
+                    <Link
+                      href={`/admin/blog/${post.id}`}
+                      className="line-clamp-2 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {post.title}
                     </Link>
                   </td>
@@ -201,7 +279,7 @@ export default function AdminBlogPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3 text-gray-600">{post.view_count.toLocaleString()}</td>
-                  <td className="px-5 py-3 text-gray-500 text-xs">{formatDate(post.updated_at)}</td>
+                  <td className="px-5 py-3 text-gray-500 text-xs">{formatDate(post.published_at ?? post.created_at)}</td>
                   <td className="px-5 py-3">
                     <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
                       post.status === "published"
@@ -216,12 +294,17 @@ export default function AdminBlogPage() {
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => toggleStatus(post.id, post.status)}
+                        onClick={(e) => { e.stopPropagation(); void toggleStatus(post.id, post.status); }}
                         className="text-xs font-semibold text-gray-500 hover:text-gray-900"
                       >
                         {post.status === "published" ? "Chuyển draft" : "Xuất bản"}
                       </button>
-                      <button onClick={() => removePost(post.id)} className="text-gray-400 hover:text-[#c0392b] transition-colors"><Trash2 size={15} /></button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); void removePost(post.id); }}
+                        className="text-gray-400 hover:text-[#c0392b] transition-colors"
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </div>
                   </td>
                 </tr>

@@ -54,7 +54,7 @@ function notesFromLesson(lesson: DbLesson): { notesIntro?: string; noteBullets?:
   return out;
 }
 
-/** Bài đã publish: theo section (sort_order) rồi bài không thuộc section */
+/** Danh sách bài hiển thị trong LMS theo thứ tự section -> bài */
 function orderedPublishedLessons(course: FullCourse): DbLesson[] {
   const flat: DbLesson[] = [];
   const sections = [...(course.sections ?? [])].sort(
@@ -65,7 +65,6 @@ function orderedPublishedLessons(course: FullCourse): DbLesson[] {
       (a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)
     );
     for (const l of ls) {
-      if (l.is_published === false) continue;
       flat.push(l as DbLesson);
     }
   }
@@ -73,10 +72,10 @@ function orderedPublishedLessons(course: FullCourse): DbLesson[] {
     .filter((l) => !l.section_id)
     .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
   for (const l of roots) {
-    if (l.is_published === false) continue;
     if (flat.some((x) => String(x.id) === String(l.id))) continue;
     flat.push(l as DbLesson);
   }
+  
   return flat;
 }
 
@@ -144,7 +143,6 @@ export function buildLmsCourseViewModel(bundle: EnrollmentCourseBundle): DemoCou
     .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0))
     .map((sec) => {
       const ls = [...(sec.lessons ?? [])]
-        .filter((l) => l.is_published !== false)
         .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
       return {
         id: String(sec.id),

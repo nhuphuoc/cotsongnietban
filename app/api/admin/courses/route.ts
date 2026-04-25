@@ -37,6 +37,10 @@ export async function POST(request: Request) {
       isFeatured?: boolean;
     };
     if (!body.title?.trim()) return fail("Thiếu title.", 400);
+    const title = body.title.trim();
+    const rawSlug = body.slug?.trim() ?? "";
+    const finalSlug = slugify(rawSlug || title);
+    if (!finalSlug) return fail("slug không hợp lệ.", 400);
 
     const status = body.status?.trim() || "draft";
     if (!ALLOWED_STATUS.has(status)) {
@@ -61,8 +65,8 @@ export async function POST(request: Request) {
     const { data, error } = await client
       .from("courses")
       .insert({
-        title: body.title.trim(),
-        slug: body.slug?.trim() || slugify(body.title),
+        title,
+        slug: finalSlug,
         short_description: body.shortDescription?.trim() || null,
         description: body.description?.trim() || null,
         extra_info: body.extraInfo?.trim() || null,

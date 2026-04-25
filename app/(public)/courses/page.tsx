@@ -4,8 +4,9 @@ import { ArrowRight, Clock, BookOpen } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 import { SITE_CONTACT } from "@/lib/site-contact";
-import { listCourses } from "@/lib/api/repositories";
+import { listCourses, listPurchasedCourseIdsForUser } from "@/lib/api/repositories";
 import { formatVnd } from "@/lib/format-vnd";
+import { getSessionActor } from "@/lib/api/auth";
 
 const FALLBACK_THUMB =
   "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop";
@@ -19,6 +20,13 @@ function formatCatalogDuration(sec: number | null | undefined): string {
 
 export default async function CoursesPage() {
   const rows = await listCourses({ publishedOnly: true });
+  const actor = await getSessionActor();
+  const purchasedCourseIds = actor
+    ? await listPurchasedCourseIdsForUser(
+        actor.id,
+        rows.map((row) => String((row as { id: string }).id))
+      )
+    : new Set<string>();
 
   return (
     <div className="relative min-h-screen overflow-x-clip bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pt-20">
@@ -51,25 +59,34 @@ export default async function CoursesPage() {
                   title?: string | null;
                   short_description?: string | null;
                   description?: string | null;
-                  level_label?: string | null;
                   thumbnail_url?: string | null;
                   total_duration_seconds?: number | null;
                   lesson_count?: number | null;
                   price_vnd?: number | null;
+                  access_duration_days?: number | null;
+                  published_at?: string | null;
                 };
                 const viewSlug = (typeof c.slug === "string" && c.slug.trim()) || c.id;
+                const hasPurchased = purchasedCourseIds.has(String(c.id));
                 const title = (typeof c.title === "string" && c.title) || "Khóa học";
                 const desc =
                   (typeof c.short_description === "string" && c.short_description.trim()) ||
                   (typeof c.description === "string" && c.description.trim()) ||
                   "";
-                const level = (typeof c.level_label === "string" && c.level_label.trim()) || "—";
                 const thumb = (typeof c.thumbnail_url === "string" && c.thumbnail_url.trim()) || FALLBACK_THUMB;
                 const nLessons = Math.max(0, Number(c.lesson_count ?? 0));
                 const durationLabel = formatCatalogDuration(
                   typeof c.total_duration_seconds === "number" ? c.total_duration_seconds : null
                 );
                 const priceLabel = formatVnd(typeof c.price_vnd === "number" ? c.price_vnd : null);
+                const publishedLabel =
+                  c.published_at && !Number.isNaN(new Date(c.published_at).getTime())
+                    ? new Date(c.published_at).toLocaleDateString("vi-VN")
+                    : "Chưa xuất bản";
+                const accessLabel =
+                  typeof c.access_duration_days === "number" && c.access_duration_days > 0
+                    ? `${c.access_duration_days} ngày`
+                    : "Theo gói đã mua";
 
                 return (
                   <article
@@ -91,9 +108,16 @@ export default async function CoursesPage() {
                     <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                         <h3 className="min-w-0 font-sans text-base font-bold leading-snug text-csnb-ink sm:text-lg">{title}</h3>
-                        <span className="w-fit shrink-0 rounded-md border border-csnb-border/40 bg-csnb-panel/80 px-2 py-0.5 text-center font-sans text-[10px] font-bold uppercase tracking-wide text-csnb-ink">
-                          {level}
-                        </span>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {hasPurchased ? (
+                            <span className="w-fit rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-center font-sans text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                              Đã có
+                            </span>
+                          ) : null}
+                          <span className="w-fit rounded-md border border-csnb-border/40 bg-csnb-panel/80 px-2 py-0.5 text-center font-sans text-[10px] font-bold uppercase tracking-wide text-csnb-ink">
+                            {publishedLabel}
+                          </span>
+                        </div>
                       </div>
                       <p className="mt-2 line-clamp-2 flex-1 font-sans text-sm leading-relaxed text-neutral-600">{desc || "Khóa học trực tuyến."}</p>
                       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 font-sans text-xs text-neutral-500">
@@ -105,6 +129,9 @@ export default async function CoursesPage() {
                           <BookOpen className="size-3.5 shrink-0 text-csnb-orange-deep" strokeWidth={2} />
                           {nLessons} bài
                         </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          Truy cập: {accessLabel}
+                        </span>
                       </div>
                       <div className="my-4 h-px bg-csnb-border/20" />
                       <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
@@ -113,9 +140,13 @@ export default async function CoursesPage() {
                         </span>
                         <Link
                           href={`/courses/view/${viewSlug}`}
-                          className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border border-csnb-border/35 bg-white px-3 py-2 font-sans text-sm font-semibold text-csnb-ink transition-colors hover:border-csnb-orange/40 hover:text-csnb-orange-deep sm:w-auto sm:justify-start"
+                          className={`inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border px-3 py-2 font-sans text-sm font-semibold transition-colors sm:w-auto sm:justify-start ${
+                            hasPurchased
+                              ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:border-emerald-400 hover:bg-emerald-100"
+                              : "border-csnb-border/35 bg-white text-csnb-ink hover:border-csnb-orange/40 hover:text-csnb-orange-deep"
+                          }`}
                         >
-                          Chi tiết
+                          {hasPurchased ? "Đã có" : "Chi tiết"}
                           <ArrowRight className="size-4 shrink-0" />
                         </Link>
                       </div>

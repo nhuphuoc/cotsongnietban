@@ -276,6 +276,8 @@ export default function LessonVideosPage() {
   // List-view search / filter / pagination
   const [courseQuery, setCourseQuery] = useState("");
   const [courseStatusFilter, setCourseStatusFilter] = useState<"all" | "draft" | "published" | "archived">("all");
+  const [courseSortBy, setCourseSortBy] = useState<"published_at" | "title" | "price_vnd" | "status" | "access_duration_days">("published_at");
+  const [courseSortDir, setCourseSortDir] = useState<"asc" | "desc">("desc");
   const [coursePage, setCoursePage] = useState(1);
 
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
@@ -322,6 +324,7 @@ export default function LessonVideosPage() {
   // Create-course dialog
   const [createCourseOpen, setCreateCourseOpen] = useState(false);
   const [ccTitle, setCcTitle] = useState("");
+  const [ccSlug, setCcSlug] = useState("");
   const [ccShortDescription, setCcShortDescription] = useState("");
   const [ccDescription, setCcDescription] = useState("");
   const [ccExtraInfo, setCcExtraInfo] = useState("");
@@ -527,12 +530,59 @@ export default function LessonVideosPage() {
     });
   }, [courses, courseQuery, courseStatusFilter]);
 
-  const courseTotalPages = Math.max(1, Math.ceil(filteredCourses.length / COURSE_PAGE_SIZE));
+  const sortedCourses = useMemo(() => {
+    const toTs = (value: string | null) => {
+      if (!value) return null;
+      const ts = new Date(value).getTime();
+      return Number.isNaN(ts) ? null : ts;
+    };
+
+    const list = [...filteredCourses];
+    list.sort((a, b) => {
+      let result = 0;
+      if (courseSortBy === "title") {
+        result = a.title.localeCompare(b.title, "vi");
+      } else if (courseSortBy === "price_vnd") {
+        result = Number(a.price_vnd ?? 0) - Number(b.price_vnd ?? 0);
+      } else if (courseSortBy === "status") {
+        result = a.status.localeCompare(b.status, "vi");
+      } else if (courseSortBy === "access_duration_days") {
+        result = Number(a.access_duration_days ?? 0) - Number(b.access_duration_days ?? 0);
+      } else {
+        const aTs = toTs(a.published_at);
+        const bTs = toTs(b.published_at);
+        if (aTs == null && bTs == null) {
+          result = a.title.localeCompare(b.title, "vi");
+        } else if (aTs == null) {
+          result = 1;
+        } else if (bTs == null) {
+          result = -1;
+        } else {
+          result = aTs - bTs;
+        }
+      }
+      return courseSortDir === "asc" ? result : -result;
+    });
+    return list;
+  }, [filteredCourses, courseSortBy, courseSortDir]);
+
+  const handleCourseSort = (next: "published_at" | "title" | "price_vnd" | "status" | "access_duration_days") => {
+    if (courseSortBy === next) {
+      setCourseSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
+      setCoursePage(1);
+      return;
+    }
+    setCourseSortBy(next);
+    setCourseSortDir("desc");
+    setCoursePage(1);
+  };
+
+  const courseTotalPages = Math.max(1, Math.ceil(sortedCourses.length / COURSE_PAGE_SIZE));
 
   const pagedCourses = useMemo(() => {
     const start = (coursePage - 1) * COURSE_PAGE_SIZE;
-    return filteredCourses.slice(start, start + COURSE_PAGE_SIZE);
-  }, [filteredCourses, coursePage]);
+    return sortedCourses.slice(start, start + COURSE_PAGE_SIZE);
+  }, [sortedCourses, coursePage]);
 
   // Reset to page 1 whenever filter/query changes
   const handleCourseQueryChange = (val: string) => { setCourseQuery(val); setCoursePage(1); };
@@ -1073,6 +1123,7 @@ export default function LessonVideosPage() {
 
   const openCreateCourseDialog = () => {
     setCcTitle("");
+    setCcSlug("");
     setCcShortDescription("");
     setCcDescription("");
     setCcExtraInfo("");
@@ -1124,6 +1175,7 @@ export default function LessonVideosPage() {
         credentials: "same-origin",
         body: JSON.stringify({
           title,
+          slug: ccSlug.trim() || null,
           shortDescription: ccShortDescription.trim() || null,
           description: ccDescription.trim() || null,
           extraInfo: ccExtraInfo.trim() || null,
@@ -1515,17 +1567,61 @@ export default function LessonVideosPage() {
                   </colgroup>
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">Khoá học</th>
-                      <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">Trạng thái</th>
-                      <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">Truy cập</th>
-                      <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">Giá</th>
-                      <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">Ngày đăng</th>
+                      <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
+                        <button type="button" onClick={() => handleCourseSort("title")} className="inline-flex w-full items-center justify-start hover:text-gray-700">
+                          Khoá học
+                          <span className={`ml-1 inline-flex flex-col leading-none ${courseSortBy === "title" ? "text-[#c0392b]" : "text-gray-300"}`}>
+                            <ChevronUp size={10} className={courseSortBy === "title" && courseSortDir === "asc" ? "opacity-100" : "opacity-50"} />
+                            <ChevronDown size={10} className={`-mt-0.5 ${courseSortBy === "title" && courseSortDir === "desc" ? "opacity-100" : "opacity-50"}`} />
+                          </span>
+                        </button>
+                      </th>
+                      <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
+                        <button type="button" onClick={() => handleCourseSort("status")} className="inline-flex w-full items-center justify-start hover:text-gray-700">
+                          Trạng thái
+                          <span className={`ml-1 inline-flex flex-col leading-none ${courseSortBy === "status" ? "text-[#c0392b]" : "text-gray-300"}`}>
+                            <ChevronUp size={10} className={courseSortBy === "status" && courseSortDir === "asc" ? "opacity-100" : "opacity-50"} />
+                            <ChevronDown size={10} className={`-mt-0.5 ${courseSortBy === "status" && courseSortDir === "desc" ? "opacity-100" : "opacity-50"}`} />
+                          </span>
+                        </button>
+                      </th>
+                      <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
+                        <button type="button" onClick={() => handleCourseSort("access_duration_days")} className="inline-flex w-full items-center justify-start hover:text-gray-700">
+                          Truy cập
+                          <span className={`ml-1 inline-flex flex-col leading-none ${courseSortBy === "access_duration_days" ? "text-[#c0392b]" : "text-gray-300"}`}>
+                            <ChevronUp size={10} className={courseSortBy === "access_duration_days" && courseSortDir === "asc" ? "opacity-100" : "opacity-50"} />
+                            <ChevronDown size={10} className={`-mt-0.5 ${courseSortBy === "access_duration_days" && courseSortDir === "desc" ? "opacity-100" : "opacity-50"}`} />
+                          </span>
+                        </button>
+                      </th>
+                      <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
+                        <button type="button" onClick={() => handleCourseSort("price_vnd")} className="inline-flex w-full items-center justify-start hover:text-gray-700">
+                          Giá
+                          <span className={`ml-1 inline-flex flex-col leading-none ${courseSortBy === "price_vnd" ? "text-[#c0392b]" : "text-gray-300"}`}>
+                            <ChevronUp size={10} className={courseSortBy === "price_vnd" && courseSortDir === "asc" ? "opacity-100" : "opacity-50"} />
+                            <ChevronDown size={10} className={`-mt-0.5 ${courseSortBy === "price_vnd" && courseSortDir === "desc" ? "opacity-100" : "opacity-50"}`} />
+                          </span>
+                        </button>
+                      </th>
+                      <th className="px-5 py-3 text-left text-xs font-medium text-gray-500">
+                        <button type="button" onClick={() => handleCourseSort("published_at")} className="inline-flex w-full items-center justify-start hover:text-gray-700">
+                          Ngày đăng
+                          <span className={`ml-1 inline-flex flex-col leading-none ${courseSortBy === "published_at" ? "text-[#c0392b]" : "text-gray-300"}`}>
+                            <ChevronUp size={10} className={courseSortBy === "published_at" && courseSortDir === "asc" ? "opacity-100" : "opacity-50"} />
+                            <ChevronDown size={10} className={`-mt-0.5 ${courseSortBy === "published_at" && courseSortDir === "desc" ? "opacity-100" : "opacity-50"}`} />
+                          </span>
+                        </button>
+                      </th>
                       <th className="px-5 py-3 text-right text-xs font-medium text-gray-500">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pagedCourses.map((c) => (
-                      <tr key={c.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                      <tr
+                        key={c.id}
+                        className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 cursor-pointer"
+                        onClick={() => openCourse(c.id)}
+                      >
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-3">
                             {c.thumbnail_url ? (
@@ -1574,7 +1670,7 @@ export default function LessonVideosPage() {
                         <td className="px-5 py-3 text-right">
                           <button
                             type="button"
-                            onClick={() => openCourse(c.id)}
+                            onClick={(e) => { e.stopPropagation(); openCourse(c.id); }}
                             className="rounded-md bg-[#c0392b] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#96281b]"
                           >
                             Chỉnh sửa
@@ -1590,7 +1686,7 @@ export default function LessonVideosPage() {
                 {courseTotalPages > 1 && (
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 px-4 py-3 sm:px-5">
                     <span className="text-xs text-gray-500">
-                      Trang {coursePage} / {courseTotalPages} &nbsp;·&nbsp; {filteredCourses.length} khoá học
+                      Trang {coursePage} / {courseTotalPages} &nbsp;·&nbsp; {sortedCourses.length} khoá học
                     </span>
                     <div className="flex flex-wrap items-center gap-1">
                       <button
@@ -2418,6 +2514,22 @@ export default function LessonVideosPage() {
                 disabled={ccSaving}
                 autoFocus
               />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                Slug
+              </label>
+              <input
+                type="text"
+                value={ccSlug}
+                onChange={(e) => setCcSlug(e.target.value)}
+                placeholder="tu-dong-theo-ten-khoa-hoc-neu-bo-trong"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm font-mono focus:border-[#c0392b] focus:outline-none"
+                disabled={ccSaving}
+                spellCheck={false}
+              />
+              <p className="mt-1 text-xs text-gray-400">Để trống để hệ thống tự tạo từ tên khoá học.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

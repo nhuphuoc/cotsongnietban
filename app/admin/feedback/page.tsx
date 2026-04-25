@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Eye, EyeOff, MessageSquareQuote, Plus, Search, Trash2, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronDown, ChevronUp, Eye, EyeOff, MessageSquareQuote, Plus, Search, Trash2, User } from "lucide-react";
 import { apiFetch } from "@/lib/admin/api-client";
 import { crudNotify, notifyApiProblem } from "@/lib/ui/notify";
 import type { AdminFeedback, AdminFeedbackType } from "@/lib/admin/feedback-types";
@@ -33,11 +34,14 @@ function ActiveBadge({ isActive }: { isActive: boolean }) {
 }
 
 export default function AdminFeedbackPage() {
+  const router = useRouter();
   const [items, setItems] = useState<AdminFeedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<AdminFeedbackType | "all">("all");
+  const [sortBy, setSortBy] = useState<"created_at" | "customer_name" | "type" | "is_active" | "content">("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -51,6 +55,52 @@ export default function AdminFeedbackPage() {
       return matchSearch && matchType;
     });
   }, [items, search, typeFilter]);
+
+  const sorted = useMemo(() => {
+    const toTs = (value: string | null | undefined) => {
+      if (!value) return null;
+      const ts = new Date(value).getTime();
+      return Number.isNaN(ts) ? null : ts;
+    };
+    const list = [...filtered];
+    list.sort((a, b) => {
+      let result = 0;
+      if (sortBy === "customer_name") {
+        result = (a.customer_name ?? "").localeCompare(b.customer_name ?? "", "vi");
+      } else if (sortBy === "type") {
+        result = a.type.localeCompare(b.type, "vi");
+      } else if (sortBy === "is_active") {
+        result = Number(a.is_active) - Number(b.is_active);
+      } else if (sortBy === "content") {
+        result = (a.content ?? "").localeCompare(b.content ?? "", "vi");
+      } else {
+        const aTs = toTs(a.created_at);
+        const bTs = toTs(b.created_at);
+        if (aTs == null && bTs == null) result = (a.customer_name ?? "").localeCompare(b.customer_name ?? "", "vi");
+        else if (aTs == null) result = 1;
+        else if (bTs == null) result = -1;
+        else result = aTs - bTs;
+      }
+      return sortDir === "asc" ? result : -result;
+    });
+    return list;
+  }, [filtered, sortBy, sortDir]);
+
+  const handleSort = (next: "created_at" | "customer_name" | "type" | "is_active" | "content") => {
+    if (sortBy === next) {
+      setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortBy(next);
+    setSortDir("desc");
+  };
+
+  const SortMark = ({ active }: { active: boolean }) => (
+    <span className={`ml-1 inline-flex flex-col leading-none ${active ? "text-[#c0392b]" : "text-gray-300"}`}>
+      <ChevronUp size={10} className={active && sortDir === "asc" ? "opacity-100" : "opacity-50"} />
+      <ChevronDown size={10} className={`-mt-0.5 ${active && sortDir === "desc" ? "opacity-100" : "opacity-50"}`} />
+    </span>
+  );
 
   const counts = useMemo(() => {
     const result: Record<string, number> = { all: items.length, before_after: 0, testimonial: 0, comment: 0 };
@@ -156,14 +206,16 @@ export default function AdminFeedbackPage() {
       ) : null}
 
       <div className="mb-6">
-        <div className="relative max-w-sm">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo tên, thông tin, nội dung..."
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-sm text-sm focus:outline-none focus:border-[#c0392b] bg-white"
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative max-w-sm flex-1 min-w-64">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm theo tên, thông tin, nội dung..."
+              className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-sm text-sm focus:outline-none focus:border-[#c0392b] bg-white"
+            />
+          </div>
         </div>
       </div>
 
@@ -172,11 +224,37 @@ export default function AdminFeedbackPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                {["Khách hàng", "Loại", "Nội dung", "Trạng thái", "Thời gian", "Hành động"].map((h) => (
-                  <th key={h} className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
+                <th className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide whitespace-nowrap">
+                  <button type="button" onClick={() => handleSort("customer_name")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Khách hàng
+                    <SortMark active={sortBy === "customer_name"} />
+                  </button>
+                </th>
+                <th className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide whitespace-nowrap">
+                  <button type="button" onClick={() => handleSort("type")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Loại
+                    <SortMark active={sortBy === "type"} />
+                  </button>
+                </th>
+                <th className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide whitespace-nowrap">
+                  <button type="button" onClick={() => handleSort("content")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Nội dung
+                    <SortMark active={sortBy === "content"} />
+                  </button>
+                </th>
+                <th className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide whitespace-nowrap">
+                  <button type="button" onClick={() => handleSort("is_active")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Trạng thái
+                    <SortMark active={sortBy === "is_active"} />
+                  </button>
+                </th>
+                <th className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide whitespace-nowrap">
+                  <button type="button" onClick={() => handleSort("created_at")} className="inline-flex w-full items-center justify-start hover:text-gray-600">
+                    Thời gian
+                    <SortMark active={sortBy === "created_at"} />
+                  </button>
+                </th>
+                <th className="text-left px-5 py-3 text-xs text-gray-400 font-semibold uppercase tracking-wide whitespace-nowrap">Hành động</th>
               </tr>
             </thead>
             <tbody>
@@ -185,8 +263,12 @@ export default function AdminFeedbackPage() {
                   <td className="px-5 py-10 text-center text-sm text-gray-400" colSpan={6}>Đang tải...</td>
                 </tr>
               ) : null}
-              {filtered.map((f) => (
-                <tr key={f.id} className="border-b border-gray-50 hover:bg-gray-50">
+              {sorted.map((f) => (
+                <tr
+                  key={f.id}
+                  className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => router.push(`/admin/feedback/${f.id}`)}
+                >
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       <div className="relative h-9 w-9 overflow-hidden rounded-full bg-gray-100 shrink-0">
@@ -220,12 +302,13 @@ export default function AdminFeedbackPage() {
                     <div className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
                       <Link
                         href={`/admin/feedback/${f.id}`}
+                        onClick={(e) => e.stopPropagation()}
                         className="inline-flex h-8 items-center rounded-md px-2.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
                       >
                         Chi tiết
                       </Link>
                       <button
-                        onClick={() => toggleActive(f.id, f.is_active)}
+                        onClick={(e) => { e.stopPropagation(); void toggleActive(f.id, f.is_active); }}
                         className="inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
                         title={f.is_active ? "Ẩn" : "Hiện"}
                       >
@@ -233,7 +316,7 @@ export default function AdminFeedbackPage() {
                         {f.is_active ? "Ẩn" : "Hiện"}
                       </button>
                       <button
-                        onClick={() => remove(f.id)}
+                        onClick={(e) => { e.stopPropagation(); void remove(f.id); }}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-white hover:text-red-600"
                         title="Xóa"
                       >
@@ -243,7 +326,7 @@ export default function AdminFeedbackPage() {
                   </td>
                 </tr>
               ))}
-              {!loading && filtered.length === 0 ? (
+              {!loading && sorted.length === 0 ? (
                 <tr>
                   <td className="px-5 py-10 text-center text-sm text-gray-400" colSpan={6}>
                     Không có feedback phù hợp bộ lọc.

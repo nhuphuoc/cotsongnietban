@@ -3,6 +3,8 @@ import { ok, fail } from "@/lib/api/http";
 import { compactPatch, getBlogPostByIdentifier, resolveCategoryId, slugify } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 
+const ALLOWED_STATUS = new Set(["draft", "published", "archived"]);
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -30,19 +32,35 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
+    if (body.title !== undefined && !String(body.title).trim()) {
+      return fail("title không được để trống.", 400);
+    }
+    if (body.slug !== undefined && !String(body.slug).trim()) {
+      return fail("slug không được để trống.", 400);
+    }
+    if (body.status !== undefined && !ALLOWED_STATUS.has(String(body.status))) {
+      return fail("status không hợp lệ (draft/published/archived).", 400);
+    }
     const categoryId = body.categoryId || body.categorySlug
       ? await resolveCategoryId("blog_categories", body.categoryId ?? body.categorySlug)
       : undefined;
 
+    const normalizedTitle = typeof body.title === "string" ? body.title.trim() : undefined;
+    const normalizedRawSlug = typeof body.slug === "string" ? body.slug.trim() : undefined;
+    const normalizedSlug =
+      normalizedRawSlug !== undefined
+        ? slugify(normalizedRawSlug || normalizedTitle || "")
+        : undefined;
+    if (normalizedRawSlug !== undefined && !normalizedSlug) {
+      return fail("slug không hợp lệ.", 400);
+    }
+
     const patch = compactPatch({
-      title: body.title,
-      slug:
-        body.slug !== undefined
-          ? (typeof body.slug === "string" && body.slug.trim() ? body.slug : body.title ? slugify(body.title) : undefined)
-          : undefined,
-      excerpt: body.excerpt,
-      cover_image_url: body.coverImageUrl,
-      content_html: body.contentHtml,
+      title: normalizedTitle,
+      slug: normalizedSlug,
+      excerpt: typeof body.excerpt === "string" ? body.excerpt.trim() || null : body.excerpt,
+      cover_image_url: typeof body.coverImageUrl === "string" ? body.coverImageUrl.trim() || null : body.coverImageUrl,
+      content_html: typeof body.contentHtml === "string" ? body.contentHtml.trim() : body.contentHtml,
       status: body.status,
       category_id: categoryId,
       published_at:
