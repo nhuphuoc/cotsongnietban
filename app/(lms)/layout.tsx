@@ -35,5 +35,10 @@ export default async function LmsLayout({ children }: { children: React.ReactNod
     redirect("/");
   }
 
+  // Admin dùng khu vực /admin, không vào phòng học học viên.
+  if (profile.role === "admin") {
+    redirect("/admin");
+  }
+
   return <LmsAppShell>{children}</LmsAppShell>;
 }

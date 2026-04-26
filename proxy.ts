@@ -19,7 +19,7 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   if (pathname === "/") {
-    const rewrite = NextResponse.rewrite(new URL("/dashboard", request.url));
+    const rewrite = NextResponse.rewrite(new URL("/phong-hoc", request.url));
     copyCookies(base, rewrite);
     return rewrite;
   }

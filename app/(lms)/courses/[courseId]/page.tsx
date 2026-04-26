@@ -15,6 +15,10 @@ import {
 } from "@/lib/demo-courses";
 import { getLmsHomeHref, getLmsLessonHref } from "@/lib/learning-hub";
 
+function looksLikeHtml(s: string): boolean {
+  return /<\w[\s\S]*>/.test(s);
+}
+
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId: routeCourseKey } = await params;
   const supabase = await createClient();
@@ -104,7 +108,14 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               ) : null}
             </div>
             <h2 className="font-sans text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl">{course.title}</h2>
-            <p className="mt-2 max-w-3xl font-sans text-sm leading-relaxed text-neutral-600">{course.description}</p>
+            {looksLikeHtml(course.description) ? (
+              <div
+                className="prose prose-sm mt-2 max-w-3xl text-neutral-700 [&_p]:my-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6"
+                dangerouslySetInnerHTML={{ __html: course.description }}
+              />
+            ) : (
+              <p className="mt-2 max-w-3xl font-sans text-sm leading-relaxed text-neutral-600">{course.description}</p>
+            )}
             <p className="mt-2 font-sans text-xs text-neutral-500">
               Truy cập đến <span className="font-medium text-neutral-700">{course.expiresAt}</span>
               {course.daysLeft < 9000 ? (

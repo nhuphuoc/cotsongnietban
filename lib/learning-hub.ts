@@ -3,8 +3,8 @@
  *
  * - NEXT_PUBLIC_LEARNING_HUB_URL: origin đầy đủ, VD https://khoahoc.cotsongnietban.com
  *   Khi có, liên kết từ site marketing sẽ trỏ sang origin này (cookie/session: cấu hình Supabase cho cùng parent domain nếu dùng subdomain).
- * - NEXT_PUBLIC_LEARNING_HUB_HOSTS: danh sách host (cách nhau bởi dấu phẩy) phục vụ middleware, VD khoahoc.localhost:3000
- *   Trên các host này, "/" được rewrite nội bộ sang /dashboard.
+ * - NEXT_PUBLIC_LEARNING_HUB_HOSTS: danh sách host (cách nhau bởi dấu phẩy) phục vụ proxy/middleware, VD khoahoc.localhost:3000
+ *   Trên các host này, "/" được rewrite nội bộ sang /phong-hoc.
  */
 
 function trimTrailingSlash(s: string): string {
@@ -39,11 +39,11 @@ export function requestHostIsLearningHub(hostHeader: string | null): boolean {
   return patterns.some((p) => host === p || host.endsWith(`.${p}`));
 }
 
-/** Trang chủ LMS: trên hub subdomain thường là "/" (rewrite → dashboard); không hub thì /dashboard */
+/** Trang chủ LMS: trên hub subdomain thường là "/" (rewrite → /phong-hoc); không hub thì /phong-hoc */
 export function getLmsHomeHref(): string {
   const o = getLearningHubOrigin();
   if (o) return `${o}/`;
-  return "/dashboard";
+  return "/phong-hoc";
 }
 
 /** URL tuyệt đối cho `redirect()` / `NextResponse.redirect()` (luôn có scheme + host). */
@@ -51,7 +51,7 @@ export function getLmsHomeAbsoluteUrl(requestOrigin: string): string {
   const o = getLearningHubOrigin();
   if (o) return `${o}/`;
   const base = requestOrigin.replace(/\/+$/, "");
-  return `${base}/dashboard`;
+  return `${base}/phong-hoc`;
 }
 
 /** Đường dẫn tương đối trên hub hoặc site hiện tại: /courses/... */
@@ -71,7 +71,7 @@ export function getLmsLessonHref(courseKey: string, lessonId: string): string {
 
 /** Dùng sau đăng nhập / magic link: path tương đối an toàn cho callback cùng origin */
 export function getDefaultPostAuthPath(): string {
-  return "/dashboard";
+  return "/phong-hoc";
 }
 
 /** Callback ?next= — cho phép URL tuyệt đối nếu trùng LEARNING_HUB origin */

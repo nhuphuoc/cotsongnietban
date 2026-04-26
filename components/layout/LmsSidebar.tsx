@@ -72,7 +72,7 @@ export default function LmsSidebar({ className, onNavigate }: Props) {
           href={getLmsHomeHref()}
           onClick={nav}
           className={`flex items-center gap-3 rounded-md px-3 py-2.5 font-heading text-sm font-semibold uppercase tracking-wide transition-colors ${
-            pathname === "/dashboard" || (pathname === "/" && onLearningHubHost)
+            pathname === "/phong-hoc" || (pathname === "/" && onLearningHubHost)
               ? "bg-neutral-900 text-white"
               : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
           }`}
@@ -93,12 +93,13 @@ export default function LmsSidebar({ className, onNavigate }: Props) {
               if (!course?.id) return null;
               const progress = Math.min(100, Math.max(0, row.progress_percent ?? 0));
               const hrefId = course.slug || course.id;
+              const resumeHref = `${getLmsCourseHref(String(hrefId))}/resume`;
               const title = course.title ?? "Khóa học";
               const nLessons = course.lesson_count ?? 0;
               return (
                 <Link
                   key={row.id}
-                  href={getLmsCourseHref(String(hrefId))}
+                  href={resumeHref}
                   onClick={nav}
                   className="group block rounded-lg border border-neutral-200 bg-neutral-50/80 p-3 transition-colors hover:border-neutral-300 hover:bg-white"
                 >

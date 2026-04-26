@@ -109,7 +109,7 @@ export default async function LoginPage({ searchParams }: Props) {
 
           {errorKey === "auth" ? (
             <p className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-center font-sans text-xs text-red-200">
-              Đăng nhập thất bại. Thử lại hoặc kiểm tra cấu hình Supabase.
+              Bạn cần đăng nhập để tiếp tục. Nếu bạn vừa đăng nhập mà vẫn bị đưa về đây, hãy thử tải lại trang hoặc đăng nhập lại.
             </p>
           ) : null}
           {errorKey === "config" ? (

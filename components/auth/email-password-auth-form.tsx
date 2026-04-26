@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { getLmsHomeHref } from "@/lib/learning-hub";
@@ -30,7 +30,6 @@ export function EmailPasswordAuthForm({ initialMode = "signin" }: EmailPasswordA
     checking: false,
     error: null,
   });
-  const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setMode(initialMode);
@@ -46,15 +45,29 @@ export function EmailPasswordAuthForm({ initialMode = "signin" }: EmailPasswordA
       return;
     }
 
-    // Check email availability for signup
-    if (mode === "signup" && !emailCheck.available) {
-      setMessage("Email này đã được sử dụng. Vui lòng dùng email khác.");
-      return;
-    }
-
-    if (mode === "signup" && emailCheck.checking) {
-      setMessage("Vui lòng đợi kiểm tra email hoàn tất.");
-      return;
+    if (mode === "signup") {
+      // Best practice: chỉ kiểm tra email khi người dùng bấm "Đăng ký"
+      setEmailCheck({ available: true, checking: true, error: null });
+      try {
+        const response = await fetch("/api/auth/check-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: trimmed }),
+        });
+        const data = (await response.json().catch(() => ({}))) as { available?: boolean; error?: string };
+        if (!response.ok) {
+          // Không chặn đăng ký nếu API check-email lỗi; Supabase sẽ trả lỗi nếu email đã tồn tại.
+          setEmailCheck({ available: true, checking: false, error: data.error ?? "Không thể kiểm tra email ngay lúc này." });
+        } else if (data.available === false) {
+          setEmailCheck({ available: false, checking: false, error: null });
+          setMessage("Email này đã được sử dụng. Vui lòng dùng email khác hoặc đăng nhập.");
+          return;
+        } else {
+          setEmailCheck({ available: true, checking: false, error: null });
+        }
+      } catch {
+        setEmailCheck({ available: true, checking: false, error: "Không thể kết nối để kiểm tra email." });
+      }
     }
 
     setPending(true);
@@ -84,7 +97,7 @@ export function EmailPasswordAuthForm({ initialMode = "signin" }: EmailPasswordA
           email: trimmed,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/dashboard")}`,
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/phong-hoc")}`,
           },
         });
         if (error) {
@@ -109,70 +122,6 @@ export function EmailPasswordAuthForm({ initialMode = "signin" }: EmailPasswordA
       setPending(false);
     }
   }
-
-  // Check email availability when user is signing up
-  async function checkEmailAvailability(emailValue: string) {
-    const trimmed = emailValue.trim();
-
-    // Clear previous timeout
-    if (checkTimeoutRef.current) {
-      clearTimeout(checkTimeoutRef.current);
-    }
-
-    // Don't check if email is empty or invalid format
-    if (!trimmed || !trimmed.includes("@")) {
-      setEmailCheck({ available: true, checking: false, error: null });
-      return;
-    }
-
-    // Only check in signup mode
-    if (mode !== "signup") {
-      setEmailCheck({ available: true, checking: false, error: null });
-      return;
-    }
-
-    setEmailCheck((prev) => ({ ...prev, checking: true }));
-
-    // Debounce check by 500ms
-    checkTimeoutRef.current = setTimeout(async () => {
-      try {
-        const response = await fetch("/api/auth/check-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: trimmed }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          setEmailCheck({
-            available: true,
-            checking: false,
-            error: data.error || "Không thể kiểm tra email",
-          });
-          return;
-        }
-
-        const data = await response.json();
-        setEmailCheck({
-          available: data.available,
-          checking: false,
-          error: null,
-        });
-      } catch (err) {
-        console.error("Email check error:", err);
-        setEmailCheck({
-          available: true,
-          checking: false,
-          error: "Không thể kết nối",
-        });
-      }
-    }, 500);
-  }
-
-  const handleEmailChange = (value: string) => {
-    setEmail(value);
-    checkEmailAvailability(value);
-  };
 
   return (
     <div className="w-full">
@@ -215,7 +164,11 @@ export function EmailPasswordAuthForm({ initialMode = "signin" }: EmailPasswordA
             type="email"
             autoComplete="email"
             value={email}
-            onChange={(e) => handleEmailChange(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              // Reset trạng thái check khi người dùng sửa email (tránh hiển thị kết quả cũ).
+              if (mode === "signup") setEmailCheck({ available: true, checking: false, error: null });
+            }}
             className="w-full rounded-md border border-csnb-border bg-white px-3 py-2.5 font-sans text-sm text-csnb-ink outline-none ring-csnb-orange/40 focus:ring-2"
             placeholder="ban@example.com"
             disabled={pending}
@@ -224,14 +177,7 @@ export function EmailPasswordAuthForm({ initialMode = "signin" }: EmailPasswordA
             <div className="mt-2">
               {emailCheck.checking && (
                 <p className="font-sans text-[11px] text-csnb-muted">
-                  ⏳ Đang kiểm tra...
-                </p>
-              )}
-              {!emailCheck.checking && !emailCheck.error && (
-                <p className={`font-sans text-[11px] ${
-                  emailCheck.available ? "text-emerald-400" : "text-red-400"
-                }`}>
-                  {emailCheck.available ? "✓ Email có sẵn" : "✕ Email đã được dùng"}
+                  ⏳ Đang kiểm tra email...
                 </p>
               )}
               {emailCheck.error && (

@@ -15,6 +15,22 @@ import { getLmsCourseHref } from "@/lib/learning-hub";
 const FALLBACK_THUMB =
   "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop";
 
+function looksLikeHtml(s: string): boolean {
+  const t = String(s ?? "").trim();
+  if (!t) return false;
+  // TipTap / typical HTML: opening or closing tags (not confused with "a < b" in short plain text)
+  return /<\/[a-z][\w-]*>|<[a-z][\s\S]*?>/i.test(t);
+}
+
+function stripHtmlToText(html: string): string {
+  return String(html ?? "")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<\/?[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function formatLessonDurationMmSs(seconds: number | null | undefined): string {
   const s = Math.max(0, Math.floor(Number(seconds ?? 0)));
   const m = Math.floor(s / 60);
@@ -32,6 +48,7 @@ function formatCourseDurationFromSeconds(sec: number | null | undefined): string
 type MarketingVm = {
   title: string;
   description: string;
+  extraInfoHtml: string;
   hero: string;
   thumbnail: string;
   level: string;
@@ -68,6 +85,12 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
       (typeof pub.description === "string" && pub.description.trim()) ||
       (typeof pub.short_description === "string" && pub.short_description.trim()) ||
       "";
+    const extraInfoHtml =
+      typeof (pub as { extra_info?: unknown }).extra_info === "string"
+        ? String((pub as { extra_info?: string }).extra_info ?? "")
+        : typeof pubEx.extra_info === "string"
+          ? String(pubEx.extra_info)
+          : "";
     const level = (typeof pubEx.level_label === "string" && (pubEx.level_label as string).trim()) || "—";
     const totalSec = Number(pubEx.total_duration_seconds ?? 0);
     const totalDurationLabel =
@@ -137,6 +160,7 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
     return {
       title: String(pub.title ?? ""),
       description,
+      extraInfoHtml,
       hero,
       thumbnail,
       level,
@@ -175,6 +199,7 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
   return {
     title: demo.title,
     description: demo.description,
+    extraInfoHtml: "",
     hero: demo.thumbnail,
     thumbnail: demo.thumbnail,
     level: demo.level,
@@ -204,6 +229,8 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
     : null;
   const alreadyPurchased = Boolean(purchaseState?.alreadyPurchased);
   const checkoutHref = vm.purchasableCourseId ? `/checkout/${vm.purchasableCourseId}` : "#";
+  const extraInfoText = stripHtmlToText(vm.extraInfoHtml);
+  const hasExtraInfo = extraInfoText.length > 0;
 
   return (
     <div className="min-h-screen overflow-x-clip bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pb-16 pt-20 sm:pb-20">
@@ -228,7 +255,7 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
                   {vm.title}
                 </h1>
                 <p className="mt-2 max-w-2xl font-sans text-sm leading-relaxed text-white/85 sm:text-base">
-                  {vm.description}
+                  {looksLikeHtml(vm.description) ? stripHtmlToText(vm.description) : vm.description}
                 </p>
                 <div className="mt-4 flex flex-col gap-2 font-sans text-xs text-white/80 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-2 sm:text-sm">
                   <span className="inline-flex items-center gap-1.5">
@@ -277,7 +304,14 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
             <section>
               <h2 className="mb-3 font-sans text-lg font-bold text-csnb-ink">Mô tả khóa học</h2>
               <div className="rounded-xl border border-csnb-border/25 bg-white p-5 shadow-sm sm:p-6">
-                <p className="font-sans text-sm leading-relaxed text-neutral-700 sm:text-[0.9375rem]">{vm.description}</p>
+                {looksLikeHtml(vm.description) ? (
+                  <div
+                    className="prose prose-neutral max-w-none prose-p:leading-relaxed prose-a:text-csnb-orange-deep prose-headings:text-csnb-ink"
+                    dangerouslySetInnerHTML={{ __html: vm.description }}
+                  />
+                ) : (
+                  <p className="font-sans text-sm leading-relaxed text-neutral-700 sm:text-[0.9375rem]">{vm.description}</p>
+                )}
                 {vm.isDemo ? (
                   <p className="mt-4 font-sans text-sm leading-relaxed text-neutral-600">
                     Chương trình được thiết kế theo từng module, có video minh họa và gợi ý chỉnh tư thế an toàn. Bạn có thể
@@ -291,19 +325,37 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
               </div>
             </section>
 
-            <section>
-              <h2 className="mb-3 font-sans text-lg font-bold text-csnb-ink">Bạn sẽ học được gì?</h2>
-              <div className="rounded-xl border border-csnb-border/25 bg-white p-5 shadow-sm sm:p-6">
-                <ul className="grid gap-3 sm:grid-cols-2">
-                  {vm.outcomes.map((line, i) => (
-                    <li key={i} className="flex gap-2.5 font-sans text-sm leading-snug text-neutral-700">
-                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-csnb-orange" aria-hidden />
-                      <span>{line}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </section>
+            {hasExtraInfo ? (
+              <section>
+                <h2 className="mb-3 font-sans text-lg font-bold text-csnb-ink">Bạn sẽ học được gì?</h2>
+                <div className="rounded-xl border border-csnb-border/25 bg-white p-5 shadow-sm sm:p-6">
+                  {looksLikeHtml(vm.extraInfoHtml) ? (
+                    <div
+                      className="prose prose-neutral max-w-none prose-p:leading-relaxed prose-a:text-csnb-orange-deep prose-headings:text-csnb-ink"
+                      dangerouslySetInnerHTML={{ __html: vm.extraInfoHtml }}
+                    />
+                  ) : (
+                    <p className="font-sans text-sm leading-relaxed text-neutral-700 sm:text-[0.9375rem]">
+                      {vm.extraInfoHtml}
+                    </p>
+                  )}
+                </div>
+              </section>
+            ) : vm.isDemo ? (
+              <section>
+                <h2 className="mb-3 font-sans text-lg font-bold text-csnb-ink">Bạn sẽ học được gì?</h2>
+                <div className="rounded-xl border border-csnb-border/25 bg-white p-5 shadow-sm sm:p-6">
+                  <ul className="grid gap-3 sm:grid-cols-2">
+                    {vm.outcomes.map((line, i) => (
+                      <li key={i} className="flex gap-2.5 font-sans text-sm leading-snug text-neutral-700">
+                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-csnb-orange" aria-hidden />
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            ) : null}
 
             <section>
               <h2 className="mb-3 font-sans text-lg font-bold text-csnb-ink">Nội dung chương trình</h2>

@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     type: "signup",
     email,
     options: {
-      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/dashboard")}`,
+      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/phong-hoc")}`,
     },
   });
 

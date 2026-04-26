@@ -15,6 +15,10 @@ import { LessonVideoPlayer } from "@/components/lms/lesson-video-player";
 import { CourseCurriculumSidebar } from "@/components/lms/course-curriculum-sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, CheckCircle2, Clock, MessageCircle } from "lucide-react";
+ 
+function looksLikeHtml(s: string): boolean {
+  return /<\w[\s\S]*>/.test(s);
+}
 
 export default function LessonViewPage() {
   const params = useParams<{ courseId: string; lessonId: string }>();
@@ -252,7 +256,14 @@ function LessonViewLoaded({
                     {doneCount}/{course.lessons.length} đã xong
                   </span>
                 </div>
-                <p className="mt-4 max-w-2xl font-sans text-sm leading-relaxed text-neutral-600">{course.description}</p>
+                {looksLikeHtml(course.description) ? (
+                  <div
+                    className="prose prose-sm mt-4 max-w-2xl text-neutral-700 [&_p]:my-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6"
+                    dangerouslySetInnerHTML={{ __html: course.description }}
+                  />
+                ) : (
+                  <p className="mt-4 max-w-2xl font-sans text-sm leading-relaxed text-neutral-600">{course.description}</p>
+                )}
 
                 {saveError ? (
                   <p className="mt-3 font-sans text-sm text-red-600" role="alert">

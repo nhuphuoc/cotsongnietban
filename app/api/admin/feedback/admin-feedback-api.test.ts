@@ -59,21 +59,21 @@ describe("admin feedback API", () => {
   });
 
   describe("POST /api/admin/feedback", () => {
-    it("returns 400 when required fields missing", async () => {
+    it("returns 400 when type missing/invalid", async () => {
       const req = new Request("http://x", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "X" }),
+        body: JSON.stringify({ customerName: "X" }),
       });
       const res = await createHandler(req);
       expect(res.status).toBe(400);
       const body = await jsonResponse(res);
-      expect(body.error?.message).toMatch(/Thiếu name, rating hoặc messageHtml/);
+      expect(body.error?.message).toMatch(/type phải là/);
     });
 
     it("creates feedback and returns 201", async () => {
       const single = vi.fn().mockResolvedValue({
-        data: { id: "fb-new", name: "User", rating: 4, message_html: "<p>ok</p>" },
+        data: { id: "fb-new", type: "testimonial", customer_name: "User", content: "ok" },
         error: null,
       });
       const from = vi.fn().mockReturnValue({
@@ -87,17 +87,16 @@ describe("admin feedback API", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "User",
-          email: "u@test.com",
-          rating: 4,
-          messageHtml: "<p>ok</p>",
-          source: "website",
+          type: "testimonial",
+          customerName: "User",
+          content: "ok",
+          isActive: true,
         }),
       });
       const res = await createHandler(req);
       expect(res.status).toBe(201);
       const body = await jsonResponse(res);
-      expect(body.data).toMatchObject({ id: "fb-new", name: "User" });
+      expect(body.data).toMatchObject({ id: "fb-new", type: "testimonial", customer_name: "User" });
       expect(from).toHaveBeenCalledWith("feedbacks");
     });
   });

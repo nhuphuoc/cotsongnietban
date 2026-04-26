@@ -20,6 +20,30 @@ import {
   X,
 } from "lucide-react";
 
+type CacheEnvelope<T> = { v: 1; t: number; data: T };
+
+function readSessionCache<T>(key: string, maxAgeMs: number): T | null {
+  try {
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CacheEnvelope<T>;
+    if (!parsed || parsed.v !== 1 || typeof parsed.t !== "number") return null;
+    if (Date.now() - parsed.t > maxAgeMs) return null;
+    return parsed.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionCache<T>(key: string, data: T) {
+  try {
+    const payload: CacheEnvelope<T> = { v: 1, t: Date.now(), data };
+    window.sessionStorage.setItem(key, JSON.stringify(payload));
+  } catch {
+    // ignore
+  }
+}
+
 import {
   Dialog,
   DialogClose,
@@ -31,16 +55,73 @@ import {
 } from "@/components/ui/dialog";
 import { notify } from "@/lib/ui/notify";
 import { uploadAdminImage } from "@/lib/admin/upload-image";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
 
 function isValidUrl(s: string): boolean {
   try { new URL(s); return true; } catch { return false; }
 }
 
-function formatMmSs(totalSeconds: number): string {
+function formatHhMmSs(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
-  const m = Math.floor(s / 60);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
   const r = s % 60;
-  return `${m}:${r.toString().padStart(2, "0")}`;
+  const mm = m.toString().padStart(2, "0");
+  const ss = r.toString().padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+}
+
+function formatHhMmSsFixed(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const r = s % 60;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${r.toString().padStart(2, "0")}`;
+}
+
+function parseHhMmSsLooseToSecondsOrNaN(input: string): number {
+  const raw = input.trim();
+  if (!raw) return NaN;
+  const digits = raw.replace(/[^\d]/g, "");
+  if (!digits) return NaN;
+  const tail = digits.slice(-6).padStart(6, "0");
+  const h = Number.parseInt(tail.slice(0, 2), 10);
+  const m = Number.parseInt(tail.slice(2, 4), 10);
+  const s = Number.parseInt(tail.slice(4, 6), 10);
+  if (!Number.isFinite(h) || !Number.isFinite(m) || !Number.isFinite(s)) return NaN;
+  return h * 3600 + Math.min(59, m) * 60 + Math.min(59, s);
+}
+
+function secondsToHmsParts(totalSeconds: number): { h: number; m: number; s: number } {
+  const t = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const s = t % 60;
+  return { h, m, s };
+}
+
+function parseDurationToSeconds(input: string): number | null {
+  const raw = input.trim();
+  if (!raw) return null;
+
+  // Accept plain seconds
+  if (!raw.includes(":")) {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 0) return NaN;
+    return Math.floor(n);
+  }
+
+  // Accept mm:ss or hh:mm:ss
+  const parts = raw.split(":").map((p) => p.trim());
+  if (parts.length !== 2 && parts.length !== 3) return NaN;
+  if (parts.some((p) => p === "" || !/^\d+$/.test(p))) return NaN;
+  const nums = parts.map((p) => Number.parseInt(p, 10));
+  if (nums.some((n) => !Number.isFinite(n) || n < 0)) return NaN;
+
+  const [a, b, c] = nums.length === 3 ? nums : [0, nums[0], nums[1]];
+  // a=hours, b=minutes, c=seconds
+  if (b >= 60 || c >= 60) return NaN;
+  return a * 3600 + b * 60 + c;
 }
 
 function formatDateOnly(value: string | null | undefined): string {
@@ -141,6 +222,35 @@ type CourseInfoDraft = {
   isFeatured: boolean;
 };
 
+function looksLikeHtml(s: string): boolean {
+  return /<\w[\s\S]*>/.test(s);
+}
+
+function plainTextToHtml(s: string): string {
+  const text = s.replace(/\r\n/g, "\n").trim();
+  if (!text) return "<p></p>";
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return `<p>${escaped.replace(/\n/g, "<br/>")}</p>`;
+}
+
+function ensureHtml(value: string | null | undefined): string {
+  const s = (value ?? "").trim();
+  if (!s) return "<p></p>";
+  return looksLikeHtml(s) ? s : plainTextToHtml(s);
+}
+
+function stripHtmlToText(html: string): string {
+  return String(html ?? "")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<\/?[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function contentDraftFromLesson(lesson: LessonRow): ContentDraft {
   return {
     title: lesson.title ?? "",
@@ -155,8 +265,8 @@ function courseInfoDraftFromDetail(detail: CourseDetail): CourseInfoDraft {
     title: detail.title ?? "",
     slug: detail.slug ?? "",
     shortDescription: detail.short_description ?? "",
-    description: detail.description ?? "",
-    extraInfo: detail.extra_info ?? "",
+    description: ensureHtml(detail.description),
+    extraInfo: ensureHtml(detail.extra_info),
     thumbnailUrl: detail.thumbnail_url ?? "",
     heroImageUrl: detail.hero_image_url ?? "",
     trailerUrl: detail.trailer_url ?? "",
@@ -382,6 +492,33 @@ export default function LessonVideosPage() {
       setCourseLoading(true);
       setCourseError(null);
       try {
+        const cacheKey = "csnb_admin_courses_v1";
+        const cached = readSessionCache<CourseRow[]>(cacheKey, 30_000);
+        if (cached && mounted) {
+          // Hiển thị tức thì từ cache (stale), sau đó vẫn fetch để refresh.
+          const list = (cached ?? []).map((c) => ({
+            id: String(c.id),
+            title: String(c.title),
+            slug: String(c.slug),
+            status: String(c.status),
+            thumbnail_url: (c.thumbnail_url as string) ?? null,
+            hero_image_url: (c.hero_image_url as string) ?? null,
+            trailer_url: (c.trailer_url as string) ?? null,
+            short_description: (c.short_description as string) ?? null,
+            description: (c.description as string) ?? null,
+            extra_info: (c.extra_info as string) ?? null,
+            price_vnd: (c.price_vnd as number) ?? null,
+            access_duration_days: (c.access_duration_days as number) ?? null,
+            access_note: (c.access_note as string) ?? null,
+            is_featured: Boolean(c.is_featured),
+            published_at: (c.published_at as string) ?? null,
+            created_at: (c.created_at as string) ?? null,
+            updated_at: (c.updated_at as string) ?? null,
+          }));
+          setCourses(list);
+          setCourseLoading(false);
+        }
+
         const res = await fetch("/api/admin/courses", { cache: "no-store", credentials: "same-origin" });
         const json = (await res.json()) as {
           data?: CourseRow[];
@@ -411,6 +548,7 @@ export default function LessonVideosPage() {
           updated_at: (c.updated_at as string) ?? null,
         }));
         setCourses(list);
+        writeSessionCache(cacheKey, json.data ?? []);
       } catch (error) {
         if (mounted) setCourseError(error instanceof Error ? error.message : "Không tải được khóa học.");
       } finally {
@@ -428,6 +566,32 @@ export default function LessonVideosPage() {
     setDetailError(null);
     setDetail(null);
     try {
+      const cacheKey = `csnb_admin_course_detail_v1:${courseId}`;
+      const cached = readSessionCache<CourseDetail>(cacheKey, 30_000);
+      if (cached) {
+        setDetail(cached);
+        setCourseInfoDraft(courseInfoDraftFromDetail(cached));
+        setCourseInfoEdit(false);
+        setCourseInfoError(null);
+        setCourseInfoSavedAt(null);
+        const initial: Record<string, LessonDraft> = {};
+        for (const lesson of cached.lessons ?? []) {
+          initial[lesson.id] = toDraft(lesson);
+        }
+        setDrafts(initial);
+        setRowError({});
+        setSavedAt({});
+        setQuery("");
+        setOnlyMissing(false);
+        const nextOpen: Record<string, boolean> = {};
+        for (const section of cached.sections ?? []) {
+          nextOpen[section.id] = true;
+        }
+        nextOpen["__ungrouped__"] = true;
+        setOpenSections(nextOpen);
+        // Không return: vẫn fetch để refresh.
+      }
+
       const res = await fetch(`/api/admin/courses/${encodeURIComponent(courseId)}`, {
         cache: "no-store",
         credentials: "same-origin",
@@ -461,6 +625,7 @@ export default function LessonVideosPage() {
       }
       nextOpen["__ungrouped__"] = true;
       setOpenSections(nextOpen);
+      if (json.data) writeSessionCache(cacheKey, json.data);
     } catch (error) {
       setDetailError(error instanceof Error ? error.message : "Không tải được chi tiết khóa học.");
     } finally {
@@ -651,13 +816,13 @@ export default function LessonVideosPage() {
       videoUrl: draft.videoUrl.trim() ? draft.videoUrl.trim() : null,
     };
     if (draft.durationSeconds.trim() !== "") {
-      const n = Number(draft.durationSeconds);
-      if (!Number.isFinite(n) || n < 0) {
+      const n = parseDurationToSeconds(draft.durationSeconds);
+      if (n == null || !Number.isFinite(n) || Number.isNaN(n) || n < 0) {
         setRowError((prev) => ({ ...prev, [lesson.id]: "Thời lượng không hợp lệ." }));
         setSaving((prev) => ({ ...prev, [lesson.id]: false }));
         return;
       }
-      body.durationSeconds = Math.floor(n);
+      body.durationSeconds = n;
     } else if (lesson.duration_seconds != null) {
       // Cho phép clear duration đã set trước đó (set về null)
       body.durationSeconds = null;
@@ -965,8 +1130,10 @@ export default function LessonVideosPage() {
     const shortDescription = courseInfoDraft.shortDescription.trim();
     if (!shortDescription) errs.shortDescription = "Mô tả ngắn không được để trống.";
 
-    const description = courseInfoDraft.description.trim();
-    if (!description) errs.description = "Mô tả đầy đủ không được để trống.";
+    const descriptionText = stripHtmlToText(courseInfoDraft.description);
+    if (!descriptionText) errs.description = "Mô tả đầy đủ không được để trống.";
+
+    const extraInfoText = stripHtmlToText(courseInfoDraft.extraInfo);
 
     const thumbnailUrl = courseInfoDraft.thumbnailUrl.trim();
     if (!thumbnailUrl) errs.thumbnailUrl = "Ảnh bìa không được để trống.";
@@ -1023,7 +1190,7 @@ export default function LessonVideosPage() {
           title,
           shortDescription: courseInfoDraft.shortDescription.trim() || null,
           description: courseInfoDraft.description.trim() || null,
-          extraInfo: courseInfoDraft.extraInfo.trim() || null,
+          extraInfo: extraInfoText ? courseInfoDraft.extraInfo.trim() : undefined,
           thumbnailUrl: courseInfoDraft.thumbnailUrl.trim() || null,
           heroImageUrl: courseInfoDraft.heroImageUrl.trim() || courseInfoDraft.thumbnailUrl.trim() || null,
           trailerUrl: courseInfoDraft.trailerUrl.trim() || null,
@@ -1035,8 +1202,15 @@ export default function LessonVideosPage() {
         }),
       });
 
-      const json = (await res.json()) as { data?: Record<string, unknown>; error?: { message?: string } };
-      if (!res.ok) throw new Error(json.error?.message ?? "Không lưu được thông tin khoá học.");
+      const json = (await res.json()) as {
+        data?: Record<string, unknown>;
+        error?: { message?: string; details?: unknown };
+      };
+      if (!res.ok) {
+        const details =
+          json.error?.details != null ? `\n\nChi tiết: ${JSON.stringify(json.error.details, null, 2)}` : "";
+        throw new Error(`${json.error?.message ?? "Không lưu được thông tin khoá học."}${details}`.trim());
+      }
 
       const patch = json.data ?? {};
       setDetail((prev) => {
@@ -1115,7 +1289,9 @@ export default function LessonVideosPage() {
       notify.success("Lưu thông tin khoá học thành công.");
       setCourseInfoEdit(false);
     } catch (error) {
-      setCourseInfoError(error instanceof Error ? error.message : "Không lưu được thông tin khoá học.");
+      const msg = error instanceof Error ? error.message : "Không lưu được thông tin khoá học.";
+      setCourseInfoError(msg);
+      notify.error("Không lưu được thông tin khoá học.", msg);
     } finally {
       setCourseInfoSaving(false);
     }
@@ -1169,6 +1345,7 @@ export default function LessonVideosPage() {
     setCcSaving(true);
     setCcError(null);
     try {
+      const ccExtraInfoText = stripHtmlToText(ccExtraInfo);
       const res = await fetch("/api/admin/courses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1178,7 +1355,7 @@ export default function LessonVideosPage() {
           slug: ccSlug.trim() || null,
           shortDescription: ccShortDescription.trim() || null,
           description: ccDescription.trim() || null,
-          extraInfo: ccExtraInfo.trim() || null,
+          extraInfo: ccExtraInfoText ? ccExtraInfo.trim() : undefined,
           thumbnailUrl: ccThumbnailUrl.trim() || null,
           heroImageUrl: ccHeroImageUrl.trim() || null,
           trailerUrl: ccTrailerUrl.trim() || null,
@@ -1939,31 +2116,38 @@ export default function LessonVideosPage() {
 
                             <div>
                               <label className="mb-1 block text-xs font-medium text-gray-500">Mô tả đầy đủ <span className="text-red-500">*</span></label>
-                              <textarea
-                                value={courseInfoDraft.description}
-                                onChange={(e) => {
-                                  setCourseInfoDraft((prev) => prev ? { ...prev, description: e.target.value } : prev);
-                                  if (courseInfoErrors.description) setCourseInfoErrors((p) => { const n = { ...p }; delete n.description; return n; });
-                                }}
-                                rows={6}
-                                className={`w-full rounded-md border ${courseInfoErrors.description ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
-                                disabled={courseInfoSaving}
-                              />
+                              <div className={`overflow-hidden rounded-md border ${courseInfoErrors.description ? "border-red-400" : "border-gray-300"} bg-white`}>
+                                <RichTextEditor
+                                  valueHtml={courseInfoDraft.description}
+                                  onChangeHtml={(nextHtml) => {
+                                    setCourseInfoDraft((prev) => (prev ? { ...prev, description: nextHtml } : prev));
+                                    if (courseInfoErrors.description) {
+                                      setCourseInfoErrors((p) => {
+                                        const n = { ...p };
+                                        delete n.description;
+                                        return n;
+                                      });
+                                    }
+                                  }}
+                                  placeholder="Mô tả chi tiết về khoá học..."
+                                  className="rounded-none border-0"
+                                />
+                              </div>
                               {courseInfoErrors.description && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.description}</p>}
                             </div>
 
                             <div>
                               <label className="mb-1 block text-xs font-medium text-gray-500">Thông tin thêm / Bạn sẽ học được gì?</label>
-                              <textarea
-                                value={courseInfoDraft.extraInfo}
-                                onChange={(e) => setCourseInfoDraft((prev) =>
-                                    prev ? { ...prev, extraInfo: e.target.value } : prev
-                                  )
-                                }
-                                rows={4}
-                                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
-                                disabled={courseInfoSaving}
-                              />
+                              <div className="overflow-hidden rounded-md border border-gray-300 bg-white">
+                                <RichTextEditor
+                                  valueHtml={courseInfoDraft.extraInfo}
+                                  onChangeHtml={(nextHtml) =>
+                                    setCourseInfoDraft((prev) => (prev ? { ...prev, extraInfo: nextHtml } : prev))
+                                  }
+                                  placeholder="Điểm nổi bật, kết quả, ai phù hợp..."
+                                  className="rounded-none border-0"
+                                />
+                              </div>
                             </div>
 
                             <div>
@@ -2119,9 +2303,14 @@ export default function LessonVideosPage() {
                               </div>
                               <div>
                                 <div className="text-xs font-medium text-gray-500">Mô tả đầy đủ</div>
-                                <div className="mt-1 text-sm text-gray-700 whitespace-pre-line">
-                                  {detail.description ?? <span className="text-gray-300">—</span>}
-                                </div>
+                                {detail.description ? (
+                                  <div
+                                    className="prose prose-sm mt-1 max-w-none text-gray-700 [&_p]:my-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6"
+                                    dangerouslySetInnerHTML={{ __html: ensureHtml(detail.description) }}
+                                  />
+                                ) : (
+                                  <div className="mt-1 text-sm text-gray-300">—</div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -2362,7 +2551,7 @@ export default function LessonVideosPage() {
                                           <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">Preview</span>
                                         )}
                                         {lesson.duration_seconds != null && (
-                                          <span className="text-[11px] text-gray-400">{formatMmSs(lesson.duration_seconds)}</span>
+                                          <span className="text-[11px] text-gray-400">{formatHhMmSs(lesson.duration_seconds)}</span>
                                         )}
                                       </div>
                                       {err && <p className="mt-1 text-xs text-red-600">{err}</p>}
@@ -2396,18 +2585,41 @@ export default function LessonVideosPage() {
                                       {draft.videoProvider === "bunny_stream" && <p className="mt-0.5 text-[11px] text-gray-400">GUID hoặc URL embed/play đều được</p>}
                                     </div>
                                     <div className="pr-3 pt-0.5">
-                                      <input
-                                        type="number"
-                                        min={0}
-                                        step={1}
-                                        value={draft.durationSeconds}
-                                        onChange={(e) => updateDraft(lesson.id, { durationSeconds: e.target.value })}
-                                        placeholder="Giây"
-                                        className="w-full rounded-md border border-gray-200 bg-white px-2.5 py-2 text-sm focus:border-[#c0392b] focus:outline-none"
-                                        disabled={isSaving}
-                                      />
+                                      {(() => {
+                                        const has = draft.durationSeconds.trim() !== "";
+                                        const sec = has ? Number(draft.durationSeconds) : 0;
+                                        const safeSec = Number.isFinite(sec) && sec >= 0 ? sec : 0;
+                                        const value = has ? formatHhMmSsFixed(safeSec) : "";
+                                        return (
+                                          <input
+                                            type="text"
+                                            value={value}
+                                            onChange={(e) => {
+                                              const raw = e.target.value;
+                                              if (!raw.trim()) {
+                                                updateDraft(lesson.id, { durationSeconds: "" });
+                                                return;
+                                              }
+                                              const nextSec = parseHhMmSsLooseToSecondsOrNaN(raw);
+                                              if (!Number.isFinite(nextSec) || Number.isNaN(nextSec) || nextSec < 0) return;
+                                              updateDraft(lesson.id, { durationSeconds: String(Math.floor(nextSec)) });
+                                            }}
+                                            inputMode="numeric"
+                                            placeholder="00:00:00"
+                                            className="w-full rounded-md border border-gray-200 bg-white px-2.5 py-2 text-sm tabular-nums focus:border-[#c0392b] focus:outline-none"
+                                            disabled={isSaving}
+                                          />
+                                        );
+                                      })()}
                                       <p className="mt-0.5 text-[11px] text-gray-400">
-                                        {draft.durationSeconds.trim() !== "" && Number.isFinite(Number(draft.durationSeconds)) ? `~ ${formatMmSs(Number(draft.durationSeconds))}` : "VD: 750 → 12:30"}
+                                        {draft.durationSeconds.trim()
+                                          ? (() => {
+                                              const sec = parseDurationToSeconds(draft.durationSeconds);
+                                              return Number.isFinite(sec ?? NaN) && !Number.isNaN(sec as number)
+                                                ? `= ${formatHhMmSs(sec as number)}`
+                                                : "Thời lượng không hợp lệ";
+                                            })()
+                                          : "Nhập theo Giờ / Phút / Giây"}
                                       </p>
                                     </div>
                                     <div className="flex items-center justify-end gap-1.5 pt-0.5">
@@ -2569,14 +2781,14 @@ export default function LessonVideosPage() {
               <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                 Thông tin thêm / Bạn sẽ học được gì?
               </label>
-              <textarea
-                value={ccExtraInfo}
-                onChange={(e) => setCcExtraInfo(e.target.value)}
-                placeholder="Nội dung mô tả bổ sung cho khoá học"
-                rows={3}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
-                disabled={ccSaving}
-              />
+              <div className="overflow-hidden rounded-md border border-gray-300 bg-white">
+                <RichTextEditor
+                  valueHtml={ensureHtml(ccExtraInfo)}
+                  onChangeHtml={(nextHtml) => setCcExtraInfo(nextHtml)}
+                  placeholder="Điểm nổi bật, kết quả, ai phù hợp..."
+                  className="rounded-none border-0"
+                />
+              </div>
             </div>
 
             <div>
@@ -2597,14 +2809,14 @@ export default function LessonVideosPage() {
               <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                 Mô tả đầy đủ
               </label>
-              <textarea
-                value={ccDescription}
-                onChange={(e) => setCcDescription(e.target.value)}
-                placeholder="Mô tả chi tiết về khoá học"
-                rows={3}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
-                disabled={ccSaving}
-              />
+              <div className="overflow-hidden rounded-md border border-gray-300 bg-white">
+                <RichTextEditor
+                  valueHtml={ensureHtml(ccDescription)}
+                  onChangeHtml={(nextHtml) => setCcDescription(nextHtml)}
+                  placeholder="Mô tả chi tiết về khoá học..."
+                  className="rounded-none border-0"
+                />
+              </div>
             </div>
 
             <div>
@@ -2797,6 +3009,30 @@ export default function LessonVideosPage() {
                 />
               </div>
             )}
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                Thời lượng
+              </label>
+              <input
+                type="text"
+                value={addLessonDuration.trim() ? formatHhMmSsFixed(Number(addLessonDuration)) : ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (!raw.trim()) {
+                    setAddLessonDuration("");
+                    return;
+                  }
+                  const sec = parseHhMmSsLooseToSecondsOrNaN(raw);
+                  if (!Number.isFinite(sec) || Number.isNaN(sec) || sec < 0) return;
+                  setAddLessonDuration(String(Math.floor(sec)));
+                }}
+                inputMode="numeric"
+                placeholder="00:00:00"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm tabular-nums focus:border-[#c0392b] focus:outline-none"
+                disabled={addLessonSaving}
+              />
+              <p className="mt-0.5 text-[11px] text-gray-400">{addLessonDuration.trim() ? `= ${formatHhMmSs(Number(addLessonDuration))}` : "Tuỳ chọn"}</p>
+            </div>
             <div>
               <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                 Tóm tắt

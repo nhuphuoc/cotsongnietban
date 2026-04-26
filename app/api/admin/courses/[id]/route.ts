@@ -1,5 +1,6 @@
 import { requireAdminActor } from "@/lib/api/auth";
 import { ok, fail } from "@/lib/api/http";
+import { omitMissingColumnsUntilSuccess } from "@/lib/api/pgrst-schema-compat";
 import { compactPatch, getCourseByIdentifier, slugify } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -108,8 +109,14 @@ export async function PATCH(
     });
 
     const client = createAdminClient();
-    const { data, error } = await client.from("courses").update(patch).eq("id", id).select("*").single();
-    if (error) return fail("Không thể cập nhật khóa học.", 400, error);
+    const { data, error } = await omitMissingColumnsUntilSuccess(
+      patch as Record<string, unknown>,
+      async (p) => await client.from("courses").update(p).eq("id", id).select("*").single()
+    );
+    if (error) {
+      console.error("Admin update course failed", { id, patchKeys: Object.keys(patch), error });
+      return fail("Không thể cập nhật khóa học.", 400, error);
+    }
     return ok(data);
   } catch (error) {
     return fail("Không thể cập nhật khóa học.", 500, error);

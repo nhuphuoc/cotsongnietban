@@ -1,5 +1,6 @@
 import { requireAdminActor } from "@/lib/api/auth";
 import { ok, fail } from "@/lib/api/http";
+import { omitMissingColumnsUntilSuccess } from "@/lib/api/pgrst-schema-compat";
 import { listCourses, slugify } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -62,26 +63,27 @@ export async function POST(request: Request) {
     }
 
     const client = createAdminClient();
-    const { data, error } = await client
-      .from("courses")
-      .insert({
-        title,
-        slug: finalSlug,
-        short_description: body.shortDescription?.trim() || null,
-        description: body.description?.trim() || null,
-        extra_info: body.extraInfo?.trim() || null,
-        thumbnail_url: body.thumbnailUrl?.trim() || null,
-        hero_image_url: body.heroImageUrl?.trim() || null,
-        trailer_url: body.trailerUrl?.trim() || null,
-        price_vnd: priceVnd,
-        access_duration_days: accessDurationDays,
-        access_note: body.accessNote?.trim() || null,
-        is_featured: Boolean(body.isFeatured),
-        status,
-        published_at: status === "published" ? new Date().toISOString() : null,
-      })
-      .select("*")
-      .single();
+    const payloadBase = {
+      title,
+      slug: finalSlug,
+      short_description: body.shortDescription?.trim() || null,
+      description: body.description?.trim() || null,
+      extra_info: body.extraInfo?.trim() || null,
+      thumbnail_url: body.thumbnailUrl?.trim() || null,
+      hero_image_url: body.heroImageUrl?.trim() || null,
+      trailer_url: body.trailerUrl?.trim() || null,
+      price_vnd: priceVnd,
+      access_duration_days: accessDurationDays,
+      access_note: body.accessNote?.trim() || null,
+      is_featured: Boolean(body.isFeatured),
+      status,
+      published_at: status === "published" ? new Date().toISOString() : null,
+    };
+
+    const { data, error } = await omitMissingColumnsUntilSuccess(
+      payloadBase as Record<string, unknown>,
+      async (p) => await client.from("courses").insert(p).select("*").single()
+    );
 
     if (error) return fail("Không thể tạo khóa học.", 400, error);
     return ok(data, 201);

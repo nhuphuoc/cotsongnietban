@@ -54,6 +54,11 @@ function notesFromLesson(lesson: DbLesson): { notesIntro?: string; noteBullets?:
   return out;
 }
 
+function isLessonPublished(lesson: DbLesson): boolean {
+  // Default to false if field missing (safer: không lộ bài nháp).
+  return Boolean((lesson as { is_published?: boolean | null }).is_published);
+}
+
 /** Danh sách bài hiển thị trong LMS theo thứ tự section -> bài */
 function orderedPublishedLessons(course: FullCourse): DbLesson[] {
   const flat: DbLesson[] = [];
@@ -65,11 +70,14 @@ function orderedPublishedLessons(course: FullCourse): DbLesson[] {
       (a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)
     );
     for (const l of ls) {
-      flat.push(l as DbLesson);
+      const lesson = l as DbLesson;
+      if (!isLessonPublished(lesson)) continue;
+      flat.push(lesson);
     }
   }
   const roots = [...(course.lessons ?? [])]
     .filter((l) => !l.section_id)
+    .filter((l) => isLessonPublished(l as DbLesson))
     .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
   for (const l of roots) {
     if (flat.some((x) => String(x.id) === String(l.id))) continue;
@@ -143,6 +151,7 @@ export function buildLmsCourseViewModel(bundle: EnrollmentCourseBundle): DemoCou
     .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0))
     .map((sec) => {
       const ls = [...(sec.lessons ?? [])]
+        .filter((l) => isLessonPublished(l as DbLesson))
         .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
       return {
         id: String(sec.id),
