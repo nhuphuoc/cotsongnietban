@@ -790,7 +790,7 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 className="inline-flex min-h-11 items-center justify-center rounded-full border border-csnb-border/60 bg-white px-6 font-sans text-sm font-semibold text-csnb-ink transition hover:border-csnb-orange/40 hover:bg-csnb-panel/50"
               >
-                Tư vấn trực tiếp
+                Thắc mắc - hỏi ngay
               </Link>
             </div>
           </Reveal>
@@ -1273,7 +1273,7 @@ export default function LandingPage() {
                   className="mx-auto mt-7 inline-flex min-h-11 w-full max-w-xs items-center justify-center gap-2 rounded-full border border-csnb-border/40 bg-csnb-ink px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-csnb-raised hover:shadow-lg lg:mx-0 lg:max-w-none"
                 >
                   <MessageCircle size={17} className="shrink-0 text-csnb-orange-bright" />
-                  Tư vấn trực tiếp
+                  Thắc mắc - hỏi ngay
                   <ArrowRight size={15} className="shrink-0 opacity-80" />
                 </Link>
               </div>
@@ -1401,8 +1401,8 @@ export default function LandingPage() {
         target="_blank"
         rel="noopener noreferrer"
         className="fixed z-50 flex h-14 w-14 items-center justify-center rounded-full bg-csnb-orange text-white shadow-lg shadow-csnb-orange/30 transition-colors hover:bg-csnb-orange-deep max-sm:bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] max-sm:right-[max(1rem,env(safe-area-inset-right,0px))] sm:bottom-6 sm:right-6"
-        title="Tư vấn trực tiếp"
-        aria-label="Tư vấn trực tiếp"
+        title="Thắc mắc - hỏi ngay"
+        aria-label="Thắc mắc - hỏi ngay"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.9, type: "spring", stiffness: 280, damping: 19 }}
