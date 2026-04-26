@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Play, BookOpen, BarChart3, Calendar, Layers } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { listAccessibleEnrollmentsForUser } from "@/lib/api/repositories";
+import { getLmsCourseHref, getLmsLessonHref } from "@/lib/learning-hub";
 
 const FALLBACK_THUMB =
   "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop";
@@ -113,8 +114,8 @@ export default async function HocCuaToiPage() {
                     : row.last_lesson.title
                   : "Vào khóa học";
                 const href = row.last_lesson
-                  ? `/courses/${hrefId}/lessons/${row.last_lesson.id}`
-                  : `/courses/${hrefId}`;
+                  ? getLmsLessonHref(String(hrefId), row.last_lesson.id)
+                  : getLmsCourseHref(String(hrefId));
                 const thumb =
                   (typeof course.thumbnail_url === "string" && course.thumbnail_url.trim()) || FALLBACK_THUMB;
                 const title = (typeof course.title === "string" && course.title) || "Khóa học";

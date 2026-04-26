@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { getLmsHomeHref } from "@/lib/learning-hub";
 
 type Mode = "signin" | "signup";
 
@@ -95,8 +96,13 @@ export function EmailPasswordAuthForm({ initialMode = "signin" }: EmailPasswordA
         return;
       }
 
+      const home = getLmsHomeHref();
       router.refresh();
-      router.push("/dashboard");
+      if (home.startsWith("http://") || home.startsWith("https://")) {
+        window.location.assign(home);
+      } else {
+        router.push(home);
+      }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Không thể đăng nhập.");
     } finally {

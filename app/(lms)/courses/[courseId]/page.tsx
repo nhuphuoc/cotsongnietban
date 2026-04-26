@@ -13,6 +13,7 @@ import {
   isPhaseComplete,
   firstPlayableLessonIdInPhase,
 } from "@/lib/demo-courses";
+import { getLmsHomeHref, getLmsLessonHref } from "@/lib/learning-hub";
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId: routeCourseKey } = await params;
@@ -42,11 +43,11 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
       <header className="sticky top-0 z-10 border-b border-neutral-200 bg-[#1c1d1f] px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-6xl items-center gap-3">
           <Link
-            href="/dashboard"
+            href={getLmsHomeHref()}
             className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-white/80 transition-colors hover:text-white"
           >
             <ArrowLeft className="size-4" />
-            <span className="hidden sm:inline">Dashboard</span>
+            <span className="hidden sm:inline">Phòng học</span>
           </Link>
           <span className="h-4 w-px shrink-0 bg-white/15" aria-hidden />
           <h1 className="min-w-0 truncate font-sans text-sm font-semibold text-white">{course.title}</h1>
@@ -72,7 +73,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
               {nextLesson ? (
                 <Link
-                  href={`/courses/${routeCourseKey}/lessons/${nextLesson.id}`}
+                  href={getLmsLessonHref(routeCourseKey, nextLesson.id)}
                   className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-[#1c1d1f] px-4 py-2.5 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-black sm:min-h-11 sm:px-5"
                 >
                   <Play className="size-4 shrink-0 fill-current" />
@@ -173,7 +174,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               return (
                 <Link
                   key={phase.id}
-                  href={`/courses/${routeCourseKey}/lessons/${firstId}`}
+                  href={getLmsLessonHref(routeCourseKey, firstId)}
                   className="block overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md"
                 >
                   {inner}

@@ -6,6 +6,7 @@ import { EmailPasswordAuthForm } from "@/components/auth/email-password-auth-for
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { getSupabasePublicEnv } from "@/utils/supabase/env";
 import { createClient } from "@/utils/supabase/server";
+import { getLmsHomeHref } from "@/lib/learning-hub";
 
 type Props = { searchParams?: Promise<{ error?: string; mode?: string }> };
 
@@ -31,7 +32,7 @@ export default async function LoginPage({ searchParams }: Props) {
           if (profile?.role === "admin") {
             redirect("/admin");
           }
-          redirect("/dashboard");
+          redirect(getLmsHomeHref());
         }
         redirect("/verify-email");
       }

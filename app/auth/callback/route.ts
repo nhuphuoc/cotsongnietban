@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabasePublicEnv } from "@/utils/supabase/env";
 import { createClient } from "@/utils/supabase/server";
+import { resolveAuthCallbackNext } from "@/lib/learning-hub";
 
 async function resolvePostAuthPath(requestedPath: string) {
   const supabase = await createClient();
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = searchParams.get("next");
 
   if (!getSupabasePublicEnv()) {
     return NextResponse.redirect(`${origin}/login?error=config`);
@@ -38,8 +39,8 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      const safeNext = next.startsWith("/") ? next : "/dashboard";
-      const redirectPath = await resolvePostAuthPath(safeNext);
+      const resolved = resolveAuthCallbackNext(next, origin);
+      const redirectPath = await resolvePostAuthPath(resolved);
       return NextResponse.redirect(`${origin}${redirectPath}`);
     }
   }
@@ -51,8 +52,8 @@ export async function GET(request: Request) {
       type: type as "signup" | "email_change" | "recovery" | "invite" | "magiclink" | "email",
     });
     if (!error) {
-      const safeNext = next.startsWith("/") ? next : "/dashboard";
-      const redirectPath = await resolvePostAuthPath(safeNext);
+      const resolved = resolveAuthCallbackNext(next, origin);
+      const redirectPath = await resolvePostAuthPath(resolved);
       return NextResponse.redirect(`${origin}${redirectPath}`);
     }
   }

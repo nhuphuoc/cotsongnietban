@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getSupabasePublicEnv } from "@/utils/supabase/env";
+import { getLmsHomeHref } from "@/lib/learning-hub";
 
 const adminFont = Plus_Jakarta_Sans({
   subsets: ["latin", "latin-ext", "vietnamese"],
@@ -37,7 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .maybeSingle();
 
   if (!profile?.is_active || profile.role !== "admin") {
-    redirect("/dashboard");
+    redirect(getLmsHomeHref());
   }
 
   return (

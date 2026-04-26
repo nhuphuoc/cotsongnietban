@@ -4,6 +4,7 @@ import { CourseEnrollmentCheckout } from "@/components/marketing/course-enrollme
 import { getSessionActor } from "@/lib/api/auth";
 import { getCoursePurchaseStateForUser, getPublicCourseByIdentifier } from "@/lib/api/repositories";
 import { formatVnd } from "@/lib/format-vnd";
+import { getLmsCourseHref } from "@/lib/learning-hub";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ cours
               <p className="font-sans text-base font-bold text-emerald-900">Bạn đã có quyền học khóa này.</p>
               <p className="font-sans text-sm text-emerald-800">Không cần thanh toán thêm. Nếu cần hỗ trợ, vui lòng liên hệ admin qua Zalo.</p>
               <Link
-                href={`/courses/${course.slug || course.id}`}
+                href={getLmsCourseHref(String(course.slug || course.id))}
                 className="inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800"
               >
                 Vào khóa học

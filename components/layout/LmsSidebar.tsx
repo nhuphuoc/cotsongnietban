@@ -7,6 +7,7 @@ import { SITE_CONTACT } from "@/lib/site-contact";
 import { LayoutDashboard, MessageCircle, LogOut, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SiteLogoMark } from "@/components/brand/site-logo-mark";
+import { getLmsCourseHref, getLmsHomeHref, parseLearningHubHosts } from "@/lib/learning-hub";
 
 type Props = {
   className?: string;
@@ -28,7 +29,14 @@ type ApiEnrollmentRow = {
 export default function LmsSidebar({ className, onNavigate }: Props) {
   const pathname = usePathname();
   const [rows, setRows] = useState<ApiEnrollmentRow[]>([]);
+  const [onLearningHubHost, setOnLearningHubHost] = useState(false);
   const nav = () => onNavigate?.();
+
+  useEffect(() => {
+    const h = window.location.host.toLowerCase();
+    const patterns = parseLearningHubHosts();
+    setOnLearningHubHost(patterns.some((p) => h === p || h.endsWith(`.${p}`)));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,16 +69,16 @@ export default function LmsSidebar({ className, onNavigate }: Props) {
 
       <nav className="border-b border-neutral-200 p-3">
         <Link
-          href="/dashboard"
+          href={getLmsHomeHref()}
           onClick={nav}
           className={`flex items-center gap-3 rounded-md px-3 py-2.5 font-heading text-sm font-semibold uppercase tracking-wide transition-colors ${
-            pathname === "/dashboard"
+            pathname === "/dashboard" || (pathname === "/" && onLearningHubHost)
               ? "bg-neutral-900 text-white"
               : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
           }`}
         >
           <LayoutDashboard size={16} />
-          Dashboard
+          Phòng học
         </Link>
       </nav>
 
@@ -90,7 +98,7 @@ export default function LmsSidebar({ className, onNavigate }: Props) {
               return (
                 <Link
                   key={row.id}
-                  href={`/courses/${hrefId}`}
+                  href={getLmsCourseHref(String(hrefId))}
                   onClick={nav}
                   className="group block rounded-lg border border-neutral-200 bg-neutral-50/80 p-3 transition-colors hover:border-neutral-300 hover:bg-white"
                 >

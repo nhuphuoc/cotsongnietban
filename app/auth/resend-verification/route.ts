@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabasePublicEnv } from "@/utils/supabase/env";
 import { createClient } from "@/utils/supabase/server";
+import { getLmsHomeAbsoluteUrl } from "@/lib/learning-hub";
 
 function appendQuery(basePath: string, entries: Record<string, string>) {
   const q = new URLSearchParams();
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
   }
 
   if (user?.email_confirmed_at) {
-    return NextResponse.redirect(`${origin}/dashboard`);
+    return NextResponse.redirect(getLmsHomeAbsoluteUrl(origin));
   }
 
   const { error } = await supabase.auth.resend({

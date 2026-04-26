@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SiteLogoMark } from "@/components/brand/site-logo-mark";
 import { getSupabasePublicEnv } from "@/utils/supabase/env";
 import { createClient } from "@/utils/supabase/server";
+import { getLmsHomeHref } from "@/lib/learning-hub";
 
 type Props = { searchParams?: Promise<{ resent?: string; resend_error?: string }> };
 
@@ -34,7 +35,7 @@ export default async function VerifyEmailPage({ searchParams }: Props) {
     if (profile?.role === "admin") {
       redirect("/admin");
     }
-    redirect("/dashboard");
+    redirect(getLmsHomeHref());
   }
 
   const email = user.email ?? "(khong xac dinh)";

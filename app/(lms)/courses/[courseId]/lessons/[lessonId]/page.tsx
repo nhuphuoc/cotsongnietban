@@ -10,6 +10,7 @@ import {
   getCompletedLessonCount,
   getCourseProgressPercent,
 } from "@/lib/demo-courses";
+import { getLmsCourseHref, getLmsHomeHref, getLmsLessonHref } from "@/lib/learning-hub";
 import { LessonVideoPlayer } from "@/components/lms/lesson-video-player";
 import { CourseCurriculumSidebar } from "@/components/lms/course-curriculum-sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -113,8 +114,8 @@ export default function LessonViewPage() {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 bg-neutral-100 p-8 text-center">
         <p className="font-sans text-sm text-neutral-600">{loadError ?? "Không tìm thấy bài học hoặc khóa học."}</p>
-        <Link href="/dashboard" className="text-sm font-semibold text-violet-700 hover:underline">
-          Về dashboard
+        <Link href={getLmsHomeHref()} className="text-sm font-semibold text-violet-700 hover:underline">
+          Về phòng học
         </Link>
       </div>
     );
@@ -130,7 +131,7 @@ export default function LessonViewPage() {
       <div className="flex min-h-full flex-col bg-neutral-100">
         <header className="relative z-20 border-b border-neutral-800 bg-[#1c1d1f] px-4 py-3">
           <Link
-            href={`/courses/${courseId}`}
+            href={getLmsCourseHref(courseId)}
             className="inline-flex max-w-full items-center gap-2 text-xs font-medium text-white/85 no-underline hover:text-white hover:no-underline"
           >
             <ArrowLeft className="size-4 shrink-0" />
@@ -143,7 +144,7 @@ export default function LessonViewPage() {
             trước để mở.
           </p>
           <Link
-            href={`/courses/${courseId}`}
+            href={getLmsCourseHref(courseId)}
             className="rounded-md bg-[#1c1d1f] px-5 py-2.5 font-sans text-sm font-semibold text-white hover:bg-black"
           >
             Về trang khóa học
@@ -165,6 +166,7 @@ export default function LessonViewPage() {
       saving={saving}
       saveError={saveError}
       onApplyProgress={applyProgress}
+      getLessonHref={(lid) => getLmsLessonHref(courseId, lid)}
     />
   );
 }
@@ -180,6 +182,7 @@ function LessonViewLoaded({
   saving,
   saveError,
   onApplyProgress,
+  getLessonHref,
 }: {
   course: DemoCourse;
   lesson: DemoLesson;
@@ -191,6 +194,7 @@ function LessonViewLoaded({
   saving: boolean;
   saveError: string | null;
   onApplyProgress: (isCompleted: boolean) => void | Promise<void>;
+  getLessonHref: (lessonId: string) => string;
 }) {
   const completed = lesson.completed;
 
@@ -198,7 +202,7 @@ function LessonViewLoaded({
     <div className="flex min-h-[100dvh] flex-col overflow-x-clip bg-neutral-100 lg:min-h-full">
       <header className="relative z-20 flex shrink-0 items-center justify-between gap-3 border-b border-neutral-800 bg-[#1c1d1f] px-4 py-3 sm:px-5">
         <Link
-          href={`/courses/${courseId}`}
+          href={getLmsCourseHref(courseId)}
           className="inline-flex min-w-0 max-w-[min(100%,28rem)] items-center gap-2 text-xs font-medium text-white/90 no-underline hover:text-white hover:no-underline sm:text-sm"
         >
           <ArrowLeft className="size-4 shrink-0" />
@@ -285,7 +289,7 @@ function LessonViewLoaded({
                   )}
                   {nextLesson ? (
                     <Link
-                      href={`/courses/${courseId}/lessons/${nextLesson.id}`}
+                      href={getLmsLessonHref(courseId, nextLesson.id)}
                       className="inline-flex min-h-11 items-center font-sans text-sm font-medium text-violet-700 hover:underline sm:min-h-0"
                     >
                       Bài tiếp theo →
@@ -326,7 +330,12 @@ function LessonViewLoaded({
 
         <aside className="flex w-full shrink-0 flex-col border-t border-neutral-200 bg-white lg:w-[min(100%,380px)] lg:border-t-0 lg:border-l lg:border-neutral-200">
           <div className="flex max-h-[min(52vh,440px)] min-h-[min(44vh,320px)] flex-1 flex-col overflow-hidden lg:max-h-none lg:min-h-0 lg:flex-1">
-            <CourseCurriculumSidebar course={course} courseId={courseId} activeLessonId={lesson.id} />
+            <CourseCurriculumSidebar
+              course={course}
+              courseId={courseId}
+              activeLessonId={lesson.id}
+              getLessonHref={getLessonHref}
+            />
           </div>
           <div className="shrink-0 border-t border-neutral-200 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <a

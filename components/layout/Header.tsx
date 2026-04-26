@@ -7,6 +7,7 @@ import { Menu, X, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SiteLogoMark } from "@/components/brand/site-logo-mark";
 import { createClient } from "@/utils/supabase/client";
+import { getLmsHomeHref } from "@/lib/learning-hub";
 
 const navLinksGuest = [
   { href: "/", label: "Trang chủ" },
@@ -115,10 +116,10 @@ export default function Header() {
           {isSignedIn ? (
             <>
               <Link
-                href="/dashboard"
+                href={getLmsHomeHref()}
                 className="rounded-md px-3 py-2 font-sans text-sm font-medium text-csnb-muted transition-colors hover:text-white"
               >
-                Dashboard
+                Phòng học
               </Link>
               <Link
                 href="/auth/signout"
@@ -184,10 +185,10 @@ export default function Header() {
               {isSignedIn ? (
                 <>
                   <Link
-                    href="/dashboard"
+                    href={getLmsHomeHref()}
                     className="rounded-lg py-3 text-center font-sans text-sm text-csnb-muted hover:bg-white/5 hover:text-white"
                   >
-                    Dashboard
+                    Phòng học
                   </Link>
                   <Link
                     href="/auth/signout"

@@ -10,6 +10,7 @@ import { CourseProgramAccordion, type ProgramPhase } from "@/components/marketin
 import { getSessionActor } from "@/lib/api/auth";
 import { getCoursePurchaseStateForUser, getPublicCourseByIdentifier } from "@/lib/api/repositories";
 import { formatVnd } from "@/lib/format-vnd";
+import { getLmsCourseHref } from "@/lib/learning-hub";
 
 const FALLBACK_THUMB =
   "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop";
@@ -143,7 +144,7 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
       outcomes,
       trustLine:
         "Thanh toán và quyền truy cập theo gói đăng ký. Liên hệ nếu bạn cần tư vấn trước khi mua.",
-      lmsHref: `/courses/${slugOrId}`,
+      lmsHref: getLmsCourseHref(slugOrId),
       isDemo: false,
       purchasableCourseId: String(pub.id),
     };
@@ -180,7 +181,7 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
     instructorTitle: meta.instructorTitle,
     outcomes: meta.outcomes,
     trustLine: meta.trustLine,
-    lmsHref: `/courses/${demo.id}`,
+    lmsHref: getLmsCourseHref(demo.id),
     isDemo: true,
     purchasableCourseId: null,
   };

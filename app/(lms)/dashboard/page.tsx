@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Clock, BookOpen, CheckCircle2, AlertCircle, Play } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { listAccessibleEnrollmentsForUser } from "@/lib/api/repositories";
+import { getLmsCourseHref, getLmsHomeHref } from "@/lib/learning-hub";
 
 type CourseSummary = {
   id: string;
@@ -173,7 +174,7 @@ export default async function DashboardPage() {
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <span className="line-clamp-2 font-sans text-xs text-neutral-600">Tiếp: {nextLabel}</span>
                     <Link
-                      href={`/courses/${hrefId}`}
+                      href={getLmsCourseHref(String(hrefId))}
                       className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md bg-neutral-900 px-3 py-1.5 font-heading text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-black"
                     >
                       <Play size={12} /> Học ngay
@@ -208,7 +209,10 @@ export default async function DashboardPage() {
               const hrefId = c?.slug || c?.id;
               return (
                 <li key={row.id}>
-                  <Link href={hrefId ? `/courses/${hrefId}` : "/dashboard"} className="flex items-start gap-3 p-4 transition-colors hover:bg-neutral-50">
+                  <Link
+                    href={hrefId ? getLmsCourseHref(String(hrefId)) : getLmsHomeHref()}
+                    className="flex items-start gap-3 p-4 transition-colors hover:bg-neutral-50"
+                  >
                     <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-600" />
                     <div className="min-w-0 flex-1">
                       <div className="font-heading text-sm font-semibold text-neutral-900">{title}</div>
