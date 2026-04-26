@@ -662,12 +662,24 @@ export async function applyLessonProgressForUser(
   return getEnrollmentCourseBundleForUser(userId, courseIdentifier);
 }
 
+/** True when the learner may open the course on the LMS (active + not past expires_at). */
+export function enrollmentGrantsCourseAccess(
+  enrollment: { status: string; expires_at?: string | null } | null | undefined
+): boolean {
+  if (!enrollment || enrollment.status !== "active") return false;
+  if (enrollment.expires_at != null && String(enrollment.expires_at).trim() !== "") {
+    const t = new Date(enrollment.expires_at).getTime();
+    if (!Number.isFinite(t) || t <= Date.now()) return false;
+  }
+  return true;
+}
+
 export async function getCoursePurchaseStateForUser(userId: string, courseId: string) {
   const client = admin();
 
   const { data: enrollmentRows, error: enrollmentError } = await client
     .from("enrollments")
-    .select("id, status, created_at")
+    .select("id, status, created_at, expires_at")
     .eq("user_id", userId)
     .eq("course_id", courseId)
     .order("created_at", { ascending: false })

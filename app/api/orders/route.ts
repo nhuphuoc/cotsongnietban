@@ -1,6 +1,6 @@
 import { requireActiveActor } from "@/lib/api/auth";
 import { fail, ok } from "@/lib/api/http";
-import { getCoursePurchaseStateForUser } from "@/lib/api/repositories";
+import { enrollmentGrantsCourseAccess, getCoursePurchaseStateForUser } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const BANK_INFO = {
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const client = createAdminClient();
 
     const purchaseState = await getCoursePurchaseStateForUser(auth.actor.id, courseId);
-    if (purchaseState.hasEnrollment) {
+    if (enrollmentGrantsCourseAccess(purchaseState.enrollment)) {
       return fail("Bạn đã có quyền truy cập khóa học này.", 409);
     }
 

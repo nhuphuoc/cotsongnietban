@@ -2,7 +2,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CourseEnrollmentCheckout } from "@/components/marketing/course-enrollment-checkout";
 import { getSessionActor } from "@/lib/api/auth";
-import { getCoursePurchaseStateForUser, getPublicCourseByIdentifier } from "@/lib/api/repositories";
+import {
+  enrollmentGrantsCourseAccess,
+  getCoursePurchaseStateForUser,
+  getPublicCourseByIdentifier,
+} from "@/lib/api/repositories";
 import { formatVnd } from "@/lib/format-vnd";
 import { getLmsCourseHref } from "@/lib/learning-hub";
 
@@ -20,7 +24,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ cours
   if (!course) notFound();
 
   const purchaseState = await getCoursePurchaseStateForUser(actor.id, String(course.id));
-  const hasEnrollment = Boolean(purchaseState.hasEnrollment);
+  const hasAccess = enrollmentGrantsCourseAccess(purchaseState.enrollment);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pt-24 pb-16">
@@ -30,7 +34,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ cours
         </Link>
 
         <div className="mt-4 rounded-2xl border border-csnb-border/25 bg-white p-5 shadow-sm sm:p-7">
-          {hasEnrollment ? (
+          {hasAccess ? (
             <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
               <p className="font-sans text-base font-bold text-emerald-900">Bạn đã có quyền học khóa này.</p>
               <p className="font-sans text-sm text-emerald-800">Không cần thanh toán thêm. Nếu cần hỗ trợ, vui lòng liên hệ admin qua Zalo.</p>

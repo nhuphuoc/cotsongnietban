@@ -8,9 +8,13 @@ vi.mock("@/utils/supabase/admin", () => ({
   createAdminClient: vi.fn(),
 }));
 
-vi.mock("@/lib/api/repositories", () => ({
-  getCoursePurchaseStateForUser: vi.fn(),
-}));
+vi.mock("@/lib/api/repositories", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api/repositories")>();
+  return {
+    ...actual,
+    getCoursePurchaseStateForUser: vi.fn(),
+  };
+});
 
 import { requireActiveActor } from "@/lib/api/auth";
 import { getCoursePurchaseStateForUser } from "@/lib/api/repositories";

@@ -8,7 +8,11 @@ import { getDemoCourse, getCoursePhases, getLessonsForPhase } from "@/lib/demo-c
 import { getCatalogMarketingExtras, getDetailMarketingMeta } from "@/lib/marketing-course-dummies";
 import { CourseProgramAccordion, type ProgramPhase } from "@/components/marketing/course-program-accordion";
 import { getSessionActor } from "@/lib/api/auth";
-import { getCoursePurchaseStateForUser, getPublicCourseByIdentifier } from "@/lib/api/repositories";
+import {
+  enrollmentGrantsCourseAccess,
+  getCoursePurchaseStateForUser,
+  getPublicCourseByIdentifier,
+} from "@/lib/api/repositories";
 import { formatVnd } from "@/lib/format-vnd";
 import { getLmsCourseHref } from "@/lib/learning-hub";
 
@@ -227,7 +231,11 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
   const purchaseState = actor?.id && vm.purchasableCourseId
     ? await getCoursePurchaseStateForUser(actor.id, vm.purchasableCourseId)
     : null;
-  const alreadyPurchased = Boolean(purchaseState?.alreadyPurchased);
+  const hasCourseAccess = enrollmentGrantsCourseAccess(purchaseState?.enrollment);
+  const latestOrder = purchaseState?.latestOrder ?? null;
+  const orderAwaitingAdmin = Boolean(
+    latestOrder && (latestOrder.status === "pending" || latestOrder.status === "paid")
+  );
   const checkoutHref = vm.purchasableCourseId ? `/checkout/${vm.purchasableCourseId}` : "#";
   const extraInfoText = stripHtmlToText(vm.extraInfoHtml);
   const hasExtraInfo = extraInfoText.length > 0;
@@ -384,9 +392,26 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
                 <p className="font-sans text-2xl font-extrabold tabular-nums text-csnb-orange-deep">{vm.priceLabel}</p>
                 {vm.purchasableCourseId ? (
                   actor ? (
-                    alreadyPurchased ? (
-                      <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3 font-sans text-sm text-emerald-800">
-                        Bạn đã có đơn hoặc đã được cấp quyền cho khóa học này. Admin sẽ duyệt trong dashboard sau khi nhận chuyển khoản.
+                    hasCourseAccess ? (
+                      <div className="mt-4 space-y-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3 font-sans text-sm text-emerald-900">
+                        <p className="font-semibold">Bạn đã được kích hoạt khóa học này.</p>
+                        <p className="text-emerald-800">
+                          Vào Phòng học để học theo tiến độ; nội dung bài giảng nằm trong không gian học tập.
+                        </p>
+                        <Link
+                          href={vm.lmsHref}
+                          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-emerald-700 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-emerald-800"
+                        >
+                          <span className="text-lg leading-none">▶</span>
+                          Vào khóa học
+                        </Link>
+                      </div>
+                    ) : orderAwaitingAdmin ? (
+                      <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 font-sans text-sm text-amber-950">
+                        <p className="font-semibold text-amber-900">Đang chờ xác nhận thanh toán</p>
+                        <p className="mt-1 text-amber-900/90">
+                          Bạn đã tạo đơn hoặc đang chờ duyệt. Sau khi admin xác nhận chuyển khoản, quyền học sẽ được bật tự động — hãy tải lại trang này hoặc vào Phòng học.
+                        </p>
                       </div>
                     ) : (
                       <Link
