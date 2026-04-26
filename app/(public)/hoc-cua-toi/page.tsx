@@ -104,7 +104,8 @@ export default async function HocCuaToiPage() {
                 if (!course) return null;
                 const progress = Math.min(100, Math.max(0, row.progress_percent ?? 0));
                 const done = row.completed_lessons ?? 0;
-                const total = Math.max(course.lesson_count ?? 0, 1);
+                const total = course.lesson_count ?? 0;
+                const doneDisplay = total > 0 ? Math.min(done, total) : done;
                 const hrefId = (typeof course.slug === "string" && course.slug.trim()) || course.id;
                 const nextLabel = row.last_lesson?.title?.trim()
                   ? row.last_lesson.title.length > 52
@@ -141,7 +142,7 @@ export default async function HocCuaToiPage() {
                           <span className="line-clamp-1">Tiếp theo: {nextLabel}</span>
                           <span className="text-csnb-border/60">·</span>
                           <span>
-                            {done}/{total} bài
+                            {total > 0 ? `${doneDisplay}/${total} bài` : "Chưa có bài"}
                           </span>
                           <span className="hidden items-center gap-1 sm:inline-flex">
                             <Calendar className="size-3.5 text-csnb-orange-deep/80" aria-hidden />

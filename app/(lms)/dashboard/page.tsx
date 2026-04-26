@@ -141,7 +141,9 @@ export default async function DashboardPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
                   <div className="absolute right-3 bottom-3 left-3 flex items-center justify-between text-xs text-white">
                     <span className="font-heading font-bold">
-                      {completedLessons}/{Math.max(totalLessons, 1)} bài
+                      {totalLessons > 0
+                        ? `${Math.min(completedLessons, totalLessons)}/${totalLessons} bài`
+                        : "0 bài"}
                     </span>
                     {row.expires_at ? (
                       <span

@@ -146,7 +146,7 @@ export default async function CoursesPage() {
                               : "border-csnb-border/35 bg-white text-csnb-ink hover:border-csnb-orange/40 hover:text-csnb-orange-deep"
                           }`}
                         >
-                          {hasPurchased ? "Đã có" : "Chi tiết"}
+                          {hasPurchased ? "Vào học ngay" : "Chi tiết"}
                           <ArrowRight className="size-4 shrink-0" />
                         </Link>
                       </div>

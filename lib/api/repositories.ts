@@ -29,6 +29,29 @@ function enrichEnrollmentRows(
   }));
 }
 
+/** Đếm mọi bài theo course_id (đồng bộ với LMS cho học viên đã ghi danh). */
+function lessonCountsByCourseIdFromRows(rows: Array<{ course_id: string }>): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const cid = String(row.course_id);
+    counts.set(cid, (counts.get(cid) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function coursesByIdWithLessonCounts(
+  courses: Array<Record<string, unknown> & { id: string }>,
+  countRows: Array<{ course_id: string }>
+): Map<string, unknown> {
+  const counts = lessonCountsByCourseIdFromRows(countRows);
+  return new Map(
+    courses.map((item) => {
+      const id = String(item.id);
+      return [id, { ...item, lesson_count: counts.get(id) ?? 0 }];
+    })
+  );
+}
+
 function mapPublicLesson(lesson: Record<string, unknown>) {
   return {
     id: lesson.id,
@@ -465,7 +488,7 @@ export async function listEnrollmentsForUser(userId: string) {
   const courseIds = [...new Set((enrollments ?? []).map((item) => item.course_id).filter(Boolean))];
   const lessonIds = [...new Set((enrollments ?? []).map((item) => item.last_lesson_id).filter(Boolean))];
 
-  const [coursesResult, lessonsResult] = await Promise.all([
+  const [coursesResult, lessonsResult, lessonCountResult] = await Promise.all([
     courseIds.length
       ? client
           .from("courses")
@@ -475,12 +498,19 @@ export async function listEnrollmentsForUser(userId: string) {
     lessonIds.length
       ? client.from("lessons").select("id, title, slug, course_id").in("id", lessonIds)
       : Promise.resolve({ data: [], error: null }),
+    courseIds.length
+      ? client.from("lessons").select("course_id").in("course_id", courseIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   if (coursesResult.error) throw coursesResult.error;
   if (lessonsResult.error) throw lessonsResult.error;
+  if (lessonCountResult.error) throw lessonCountResult.error;
 
-  const coursesById = new Map((coursesResult.data ?? []).map((item) => [item.id, item]));
+  const coursesById = coursesByIdWithLessonCounts(
+    (coursesResult.data ?? []) as Array<Record<string, unknown> & { id: string }>,
+    (lessonCountResult.data ?? []) as Array<{ course_id: string }>
+  );
   const lessonsById = new Map((lessonsResult.data ?? []).map((item) => [item.id, item]));
 
   return enrichEnrollmentRows(enrollments ?? [], coursesById, lessonsById);
@@ -503,7 +533,7 @@ export async function listAccessibleEnrollmentsForUser(userId: string) {
   const courseIds = [...new Set((enrollments ?? []).map((item) => item.course_id).filter(Boolean))];
   const lessonIds = [...new Set((enrollments ?? []).map((item) => item.last_lesson_id).filter(Boolean))];
 
-  const [coursesResult, lessonsResult] = await Promise.all([
+  const [coursesResult, lessonsResult, lessonCountResult] = await Promise.all([
     courseIds.length
       ? client
           .from("courses")
@@ -513,12 +543,19 @@ export async function listAccessibleEnrollmentsForUser(userId: string) {
     lessonIds.length
       ? client.from("lessons").select("id, title, slug, course_id").in("id", lessonIds)
       : Promise.resolve({ data: [], error: null }),
+    courseIds.length
+      ? client.from("lessons").select("course_id").in("course_id", courseIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   if (coursesResult.error) throw coursesResult.error;
   if (lessonsResult.error) throw lessonsResult.error;
+  if (lessonCountResult.error) throw lessonCountResult.error;
 
-  const coursesById = new Map((coursesResult.data ?? []).map((item) => [item.id, item]));
+  const coursesById = coursesByIdWithLessonCounts(
+    (coursesResult.data ?? []) as Array<Record<string, unknown> & { id: string }>,
+    (lessonCountResult.data ?? []) as Array<{ course_id: string }>
+  );
   const lessonsById = new Map((lessonsResult.data ?? []).map((item) => [item.id, item]));
 
   return enrichEnrollmentRows(enrollments ?? [], coursesById, lessonsById);
