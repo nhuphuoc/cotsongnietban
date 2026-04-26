@@ -143,6 +143,7 @@ export function buildLmsCourseViewModel(bundle: EnrollmentCourseBundle): DemoCou
       videoUrl,
       ...(videoProvider ? { videoProvider } : {}),
       ...notesFromLesson(l),
+      contentHtml: typeof (l as { content_html?: unknown }).content_html === "string" ? String((l as { content_html?: string }).content_html ?? "") : undefined,
     };
   });
 

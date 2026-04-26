@@ -256,14 +256,6 @@ function LessonViewLoaded({
                     {doneCount}/{course.lessons.length} đã xong
                   </span>
                 </div>
-                {looksLikeHtml(course.description) ? (
-                  <div
-                    className="prose prose-sm mt-4 max-w-2xl text-neutral-700 [&_p]:my-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6"
-                    dangerouslySetInnerHTML={{ __html: course.description }}
-                  />
-                ) : (
-                  <p className="mt-4 max-w-2xl font-sans text-sm leading-relaxed text-neutral-600">{course.description}</p>
-                )}
 
                 {saveError ? (
                   <p className="mt-3 font-sans text-sm text-red-600" role="alert">
@@ -311,28 +303,41 @@ function LessonViewLoaded({
 
               <TabsContent value="notes" className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
                 <div className="max-w-2xl rounded-lg border border-neutral-200 bg-neutral-50/80 p-4 font-sans text-sm leading-relaxed text-neutral-700">
-                  {lesson.notesIntro ? <p className="mb-3 text-neutral-900">{lesson.notesIntro}</p> : null}
-                  {lesson.noteBullets && lesson.noteBullets.length > 0 ? (
-                    <ul className="space-y-2">
-                      {lesson.noteBullets.map((line, i) => (
-                        <li key={i} className="flex gap-2">
-                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
-                          {line}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : !lesson.notesIntro ? (
-                    <ul className="space-y-2">
-                      <li className="flex gap-2">
-                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
-                        Khởi động nhẹ trước khi vào tải chính.
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
-                        Giữ form trong tầm kiểm soát — chất lượng hơn số lần.
-                      </li>
-                    </ul>
-                  ) : null}
+                  {lesson.contentHtml?.trim() ? (
+                    looksLikeHtml(lesson.contentHtml) ? (
+                      <div
+                        className="prose prose-sm max-w-none text-neutral-800 [&_p]:my-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6"
+                        dangerouslySetInnerHTML={{ __html: lesson.contentHtml }}
+                      />
+                    ) : (
+                      <p className="text-neutral-800">{lesson.contentHtml}</p>
+                    )
+                  ) : (
+                    <>
+                      {lesson.notesIntro ? <p className="mb-3 text-neutral-900">{lesson.notesIntro}</p> : null}
+                      {lesson.noteBullets && lesson.noteBullets.length > 0 ? (
+                        <ul className="space-y-2">
+                          {lesson.noteBullets.map((line, i) => (
+                            <li key={i} className="flex gap-2">
+                              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
+                              {line}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : !lesson.notesIntro ? (
+                        <ul className="space-y-2">
+                          <li className="flex gap-2">
+                            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
+                            Khởi động nhẹ trước khi vào tải chính.
+                          </li>
+                          <li className="flex gap-2">
+                            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
+                            Giữ form trong tầm kiểm soát — chất lượng hơn số lần.
+                          </li>
+                        </ul>
+                      ) : null}
+                    </>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>

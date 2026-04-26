@@ -19,6 +19,8 @@ export type DemoLesson = {
   videoProvider?: LessonVideoProvider;
   notesIntro?: string;
   noteBullets?: string[];
+  /** Nội dung chi tiết dạng HTML (soạn từ admin). */
+  contentHtml?: string;
 };
 
 /** Phase / module — dùng trang tổng quan khóa (thẻ ngang) + nhóm trong sidebar */

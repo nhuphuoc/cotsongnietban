@@ -255,7 +255,7 @@ function contentDraftFromLesson(lesson: LessonRow): ContentDraft {
   return {
     title: lesson.title ?? "",
     summary: lesson.summary ?? "",
-    contentHtml: lesson.content_html ?? "",
+    contentHtml: ensureHtml(lesson.content_html),
     isPreview: lesson.is_preview ?? false,
   };
 }
@@ -3254,19 +3254,22 @@ export default function LessonVideosPage() {
 
               <div>
                 <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                  Nội dung chi tiết (HTML)
+                  Nội dung chi tiết
                 </label>
-                <textarea
-                  value={contentDraft.contentHtml}
-                  onChange={(e) =>
-                    setContentDraft((prev) => (prev ? { ...prev, contentHtml: e.target.value } : prev))
-                  }
-                  rows={6}
-                  className="w-full rounded-sm border border-gray-300 bg-white px-3 py-2.5 font-mono text-xs focus:border-[#c0392b] focus:outline-none"
-                  placeholder="Cho phép HTML: <p>, <ul>, <li>, <strong>…"
-                  disabled={contentSaving}
-                  spellCheck={false}
-                />
+                <div
+                  className={`overflow-hidden rounded-sm border border-gray-300 bg-white${
+                    contentSaving ? " pointer-events-none opacity-60" : ""
+                  }`}
+                >
+                  <RichTextEditor
+                    valueHtml={contentDraft.contentHtml}
+                    onChangeHtml={(nextHtml) =>
+                      setContentDraft((prev) => (prev ? { ...prev, contentHtml: nextHtml } : prev))
+                    }
+                    placeholder="Soạn nội dung bài học (định dạng, danh sách, trích dẫn…)"
+                    className="rounded-none border-0"
+                  />
+                </div>
                 <p className="mt-1 text-xs text-gray-500">Có thể để trống.</p>
               </div>
 
