@@ -190,10 +190,12 @@ export default function AdminFeedbackDetailPage() {
             {saving ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
           <button
+            type="button"
             onClick={onDelete}
+            aria-label="Xóa feedback"
             className="inline-flex items-center justify-center gap-2 rounded-sm border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 hover:border-[#c0392b]/40 hover:text-[#c0392b]"
           >
-            <Trash2 size={16} />
+            <Trash2 size={16} aria-hidden />
           </button>
         </div>
       </div>
