@@ -49,6 +49,12 @@ type MarketingVm = {
   purchasableCourseId: string | null;
 };
 
+type PublicLessonLoose = {
+  id: string;
+  title?: string | null;
+  duration_seconds?: number | null;
+};
+
 async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
   const pub = await getPublicCourseByIdentifier(courseId);
   if (pub) {
@@ -96,10 +102,10 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
         {
           id: "program",
           title: "Chương trình",
-          lessons: pub.lessons.map((l) => ({
-            id: String((l as { id: string }).id),
-            title: String((l as { title?: string }).title ?? ""),
-            duration: formatLessonDurationMmSs((l as { duration_seconds?: number | null }).duration_seconds),
+          lessons: (pub.lessons as PublicLessonLoose[]).map((l) => ({
+            id: String(l.id),
+            title: String(l.title ?? ""),
+            duration: formatLessonDurationMmSs(l.duration_seconds),
           })),
         },
       ];
@@ -107,10 +113,10 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
 
     const slugOrId =
       (typeof pub.slug === "string" && pub.slug.trim()) || String(pub.id);
-    const outcomeLines = description
+    const outcomeLines: string[] = description
       .split(/\n+/)
-      .map((x) => x.trim())
-      .filter((x) => x.length > 12)
+      .map((x: string) => x.trim())
+      .filter((x: string) => x.length > 12)
       .slice(0, 6);
     const outcomes =
       outcomeLines.length > 0
