@@ -4,7 +4,7 @@ import { compactPatch } from "@/lib/api/repositories";
 import { extractBunnyVideoGuid } from "@/lib/bunny/stream-signing";
 import { createAdminClient } from "@/utils/supabase/admin";
 
-const ALLOWED_PROVIDERS = new Set(["bunny_stream", "youtube", "mp4"]);
+const ALLOWED_PROVIDERS = new Set(["bunny_stream", "youtube", "mp4", "article"]);
 
 function normalizeNullableText(value: unknown): string | null | undefined {
   if (value === undefined) return undefined;
@@ -70,7 +70,9 @@ export async function PATCH(
     }
 
     let videoUrl: string | null | undefined;
-    if (body.videoUrl === undefined) {
+    if (videoProvider === "article") {
+      videoUrl = null;
+    } else if (body.videoUrl === undefined) {
       videoUrl = undefined;
     } else if (body.videoUrl === null || String(body.videoUrl).trim() === "") {
       videoUrl = null;

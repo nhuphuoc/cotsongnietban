@@ -121,7 +121,7 @@ export default function LessonViewPage() {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 bg-neutral-100 p-8 text-center">
         <p className="font-sans text-sm text-neutral-600">{loadError ?? "Không tìm thấy bài học hoặc khóa học."}</p>
-        <Link href={getLmsHomeHref()} className="text-sm font-semibold text-violet-700 hover:underline">
+        <Link href={getLmsHomeHref()} className="text-sm font-semibold text-[#004E4B] hover:underline">
           Về phòng học
         </Link>
       </div>
@@ -136,7 +136,7 @@ export default function LessonViewPage() {
   if (lesson.locked) {
     return (
       <div className="flex min-h-full flex-col bg-neutral-100">
-        <header className="relative z-20 border-b border-neutral-800 bg-[#1c1d1f] px-4 py-3">
+        <header className="relative z-20 border-b border-white/15 bg-[#004E4B] px-4 py-3">
           <Link
             href={getLmsCourseHref(courseId)}
             className="inline-flex max-w-full items-center gap-2 text-xs font-medium text-white/85 no-underline hover:text-white hover:no-underline"
@@ -152,7 +152,7 @@ export default function LessonViewPage() {
           </p>
           <Link
             href={getLmsCourseHref(courseId)}
-            className="rounded-md bg-[#1c1d1f] px-5 py-2.5 font-sans text-sm font-semibold text-white hover:bg-black"
+            className="rounded-md bg-[#004E4B] px-5 py-2.5 font-sans text-sm font-semibold text-white hover:bg-[#003835]"
           >
             Về trang khóa học
           </Link>
@@ -210,7 +210,7 @@ function LessonViewLoaded({
   return (
     <div className="flex min-h-[100dvh] flex-col bg-white">
       {/* Top nav */}
-      <header className="relative z-20 flex shrink-0 items-center justify-between gap-3 border-b border-neutral-800 bg-[#1c1d1f] px-4 py-3 sm:px-5">
+      <header className="relative z-20 flex shrink-0 items-center justify-between gap-3 border-b border-white/15 bg-[#004E4B] px-4 py-3 sm:px-5">
         <Link
           href={getLmsCourseHref(courseId)}
           className="inline-flex min-w-0 max-w-[min(100%,28rem)] items-center gap-2 text-xs font-medium text-white/90 no-underline hover:text-white hover:no-underline sm:text-sm"
@@ -245,17 +245,30 @@ function LessonViewLoaded({
         </div>
       </div>
 
-      {/* Video player — centered, full width */}
+      {/* Video hoặc nội dung bài viết (bài bổ sung không video) */}
       <div className="shrink-0">
-        <LessonVideoPlayer
-          variant="embed"
-          src={lesson.videoUrl}
-          provider={lesson.videoProvider}
-          poster={course.thumbnail}
-          title={lesson.title}
-          className="mx-auto w-full max-w-5xl"
-          hideTitle
-        />
+        {lesson.isArticle ? (
+          <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+            {lesson.contentHtml?.trim() ? (
+              <div
+                className="prose prose-neutral max-w-none text-neutral-800 [&_p]:my-3 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6"
+                dangerouslySetInnerHTML={{ __html: lesson.contentHtml }}
+              />
+            ) : (
+              <p className="font-sans text-sm text-neutral-500">Chưa có nội dung bài học.</p>
+            )}
+          </div>
+        ) : (
+          <LessonVideoPlayer
+            variant="embed"
+            src={lesson.videoUrl}
+            provider={lesson.videoProvider}
+            poster={course.thumbnail}
+            title={lesson.title}
+            className="mx-auto w-full max-w-5xl"
+            hideTitle
+          />
+        )}
       </div>
 
       {/* Actions + tabs */}
@@ -283,7 +296,7 @@ function LessonViewLoaded({
                     type="button"
                     onClick={() => void onApplyProgress(true)}
                     disabled={saving}
-                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-violet-600 px-4 py-2 font-sans text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-[#004E4B] px-4 py-2 font-sans text-sm font-semibold text-white hover:bg-[#003835] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                   >
                     <CheckCircle2 className="size-4" />
                     {saving ? "Đang lưu…" : "Đánh dấu hoàn thành"}
@@ -307,7 +320,7 @@ function LessonViewLoaded({
                 {nextLesson ? (
                   <Link
                     href={getLmsLessonHref(courseId, nextLesson.id)}
-                    className="inline-flex min-h-11 items-center font-sans text-sm font-medium text-violet-700 hover:underline sm:min-h-0"
+                    className="inline-flex min-h-11 items-center font-sans text-sm font-medium text-[#004E4B] hover:underline sm:min-h-0"
                   >
                     Bài tiếp theo →
                   </Link>
@@ -317,7 +330,9 @@ function LessonViewLoaded({
 
             <TabsContent value="notes" className="px-4 py-5 sm:px-6">
               <div className="max-w-2xl rounded-lg border border-neutral-200 bg-neutral-50/80 p-4 font-sans text-sm leading-relaxed text-neutral-700">
-                {lesson.contentHtml?.trim() ? (
+                {lesson.isArticle ? (
+                  <p className="text-neutral-600">Nội dung bài đã hiển thị ở khu vực phía trên (dạng bài viết).</p>
+                ) : lesson.contentHtml?.trim() ? (
                   looksLikeHtml(lesson.contentHtml) ? (
                     <div
                       className="prose prose-sm max-w-none text-neutral-800 [&_p]:my-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6"
@@ -333,7 +348,7 @@ function LessonViewLoaded({
                       <ul className="space-y-2">
                         {lesson.noteBullets.map((line, i) => (
                           <li key={i} className="flex gap-2">
-                            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
+                            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#004E4B]" />
                             {line}
                           </li>
                         ))}
@@ -341,11 +356,11 @@ function LessonViewLoaded({
                     ) : !lesson.notesIntro ? (
                       <ul className="space-y-2">
                         <li className="flex gap-2">
-                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#004E4B]" />
                           Khởi động nhẹ trước khi vào tải chính.
                         </li>
                         <li className="flex gap-2">
-                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#004E4B]" />
                           Giữ form trong tầm kiểm soát — chất lượng hơn số lần.
                         </li>
                       </ul>
@@ -384,7 +399,7 @@ function LessonViewLoaded({
                       const active = l.id === lesson.id;
                       const cardClass = cn(
                         "group relative w-44 shrink-0 overflow-hidden rounded-xl border transition-shadow hover:shadow-md sm:w-52",
-                        active ? "border-violet-300 ring-2 ring-violet-200" : "border-neutral-200"
+                        active ? "border-[#004E4B]/40 ring-2 ring-[#004E4B]/20" : "border-neutral-200"
                       );
                       const cardInner = (
                         <>
@@ -402,7 +417,7 @@ function LessonViewLoaded({
                               </span>
                             )}
                             {active && !l.completed && (
-                              <span className="absolute right-2 top-2 rounded-full bg-violet-600 px-2 py-0.5 font-sans text-[10px] font-semibold text-white">
+                              <span className="absolute right-2 top-2 rounded-full bg-[#004E4B] px-2 py-0.5 font-sans text-[10px] font-semibold text-white">
                                 Đang học
                               </span>
                             )}
@@ -418,7 +433,7 @@ function LessonViewLoaded({
                           <div className="bg-white p-2.5">
                             <p className={cn(
                               "line-clamp-2 font-sans text-xs leading-snug",
-                              active ? "font-semibold text-violet-900" : "font-medium text-neutral-800"
+                              active ? "font-semibold text-[#0d403e]" : "font-medium text-neutral-800"
                             )}>
                               {l.title}
                             </p>

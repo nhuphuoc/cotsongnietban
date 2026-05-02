@@ -1,6 +1,6 @@
 import type { DemoCourse, DemoLesson, DemoPhase, LessonVideoProvider } from "@/lib/demo-courses";
 import { DEMO_VIDEO_MP4 } from "@/lib/demo-courses";
-import { signBunnyStreamEmbedUrl, getBunnyStreamConfig, extractBunnyVideoGuid } from "@/lib/bunny/stream-signing";
+import { signBunnyStreamEmbedUrl, getBunnyStreamConfig } from "@/lib/bunny/stream-signing";
 
 type DbLesson = Record<string, unknown>;
 type DbSection = Record<string, unknown> & { lessons?: DbLesson[] };
@@ -116,6 +116,27 @@ export function buildLmsCourseViewModel(bundle: EnrollmentCourseBundle): DemoCou
     const rawProvider =
       typeof l.video_provider === "string" ? l.video_provider.trim().toLowerCase() : "";
 
+    const contentHtml =
+      typeof (l as { content_html?: unknown }).content_html === "string"
+        ? String((l as { content_html?: string }).content_html ?? "")
+        : undefined;
+
+    /** Bài dạng blog — không video, chỉ nội dung HTML */
+    if (rawProvider === "article") {
+      return {
+        id,
+        title: String(l.title ?? ""),
+        duration: formatMmSs(sec),
+        durationSeconds: sec,
+        completed: completedLessonIds.has(id),
+        locked: false,
+        videoUrl: "",
+        isArticle: true,
+        ...notesFromLesson(l),
+        ...(contentHtml !== undefined ? { contentHtml } : {}),
+      };
+    }
+
     let videoProvider: LessonVideoProvider | undefined;
     let videoUrl = rawUrl || DEMO_VIDEO_MP4;
     let thumbnail: string | undefined;
@@ -154,7 +175,7 @@ export function buildLmsCourseViewModel(bundle: EnrollmentCourseBundle): DemoCou
       ...(videoProvider ? { videoProvider } : {}),
       ...(thumbnail ? { thumbnail } : {}),
       ...notesFromLesson(l),
-      contentHtml: typeof (l as { content_html?: unknown }).content_html === "string" ? String((l as { content_html?: string }).content_html ?? "") : undefined,
+      ...(contentHtml !== undefined ? { contentHtml } : {}),
     };
   });
 

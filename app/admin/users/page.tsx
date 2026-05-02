@@ -283,7 +283,7 @@ export default function AdminUsersPage() {
                     <td className="px-5 py-3">
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${
                         user.role === "admin"
-                          ? "bg-purple-50 text-purple-600"
+                          ? "bg-[#004E4B]/10 text-[#004E4B]"
                           : user.role === "coach"
                             ? "bg-amber-50 text-amber-700"
                             : "bg-blue-50 text-blue-600"

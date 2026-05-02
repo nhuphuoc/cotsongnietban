@@ -44,7 +44,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
 
   return (
     <div className="min-h-full bg-neutral-100 pb-10">
-      <header className="sticky top-0 z-10 border-b border-neutral-200 bg-[#1c1d1f] px-4 py-3 sm:px-6">
+      <header className="sticky top-0 z-10 border-b border-white/15 bg-[#004E4B] px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-6xl items-center gap-3">
           <Link
             href={getLmsHomeHref()}
@@ -78,7 +78,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               {nextLesson ? (
                 <Link
                   href={getLmsLessonHref(routeCourseKey, nextLesson.id)}
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-[#1c1d1f] px-4 py-2.5 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-black sm:min-h-11 sm:px-5"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-[#004E4B] px-4 py-2.5 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-[#003835] sm:min-h-11 sm:px-5"
                 >
                   <Play className="size-4 shrink-0 fill-current" />
                   Tiếp tục học
@@ -102,7 +102,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                 {completedCount}/{course.lessons.length} bài
               </span>
               {phases.length > 1 ? (
-                <span className="rounded-full bg-violet-50 px-2.5 py-0.5 font-medium text-violet-800">
+                <span className="rounded-full bg-[#004E4B]/10 px-2.5 py-0.5 font-medium text-[#004E4B]">
                   {phases.length} giai đoạn
                 </span>
               ) : null}
@@ -132,7 +132,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                 <span className="tabular-nums text-neutral-900">{progress}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-neutral-200">
-                <div className="h-full rounded-full bg-violet-600 transition-[width]" style={{ width: `${progress}%` }} />
+                <div className="h-full rounded-full bg-[#004E4B] transition-[width]" style={{ width: `${progress}%` }} />
               </div>
             </div>
           </div>

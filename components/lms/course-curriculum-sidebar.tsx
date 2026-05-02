@@ -19,7 +19,7 @@ type Props = {
   /** Mặc định: `/courses/{courseId}/lessons/{lessonId}` (LMS) */
   getLessonHref?: (lessonId: string) => string;
   /** `brand` = cam CSNB (trang học demo công khai); mặc định giữ tím LMS */
-  accent?: "brand" | "violet";
+  accent?: "brand" | "lms";
 };
 
 export function CourseCurriculumSidebar({
@@ -27,12 +27,12 @@ export function CourseCurriculumSidebar({
   courseId,
   activeLessonId,
   getLessonHref,
-  accent = "violet",
+  accent = "lms",
 }: Props) {
   const lessonHref =
     getLessonHref ?? ((lessonId: string) => `/courses/${courseId}/lessons/${lessonId}`);
-  const doneIcon = accent === "brand" ? "text-csnb-orange-deep" : "text-violet-600";
-  const spinIcon = accent === "brand" ? "border-csnb-orange-deep" : "border-violet-600";
+  const doneIcon = accent === "brand" ? "text-csnb-orange-deep" : "text-[#004E4B]";
+  const spinIcon = accent === "brand" ? "border-csnb-orange-deep" : "border-[#004E4B]";
   const phases = getCoursePhases(course);
   const done = course.lessons.filter((l) => l.completed).length;
   const total = course.lessons.length;
@@ -96,7 +96,7 @@ export function CourseCurriculumSidebar({
                               active &&
                                 (accent === "brand"
                                   ? "border-l-[3px] border-l-csnb-orange-deep bg-csnb-orange/10"
-                                  : "border-l-[3px] border-l-violet-600 bg-violet-50/90")
+                                  : "border-l-[3px] border-l-[#004E4B] bg-[#004E4B]/10")
                             )}
                           >
                             {l.completed ? (

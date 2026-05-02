@@ -4,11 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
-import { Bold, ImageIcon, Italic, List, ListOrdered, Quote, Redo2, Undo2 } from "lucide-react";
+import { Bold, FileText, ImageIcon, Italic, List, ListOrdered, Quote, Redo2, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const UPLOAD_ENDPOINT = "/api/admin/uploads/image";
+const MAX_PDF_BYTES = 15 * 1024 * 1024;
+const UPLOAD_IMAGE_ENDPOINT = "/api/admin/uploads/image";
+const UPLOAD_PDF_ENDPOINT = "/api/admin/uploads/document";
 
 const StyledImage = Image.extend({
   renderHTML({ HTMLAttributes }) {
@@ -28,7 +30,25 @@ type Props = {
 async function postAdminImage(file: File): Promise<string> {
   const fd = new FormData();
   fd.append("file", file);
-  const res = await fetch(UPLOAD_ENDPOINT, {
+  const res = await fetch(UPLOAD_IMAGE_ENDPOINT, {
+    method: "POST",
+    body: fd,
+    credentials: "include",
+  });
+  const json = (await res.json()) as { data?: { url: string }; error?: { message?: string } };
+  if (!res.ok) {
+    throw new Error(json.error?.message ?? "Upload thất bại");
+  }
+  if (!json.data?.url) {
+    throw new Error("Phản hồi máy chủ không hợp lệ");
+  }
+  return json.data.url;
+}
+
+async function postAdminPdf(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(UPLOAD_PDF_ENDPOINT, {
     method: "POST",
     body: fd,
     credentials: "include",
@@ -77,8 +97,9 @@ function canToggle(editor: Editor | null) {
 }
 
 export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className }: Props) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState<false | "image" | "pdf">(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
 
   const extensions = useMemo(
@@ -86,6 +107,16 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
         codeBlock: false,
+        link: {
+          openOnClick: false,
+          autolink: true,
+          linkOnPaste: true,
+          HTMLAttributes: {
+            class: "font-medium text-[#c0392b] underline underline-offset-2",
+            rel: "noopener noreferrer",
+            target: "_blank",
+          },
+        },
       }),
       StyledImage.configure({
         inline: false,
@@ -121,7 +152,7 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
     }
   }, [editor, valueHtml]);
 
-  const uploadAndInsert = useCallback(
+  const uploadImageAndInsert = useCallback(
     async (file: File) => {
       if (!editor) return;
       if (!file.type.startsWith("image/")) {
@@ -132,11 +163,55 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
         setUploadMessage("Ảnh tối đa 5MB.");
         return;
       }
-      setUploading(true);
+      setUploading("image");
       setUploadMessage(null);
       try {
         const url = await postAdminImage(file);
         editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+      } catch (e) {
+        setUploadMessage(e instanceof Error ? e.message : "Không upload được.");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [editor]
+  );
+
+  const uploadPdfAndInsert = useCallback(
+    async (file: File) => {
+      if (!editor) return;
+      if (file.type !== "application/pdf") {
+        setUploadMessage("Chỉ chấp nhận file PDF.");
+        return;
+      }
+      if (file.size > MAX_PDF_BYTES) {
+        setUploadMessage("PDF tối đa 15MB.");
+        return;
+      }
+      setUploading("pdf");
+      setUploadMessage(null);
+      try {
+        const url = await postAdminPdf(file);
+        const label = file.name?.trim() || "Tài liệu.pdf";
+        editor
+          .chain()
+          .focus()
+          .insertContent({
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: label,
+                marks: [
+                  {
+                    type: "link",
+                    attrs: { href: url, target: "_blank", rel: "noopener noreferrer" },
+                  },
+                ],
+              },
+            ],
+          })
+          .run();
       } catch (e) {
         setUploadMessage(e instanceof Error ? e.message : "Không upload được.");
       } finally {
@@ -155,13 +230,18 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
       if (!items) return;
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        if (item.kind === "file" && item.type.startsWith("image/")) {
+        if (item.kind === "file") {
           const f = item.getAsFile();
-          if (f) {
+          if (f?.type.startsWith("image/")) {
             e.preventDefault();
-            void uploadAndInsert(f);
+            void uploadImageAndInsert(f);
+            break;
           }
-          break;
+          if (f?.type === "application/pdf") {
+            e.preventDefault();
+            void uploadPdfAndInsert(f);
+            break;
+          }
         }
       }
     };
@@ -169,12 +249,17 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
     const onDrop = (e: DragEvent) => {
       const files = e.dataTransfer?.files;
       if (!files?.length) return;
-      const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
-      if (images.length === 0) return;
+      const list = Array.from(files);
+      const images = list.filter((f) => f.type.startsWith("image/"));
+      const pdfs = list.filter((f) => f.type === "application/pdf");
+      if (images.length === 0 && pdfs.length === 0) return;
       e.preventDefault();
       void (async () => {
         for (const f of images) {
-          await uploadAndInsert(f);
+          await uploadImageAndInsert(f);
+        }
+        for (const f of pdfs) {
+          await uploadPdfAndInsert(f);
         }
       })();
     };
@@ -185,7 +270,7 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
       dom.removeEventListener("paste", onPaste);
       dom.removeEventListener("drop", onDrop);
     };
-  }, [editor, uploadAndInsert]);
+  }, [editor, uploadImageAndInsert, uploadPdfAndInsert]);
 
   const tools = useMemo(
     () => [
@@ -231,7 +316,7 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
   return (
     <div className={cn("overflow-hidden rounded-sm border border-gray-200 bg-white", className)}>
       <input
-        ref={fileInputRef}
+        ref={imageInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
         className="sr-only"
@@ -241,8 +326,22 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
           const files = e.target.files;
           if (files?.length) {
             for (let i = 0; i < files.length; i++) {
-              await uploadAndInsert(files[i]);
+              await uploadImageAndInsert(files[i]);
             }
+          }
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={pdfInputRef}
+        type="file"
+        accept="application/pdf"
+        className="sr-only"
+        tabIndex={-1}
+        onChange={async (e) => {
+          const files = e.target.files;
+          if (files?.[0]) {
+            await uploadPdfAndInsert(files[0]);
           }
           e.target.value = "";
         }}
@@ -262,10 +361,17 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
         <div className="mx-1 h-6 w-px bg-gray-200" aria-hidden />
         <ToolButton
           label="Chèn ảnh"
-          disabled={!canToggle(editor) || uploading}
-          onClick={() => fileInputRef.current?.click()}
+          disabled={!canToggle(editor) || Boolean(uploading)}
+          onClick={() => imageInputRef.current?.click()}
         >
           <ImageIcon size={16} />
+        </ToolButton>
+        <ToolButton
+          label="Chèn PDF (tải lên và chèn liên kết tải xuống)"
+          disabled={!canToggle(editor) || Boolean(uploading)}
+          onClick={() => pdfInputRef.current?.click()}
+        >
+          <FileText size={16} />
         </ToolButton>
         <div className="mx-1 h-6 w-px bg-gray-200" aria-hidden />
         <ToolButton
@@ -282,8 +388,10 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
         >
           <Redo2 size={16} />
         </ToolButton>
-        {uploading ? (
+        {uploading === "image" ? (
           <span className="ml-2 font-sans text-xs text-gray-500">Đang tải ảnh…</span>
+        ) : uploading === "pdf" ? (
+          <span className="ml-2 font-sans text-xs text-gray-500">Đang tải PDF…</span>
         ) : null}
       </div>
       {uploadMessage ? (

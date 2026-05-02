@@ -78,7 +78,7 @@ export default async function StudentDashboardPage() {
 
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          { label: "Khóa đang học", value: String(enrollmentsRows.length), icon: BookOpen, color: "text-violet-600" },
+          { label: "Khóa đang học", value: String(enrollmentsRows.length), icon: BookOpen, color: "text-[#004E4B]" },
           { label: "Bài đã hoàn thành", value: String(totalCompleted), icon: CheckCircle2, color: "text-emerald-600" },
           { label: "Tổng bài trong khóa", value: String(totalLessonsLib), icon: Clock, color: "text-neutral-700" },
           {
@@ -101,7 +101,7 @@ export default async function StudentDashboardPage() {
       {enrollmentsRows.length === 0 ? (
         <div className="mb-8 rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center font-sans text-sm text-neutral-600">
           Bạn chưa có khóa học đang hoạt động.{" "}
-          <Link href="/courses" className="font-semibold text-violet-700 underline-offset-2 hover:underline">
+          <Link href="/courses" className="font-semibold text-[#004E4B] underline-offset-2 hover:underline">
             Xem các khoá học hiện có
           </Link>
         </div>
@@ -153,9 +153,9 @@ export default async function StudentDashboardPage() {
                     </p>
                     <div className="mt-2 flex items-center gap-2">
                       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-200">
-                        <div className="h-full rounded-full bg-violet-600" style={{ width: `${progress}%` }} />
+                        <div className="h-full rounded-full bg-[#004E4B]" style={{ width: `${progress}%` }} />
                       </div>
-                      <span className="shrink-0 font-heading text-[11px] font-bold tabular-nums text-violet-700">{progress}%</span>
+                      <span className="shrink-0 font-heading text-[11px] font-bold tabular-nums text-[#004E4B]">{progress}%</span>
                     </div>
                     <p className="mt-1.5 line-clamp-2 font-sans text-[11px] text-neutral-500 md:truncate">Tiếp: {nextLabel}</p>
                   </div>

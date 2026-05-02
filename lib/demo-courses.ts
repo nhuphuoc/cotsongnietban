@@ -17,6 +17,8 @@ export type DemoLesson = {
   locked?: boolean;
   videoUrl: string;
   videoProvider?: LessonVideoProvider;
+  /** Bài dạng blog / bổ sung — không có video */
+  isArticle?: boolean;
   /** Thumbnail tự động từ Bunny Stream hoặc do admin upload. */
   thumbnail?: string;
   notesIntro?: string;

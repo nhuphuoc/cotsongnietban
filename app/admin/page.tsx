@@ -95,7 +95,7 @@ export default async function AdminDashboardPage({
   const stats = [
     { label: "Doanh thu đã duyệt", value: formatVnd(revenue), icon: DollarSign, hint: `${orders.filter((o) => o.status === "approved").length} đơn`, color: "bg-green-50 text-green-700 border-green-200" },
     { label: "Người dùng", value: String(profiles.length), icon: Users, hint: "Tổng tài khoản", color: "bg-blue-50 text-blue-700 border-blue-200" },
-    { label: "Khóa học", value: String(courses.length), icon: BookOpen, hint: "Tổng khóa học", color: "bg-purple-50 text-purple-700 border-purple-200" },
+    { label: "Khóa học", value: String(courses.length), icon: BookOpen, hint: "Tổng khóa học", color: "bg-[#004E4B]/10 text-[#004E4B] border-[#004E4B]/25" },
     { label: "Feedback mới", value: String(newFeedbackCount), icon: MessageSquareQuote, hint: `Tổng feedback: ${feedbacks.length}`, color: "bg-orange-50 text-[#c0392b] border-orange-200" },
   ];
 

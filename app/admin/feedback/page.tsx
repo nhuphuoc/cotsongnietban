@@ -18,7 +18,7 @@ const TYPE_LABELS: Record<AdminFeedbackType, string> = {
 function TypeBadge({ type }: { type: AdminFeedbackType }) {
   const cls =
     type === "before_after"
-      ? "bg-purple-50 text-purple-700"
+      ? "bg-[#004E4B]/10 text-[#004E4B]"
       : type === "testimonial"
         ? "bg-green-50 text-green-700"
         : "bg-blue-50 text-blue-700";

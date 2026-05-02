@@ -367,6 +367,8 @@ function providerLabel(value: string | null): string {
       return "YouTube";
     case "mp4":
       return "MP4";
+    case "article":
+      return "Bài bổ sung (không video)";
     default:
       return "Chưa chọn";
   }
@@ -808,14 +810,23 @@ export default function LessonVideosPage() {
     const draft = drafts[lesson.id];
     if (!draft) return;
 
+    const pv = draft.videoProvider || "";
+    if (pv && pv !== "article" && !draft.videoUrl.trim()) {
+      setRowError((prev) => ({ ...prev, [lesson.id]: "Nhập GUID / URL video hoặc chọn Bài bổ sung (không video)." }));
+      return;
+    }
+
     setSaving((prev) => ({ ...prev, [lesson.id]: true }));
     setRowError((prev) => ({ ...prev, [lesson.id]: null }));
 
     const body: Record<string, unknown> = {
       videoProvider: draft.videoProvider ? draft.videoProvider : null,
-      videoUrl: draft.videoUrl.trim() ? draft.videoUrl.trim() : null,
+      videoUrl:
+        draft.videoProvider === "article" ? null : draft.videoUrl.trim() ? draft.videoUrl.trim() : null,
     };
-    if (draft.durationSeconds.trim() !== "") {
+    if (draft.videoProvider === "article") {
+      body.durationSeconds = null;
+    } else if (draft.durationSeconds.trim() !== "") {
       const n = parseDurationToSeconds(draft.durationSeconds);
       if (n == null || !Number.isFinite(n) || Number.isNaN(n) || n < 0) {
         setRowError((prev) => ({ ...prev, [lesson.id]: "Thời lượng không hợp lệ." }));
@@ -958,6 +969,14 @@ export default function LessonVideosPage() {
     const draft = drafts[lesson.id] ?? toDraft(lesson);
     const provider = draft.videoProvider || lesson.video_provider || "";
     const url = draft.videoUrl.trim() || lesson.video_url || "";
+
+    if (provider === "article") {
+      setPreviewTitle(lesson.title);
+      setPreviewError("Bài bổ sung (không video) không có preview player — xem nội dung trong “Chỉnh sửa nội dung bài học”.");
+      setPreviewOpen(true);
+      setPreviewLoading(false);
+      return;
+    }
 
     if (!provider || !url) {
       setPreviewTitle(lesson.title);
@@ -1585,6 +1604,23 @@ export default function LessonVideosPage() {
       setAddLessonError("Tên bài học không được để trống.");
       return;
     }
+    if (!addLessonProvider) {
+      setAddLessonError("Vui lòng chọn loại video / loại bài học.");
+      return;
+    }
+    if (detail.sections.length > 0 && !addLessonSectionId.trim()) {
+      setAddLessonError("Vui lòng chọn phần học.");
+      return;
+    }
+    const contentPlain = stripHtmlToText(addLessonContentHtml);
+    if (!contentPlain) {
+      setAddLessonError("Nội dung chi tiết không được để trống.");
+      return;
+    }
+    if (addLessonProvider !== "article" && !addLessonUrl.trim()) {
+      setAddLessonError("Nhập GUID / URL video (hoặc chọn Bài bổ sung nếu không có video).");
+      return;
+    }
     setAddLessonSaving(true);
     setAddLessonError(null);
     try {
@@ -1592,11 +1628,12 @@ export default function LessonVideosPage() {
         courseId: detail.id,
         title,
         sectionId: addLessonSectionId || null,
-        videoProvider: addLessonProvider || null,
-        videoUrl: addLessonUrl.trim() || null,
-        durationSeconds: addLessonDuration.trim() !== "" ? Number(addLessonDuration) : 0,
+        videoProvider: addLessonProvider,
+        videoUrl: addLessonProvider === "article" ? null : addLessonUrl.trim() || null,
+        durationSeconds:
+          addLessonProvider === "article" ? 0 : addLessonDuration.trim() !== "" ? Number(addLessonDuration) : 0,
         summary: addLessonSummary.trim() || null,
-        contentHtml: addLessonContentHtml.trim() || null,
+        contentHtml: addLessonContentHtml.trim(),
         isPreview: addLessonIsPreview,
       };
       const res = await fetch("/api/admin/lessons", {
@@ -2542,7 +2579,9 @@ export default function LessonVideosPage() {
                                         ) : (
                                           <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500"><EyeOff size={10} /> Bản nháp</span>
                                         )}
-                                        {lesson.video_url ? (
+                                        {lesson.video_provider === "article" ? (
+                                          <span className="inline-flex items-center gap-1 rounded-full bg-[#004E4B]/10 px-2 py-0.5 text-[11px] font-medium text-[#004E4B]"><FileText size={10} /> Bài bổ sung</span>
+                                        ) : lesson.video_url ? (
                                           <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700"><Video size={10} /> {providerLabel(lesson.video_provider)}</span>
                                         ) : (
                                           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-400">Chưa có video</span>
@@ -2550,7 +2589,7 @@ export default function LessonVideosPage() {
                                         {lesson.is_preview && (
                                           <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">Preview</span>
                                         )}
-                                        {lesson.duration_seconds != null && (
+                                        {lesson.duration_seconds != null && lesson.video_provider !== "article" && (
                                           <span className="text-[11px] text-gray-400">{formatHhMmSs(lesson.duration_seconds)}</span>
                                         )}
                                       </div>
@@ -2562,7 +2601,13 @@ export default function LessonVideosPage() {
                                     <div className="pr-3 pt-0.5">
                                       <select
                                         value={draft.videoProvider}
-                                        onChange={(e) => updateDraft(lesson.id, { videoProvider: e.target.value })}
+                                        onChange={(e) => {
+                                          const v = e.target.value;
+                                          updateDraft(lesson.id, {
+                                            videoProvider: v,
+                                            ...(v === "article" ? { videoUrl: "", durationSeconds: "" } : {}),
+                                          });
+                                        }}
                                         className="w-full rounded-md border border-gray-200 bg-white px-2.5 py-2 text-sm focus:border-[#c0392b] focus:outline-none"
                                         disabled={isSaving}
                                       >
@@ -2570,70 +2615,91 @@ export default function LessonVideosPage() {
                                         <option value="bunny_stream">Bunny Stream</option>
                                         <option value="youtube">YouTube</option>
                                         <option value="mp4">MP4</option>
+                                        <option value="article">Bài học bổ sung (không video)</option>
                                       </select>
                                     </div>
                                     <div className="pr-3 pt-0.5">
-                                      <input
-                                        type="text"
-                                        value={draft.videoUrl}
-                                        onChange={(e) => updateDraft(lesson.id, { videoUrl: e.target.value })}
-                                        placeholder={draft.videoProvider === "bunny_stream" ? "Bunny Video GUID" : draft.videoProvider === "youtube" ? "YouTube URL" : draft.videoProvider === "mp4" ? "MP4 URL" : "GUID / URL"}
-                                        className="w-full rounded-md border border-gray-200 bg-white px-2.5 py-2 font-mono text-xs focus:border-[#c0392b] focus:outline-none"
-                                        disabled={isSaving}
-                                        spellCheck={false}
-                                      />
-                                      {draft.videoProvider === "bunny_stream" && <p className="mt-0.5 text-[11px] text-gray-400">GUID hoặc URL embed/play đều được</p>}
-                                    </div>
-                                    <div className="pr-3 pt-0.5">
-                                      {(() => {
-                                        const has = draft.durationSeconds.trim() !== "";
-                                        const sec = has ? Number(draft.durationSeconds) : 0;
-                                        const safeSec = Number.isFinite(sec) && sec >= 0 ? sec : 0;
-                                        const value = has ? formatHhMmSsFixed(safeSec) : "";
-                                        return (
+                                      {draft.videoProvider === "article" ? null : (
+                                        <>
                                           <input
                                             type="text"
-                                            value={value}
-                                            onChange={(e) => {
-                                              const raw = e.target.value;
-                                              if (!raw.trim()) {
-                                                updateDraft(lesson.id, { durationSeconds: "" });
-                                                return;
-                                              }
-                                              const nextSec = parseHhMmSsLooseToSecondsOrNaN(raw);
-                                              if (!Number.isFinite(nextSec) || Number.isNaN(nextSec) || nextSec < 0) return;
-                                              updateDraft(lesson.id, { durationSeconds: String(Math.floor(nextSec)) });
-                                            }}
-                                            inputMode="numeric"
-                                            placeholder="00:00:00"
-                                            className="w-full rounded-md border border-gray-200 bg-white px-2.5 py-2 text-sm tabular-nums focus:border-[#c0392b] focus:outline-none"
+                                            value={draft.videoUrl}
+                                            onChange={(e) => updateDraft(lesson.id, { videoUrl: e.target.value })}
+                                            placeholder={
+                                              draft.videoProvider === "bunny_stream"
+                                                ? "Bunny Video GUID"
+                                                : draft.videoProvider === "youtube"
+                                                  ? "YouTube URL"
+                                                  : draft.videoProvider === "mp4"
+                                                    ? "MP4 URL"
+                                                    : "GUID / URL"
+                                            }
+                                            className="w-full rounded-md border border-gray-200 bg-white px-2.5 py-2 font-mono text-xs focus:border-[#c0392b] focus:outline-none"
                                             disabled={isSaving}
+                                            spellCheck={false}
                                           />
-                                        );
-                                      })()}
-                                      <p className="mt-0.5 text-[11px] text-gray-400">
-                                        {draft.durationSeconds.trim()
-                                          ? (() => {
-                                              const sec = parseDurationToSeconds(draft.durationSeconds);
-                                              return Number.isFinite(sec ?? NaN) && !Number.isNaN(sec as number)
-                                                ? `= ${formatHhMmSs(sec as number)}`
-                                                : "Thời lượng không hợp lệ";
-                                            })()
-                                          : "Nhập theo Giờ / Phút / Giây"}
-                                      </p>
+                                          {draft.videoProvider === "bunny_stream" && (
+                                            <p className="mt-0.5 text-[11px] text-gray-400">GUID hoặc URL embed/play đều được</p>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                    <div className="pr-3 pt-0.5">
+                                      {draft.videoProvider === "article" ? null : (
+                                        <>
+                                          {(() => {
+                                            const has = draft.durationSeconds.trim() !== "";
+                                            const sec = has ? Number(draft.durationSeconds) : 0;
+                                            const safeSec = Number.isFinite(sec) && sec >= 0 ? sec : 0;
+                                            const value = has ? formatHhMmSsFixed(safeSec) : "";
+                                            return (
+                                              <input
+                                                type="text"
+                                                value={value}
+                                                onChange={(e) => {
+                                                  const raw = e.target.value;
+                                                  if (!raw.trim()) {
+                                                    updateDraft(lesson.id, { durationSeconds: "" });
+                                                    return;
+                                                  }
+                                                  const nextSec = parseHhMmSsLooseToSecondsOrNaN(raw);
+                                                  if (!Number.isFinite(nextSec) || Number.isNaN(nextSec) || nextSec < 0) return;
+                                                  updateDraft(lesson.id, { durationSeconds: String(Math.floor(nextSec)) });
+                                                }}
+                                                inputMode="numeric"
+                                                placeholder="00:00:00"
+                                                className="w-full rounded-md border border-gray-200 bg-white px-2.5 py-2 text-sm tabular-nums focus:border-[#c0392b] focus:outline-none"
+                                                disabled={isSaving}
+                                              />
+                                            );
+                                          })()}
+                                          <p className="mt-0.5 text-[11px] text-gray-400">
+                                            {draft.durationSeconds.trim()
+                                              ? (() => {
+                                                  const sec = parseDurationToSeconds(draft.durationSeconds);
+                                                  return Number.isFinite(sec ?? NaN) && !Number.isNaN(sec as number)
+                                                    ? `= ${formatHhMmSs(sec as number)}`
+                                                    : "Thời lượng không hợp lệ";
+                                                })()
+                                              : "Nhập theo Giờ / Phút / Giây"}
+                                          </p>
+                                        </>
+                                      )}
                                     </div>
                                     <div className="flex items-center justify-end gap-1.5 pt-0.5">
                                       <button type="button" onClick={() => handleSave(lesson)} disabled={!dirty || isSaving} className="h-8 rounded-md bg-[#c0392b] px-3 text-xs font-semibold text-white hover:bg-[#96281b] disabled:bg-gray-200 disabled:text-gray-400" title="Lưu video">
                                         {isSaving ? <Loader2 className="size-3.5 animate-spin" /> : "Lưu"}
                                       </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => void handlePreviewPlayback(lesson)}
-                                        className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
-                                        title="Playback preview"
-                                      >
-                                        <CirclePlay className="size-3.5" />
-                                      </button>
+                                      {draft.videoProvider !== "article" ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => void handlePreviewPlayback(lesson)}
+                                          className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                                          title="Playback preview"
+                                        >
+                                          <CirclePlay className="size-3.5" />
+                                        </button>
+                                      ) : null}
                                       <button type="button" onClick={() => openContentDialog(lesson)} disabled={Boolean(rowBusy[lesson.id])} className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50" title="Sửa nội dung">
                                         <FileText className="size-3.5" />
                                       </button>
@@ -2939,11 +3005,12 @@ export default function LessonVideosPage() {
 
       {/* ── ADD LESSON DIALOG ── */}
       <Dialog open={addLessonOpen} onOpenChange={(open) => { if (!addLessonSaving) setAddLessonOpen(open); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="flex max-h-[min(90vh,920px)] flex-col gap-4 overflow-hidden sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Thêm bài học mới</DialogTitle>
             <DialogDescription>Tạo bài học mới cho khoá học này. Có thể chỉnh sửa video sau.</DialogDescription>
           </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
           <div className="grid gap-4">
             <div>
               <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
@@ -2962,15 +3029,15 @@ export default function LessonVideosPage() {
             {detail && detail.sections.length > 0 && (
               <div>
                 <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                  Phần học
+                  Phần học <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={addLessonSectionId}
                   onChange={(e) => setAddLessonSectionId(e.target.value)}
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
                   disabled={addLessonSaving}
+                  required
                 >
-                  <option value="">— Chưa xếp phần —</option>
                   {detail.sections.map((s) => (
                     <option key={s.id} value={s.id}>{s.title ?? "(Không tên)"}</option>
                   ))}
@@ -2979,24 +3046,40 @@ export default function LessonVideosPage() {
             )}
             <div>
               <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                Loại video
+                Loại video <span className="text-red-500">*</span>
               </label>
               <select
                 value={addLessonProvider}
-                onChange={(e) => setAddLessonProvider(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setAddLessonProvider(v);
+                  if (v === "article") {
+                    setAddLessonUrl("");
+                    setAddLessonDuration("");
+                  }
+                }}
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
                 disabled={addLessonSaving}
+                required
               >
-                <option value="">— Chưa chọn —</option>
+                <option value="" disabled>
+                  — Chọn loại —
+                </option>
                 <option value="bunny_stream">Bunny Stream</option>
                 <option value="youtube">YouTube</option>
                 <option value="mp4">MP4</option>
+                <option value="article">Bài học bổ sung (không video)</option>
               </select>
+              {addLessonProvider === "article" ? (
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Bài dạng blog: không cần URL video hay thời lượng — soạn nội dung chi tiết bên dưới.
+                </p>
+              ) : null}
             </div>
-            {addLessonProvider && (
+            {addLessonProvider && addLessonProvider !== "article" && (
               <div>
                 <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                  GUID / URL
+                  GUID / URL <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -3009,30 +3092,32 @@ export default function LessonVideosPage() {
                 />
               </div>
             )}
-            <div>
-              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                Thời lượng
-              </label>
-              <input
-                type="text"
-                value={addLessonDuration.trim() ? formatHhMmSsFixed(Number(addLessonDuration)) : ""}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  if (!raw.trim()) {
-                    setAddLessonDuration("");
-                    return;
-                  }
-                  const sec = parseHhMmSsLooseToSecondsOrNaN(raw);
-                  if (!Number.isFinite(sec) || Number.isNaN(sec) || sec < 0) return;
-                  setAddLessonDuration(String(Math.floor(sec)));
-                }}
-                inputMode="numeric"
-                placeholder="00:00:00"
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm tabular-nums focus:border-[#c0392b] focus:outline-none"
-                disabled={addLessonSaving}
-              />
-              <p className="mt-0.5 text-[11px] text-gray-400">{addLessonDuration.trim() ? `= ${formatHhMmSs(Number(addLessonDuration))}` : "Tuỳ chọn"}</p>
-            </div>
+            {addLessonProvider !== "article" && (
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                  Thời lượng
+                </label>
+                <input
+                  type="text"
+                  value={addLessonDuration.trim() ? formatHhMmSsFixed(Number(addLessonDuration)) : ""}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (!raw.trim()) {
+                      setAddLessonDuration("");
+                      return;
+                    }
+                    const sec = parseHhMmSsLooseToSecondsOrNaN(raw);
+                    if (!Number.isFinite(sec) || Number.isNaN(sec) || sec < 0) return;
+                    setAddLessonDuration(String(Math.floor(sec)));
+                  }}
+                  inputMode="numeric"
+                  placeholder="00:00:00"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm tabular-nums focus:border-[#c0392b] focus:outline-none"
+                  disabled={addLessonSaving}
+                />
+                <p className="mt-0.5 text-[11px] text-gray-400">{addLessonDuration.trim() ? `= ${formatHhMmSs(Number(addLessonDuration))}` : "Tuỳ chọn"}</p>
+              </div>
+            )}
             <div>
               <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                 Tóm tắt
@@ -3048,17 +3133,23 @@ export default function LessonVideosPage() {
             </div>
             <div>
               <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                Nội dung chi tiết (HTML)
+                Nội dung chi tiết <span className="text-red-500">*</span>
               </label>
-              <textarea
-                value={addLessonContentHtml}
-                onChange={(e) => setAddLessonContentHtml(e.target.value)}
-                rows={4}
-                placeholder="Ví dụ: <p>Nội dung chính của bài học...</p>"
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 font-mono text-xs focus:border-[#c0392b] focus:outline-none"
-                disabled={addLessonSaving}
-                spellCheck={false}
-              />
+              <div
+                className={`overflow-hidden rounded-md border border-gray-300 bg-white${
+                  addLessonSaving ? " pointer-events-none opacity-60" : ""
+                }`}
+              >
+                <RichTextEditor
+                  valueHtml={addLessonContentHtml}
+                  onChangeHtml={setAddLessonContentHtml}
+                  placeholder="Soạn nội dung bài học (định dạng, danh sách, trích dẫn…)"
+                  className="rounded-none border-0"
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Bắt buộc. Với &quot;Bài học bổ sung&quot;, đây là phần chính hiển thị như bài viết.
+              </p>
             </div>
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
@@ -3074,7 +3165,8 @@ export default function LessonVideosPage() {
               <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{addLessonError}</p>
             )}
           </div>
-          <DialogFooter className="mt-2">
+          </div>
+          <DialogFooter className="mt-0 shrink-0">
             <DialogClose
               disabled={addLessonSaving}
               render={
@@ -3089,7 +3181,14 @@ export default function LessonVideosPage() {
             <button
               type="button"
               onClick={handleAddLesson}
-              disabled={addLessonSaving || !addLessonTitle.trim()}
+              disabled={
+                addLessonSaving ||
+                !addLessonTitle.trim() ||
+                !addLessonProvider ||
+                !stripHtmlToText(addLessonContentHtml) ||
+                (detail && detail.sections.length > 0 && !addLessonSectionId.trim()) ||
+                (addLessonProvider !== "article" && !addLessonUrl.trim())
+              }
               className="flex items-center gap-2 rounded-md bg-[#c0392b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#96281b] disabled:bg-gray-300 disabled:text-gray-400"
             >
               {addLessonSaving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
