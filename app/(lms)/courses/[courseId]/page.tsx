@@ -14,6 +14,7 @@ import {
   firstPlayableLessonIdInPhase,
 } from "@/lib/demo-courses";
 import { getLmsHomeHref, getLmsLessonHref } from "@/lib/learning-hub";
+import { PhaseCardImage } from "@/components/lms/phase-card-image";
 
 function looksLikeHtml(s: string): boolean {
   return /<\w[\s\S]*>/.test(s);
@@ -148,10 +149,10 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               const inner = (
                 <div className="flex min-h-full items-stretch sm:block">
                   <div className="relative h-24 w-28 shrink-0 bg-neutral-100 sm:h-auto sm:w-auto sm:aspect-[16/10]">
-                    <Image
-                      src={phase.thumbnail}
+                    <PhaseCardImage
+                      primary={phase.thumbnail}
+                      fallback={course.thumbnail}
                       alt=""
-                      fill
                       sizes="(max-width: 640px) 100vw, 33vw"
                       className="object-cover"
                     />

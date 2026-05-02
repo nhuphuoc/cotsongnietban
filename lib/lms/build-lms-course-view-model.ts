@@ -59,6 +59,13 @@ function summaryFromLesson(lesson: DbLesson): { summary?: string } {
   return s ? { summary: s } : {};
 }
 
+const DEFAULT_PHASE_THUMB =
+  "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=340&fit=crop&q=75";
+
+function trimOrEmpty(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
+}
+
 function isLessonPublished(lesson: DbLesson): boolean {
   // Default to false if field missing (safer: không lộ bài nháp).
   return Boolean((lesson as { is_published?: boolean | null }).is_published);
@@ -198,9 +205,9 @@ export function buildLmsCourseViewModel(bundle: EnrollmentCourseBundle): DemoCou
         title: String(sec.title ?? "Phần"),
         description: String(sec.description ?? course.short_description ?? ""),
         thumbnail:
-          (typeof sec.thumbnail_url === "string" && sec.thumbnail_url) ||
-          (typeof course.thumbnail_url === "string" && course.thumbnail_url) ||
-          "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=340&fit=crop",
+          trimOrEmpty(sec.thumbnail_url) ||
+          trimOrEmpty(course.thumbnail_url) ||
+          DEFAULT_PHASE_THUMB,
         lessonIds: ls.map((l) => String(l.id)),
       };
     })

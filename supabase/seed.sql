@@ -348,7 +348,7 @@ values
     'Giảm căng & phục hồi',
     'giam-cang-phuc-hoi',
     'Thư giãn mô mềm, mở rộng ngực, giảm căng vùng cổ - vai.',
-    'https://images.unsplash.com/photo-1599058917212-d750089bc07a?w=1200&h=800&fit=crop&q=75',
+    'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&h=800&fit=crop&q=75',
     1
   )
 on conflict (id) do update
@@ -411,7 +411,7 @@ values
     'video',
     'https://youtu.be/v7AYKMP6rOE',
     'youtube',
-    'https://images.unsplash.com/photo-1599058917212-d750089bc07a?w=1200&h=800&fit=crop&q=75',
+    'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&h=800&fit=crop&q=75',
     780,
     false,
     true,
