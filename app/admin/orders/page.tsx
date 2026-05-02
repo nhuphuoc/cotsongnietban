@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronDown, ChevronUp, Clock, Loader2, Search } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, Clock, Loader2, Search, XCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiFetch, ApiError } from "@/lib/admin/api-client";
 
@@ -58,6 +58,7 @@ export default function OrdersPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [confirmOrder, setConfirmOrder] = useState<AdminOrder | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,7 +96,10 @@ export default function OrdersPage() {
         .toLowerCase();
 
       const matchSearch = haystack.includes(search.toLowerCase().trim());
-      const normalizedStatus = order.status === "approved" ? "approved" : "pending";
+      const normalizedStatus =
+        order.status === "approved" ? "approved" :
+        order.status === "cancelled" || order.status === "refunded" ? "cancelled" :
+        "pending";
       const matchFilter = filter === "all" || normalizedStatus === filter;
       return matchSearch && matchFilter;
     });
@@ -155,9 +159,16 @@ export default function OrdersPage() {
     }
     if (status === "paid") {
       return {
-        label: "Đã báo CK",
+        label: "Đã Thanh Toán",
         cls: "bg-blue-50 text-blue-700",
-        icon: <Clock size={11} />,
+        icon: <CheckCircle2 size={11} />,
+      };
+    }
+    if (status === "cancelled" || status === "refunded") {
+      return {
+        label: status === "cancelled" ? "Đã Hủy" : "Đã Hoàn Tiền",
+        cls: "bg-red-50 text-red-600",
+        icon: <XCircle size={11} />,
       };
     }
     return {
@@ -183,6 +194,22 @@ export default function OrdersPage() {
       setError(message);
     } finally {
       setApprovingId(null);
+    }
+  }
+
+  async function handleCancel(orderId: string) {
+    if (!confirm("Bạn có chắc muốn hủy đơn hàng này? Hành động này không thể hoàn tác.")) return;
+    setCancellingId(orderId);
+    setError(null);
+
+    try {
+      await apiFetch(`/api/admin/orders/${orderId}/cancel`, { method: "POST" });
+      setOrders((prev) => prev.map((item) => (item.id === orderId ? { ...item, status: "cancelled" } : item)));
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Không thể hủy đơn hàng.";
+      setError(message);
+    } finally {
+      setCancellingId(null);
     }
   }
 
@@ -287,6 +314,9 @@ export default function OrdersPage() {
               ) : (
                 sorted.map((order) => {
                   const isApproved = order.status === "approved";
+                  // PayOS paid = đã tự động cấp enrollment, không cần admin duyệt
+                  const isPayosPaid = order.status === "paid" && order.payment_method === "payos";
+                  const isFinished = isApproved || isPayosPaid || order.status === "cancelled" || order.status === "refunded";
                   const statusMeta = getStatusMeta(order.status);
                   const courseTitle = order.items.map((i) => i.course_title_snapshot).join(", ") || "—";
                   return (
@@ -306,13 +336,32 @@ export default function OrdersPage() {
                       </td>
                       <td className="whitespace-nowrap px-5 py-3 text-xs text-gray-400">{formatDate(order.created_at)}</td>
                       <td className="px-5 py-3">
-                        {!isApproved ? (
-                          <button
-                            onClick={() => setConfirmOrder(order)}
-                            className="whitespace-nowrap rounded-sm bg-[#c0392b] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#96281b]"
-                          >
-                            Duyệt Đơn
-                          </button>
+                        {!isFinished ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setConfirmOrder(order)}
+                              className="whitespace-nowrap rounded-sm bg-[#c0392b] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#96281b]"
+                            >
+                              Duyệt Đơn
+                            </button>
+                            <button
+                              onClick={() => handleCancel(order.id)}
+                              disabled={cancellingId === order.id}
+                              className="whitespace-nowrap rounded-sm border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                            >
+                              {cancellingId === order.id ? (
+                                <Loader2 className="size-3 animate-spin" />
+                              ) : (
+                                "Hủy"
+                              )}
+                            </button>
+                          </div>
+                        ) : isPayosPaid ? (
+                          <span className="text-xs text-emerald-600 font-medium">Đã thanh toán PayOS</span>
+                        ) : order.status === "cancelled" ? (
+                          <span className="text-xs text-red-400">Đã hủy</span>
+                        ) : order.status === "refunded" ? (
+                          <span className="text-xs text-red-400">Đã hoàn tiền</span>
                         ) : (
                           <span className="text-xs text-gray-300">—</span>
                         )}

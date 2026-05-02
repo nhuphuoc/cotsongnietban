@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, Loader2, CreditCard } from "lucide-react";
 import { SITE_CONTACT } from "@/lib/site-contact";
 
 type CheckoutResult = {
@@ -20,10 +21,17 @@ type CheckoutResult = {
   };
 };
 
+type PayOSResult = {
+  checkoutUrl: string;
+  orderId: string;
+  orderCode: number;
+};
+
 type Props = {
   courseId: string;
   courseTitle: string;
   priceLabel: string;
+  priceVnd: number;
 };
 
 function formatVnd(value: number) {
@@ -43,8 +51,10 @@ async function readErrorMessage(res: Response) {
   }
 }
 
-export function CourseEnrollmentCheckout({ courseId, courseTitle, priceLabel }: Props) {
+export function CourseEnrollmentCheckout({ courseId, courseTitle, priceLabel, priceVnd }: Props) {
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [payosLoading, setPayosLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -96,6 +106,35 @@ export function CourseEnrollmentCheckout({ courseId, courseTitle, priceLabel }: 
     }
   }
 
+  async function payWithPayos() {
+    setPayosLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/checkout/payos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId, amount: priceVnd }),
+      });
+
+      if (res.status === 401) {
+        window.location.href = "/login?mode=signin";
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res));
+      }
+
+      const json = (await res.json()) as { data: PayOSResult };
+      router.push(json.data.checkoutUrl);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Không thể tạo thanh toán PayOS.";
+      setError(message);
+      setPayosLoading(false);
+    }
+  }
+
   async function confirmTransfer() {
     if (!result?.orderId) return;
     setConfirming(true);
@@ -132,12 +171,38 @@ export function CourseEnrollmentCheckout({ courseId, courseTitle, priceLabel }: 
       {!result ? (
         <div className="mt-4 space-y-3 rounded-lg border border-csnb-border/25 bg-white p-4">
           <p className="font-sans text-sm leading-relaxed text-neutral-700">
-            Nhấn nút bên dưới để tạo đơn thanh toán cho khóa học này. Mỗi tài khoản chỉ có một đơn thanh toán cho mỗi khóa.
+            Chọn phương thức thanh toán cho khóa học này. Mỗi tài khoản chỉ có một đơn thanh toán cho mỗi khóa.
+          </p>
+
+          {/* PayOS — thanh toán tự động */}
+          <button
+            type="button"
+            onClick={payWithPayos}
+            disabled={payosLoading || submitting}
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-3 font-sans text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {payosLoading ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <CreditCard className="size-4" />
+            )}
+            Thanh toán qua PayOS (tự động)
+          </button>
+
+          <div className="flex items-center gap-2">
+            <div className="flex-1 border-t border-csnb-border/20" />
+            <span className="text-xs text-neutral-400">hoặc</span>
+            <div className="flex-1 border-t border-csnb-border/20" />
+          </div>
+
+          {/* Bank transfer — thủ công */}
+          <p className="font-sans text-xs leading-relaxed text-neutral-500">
+            Chuyển khoản ngân hàng thủ công (admin duyệt tay, chậm hơn)
           </p>
           <button
             type="button"
             onClick={createOrder}
-            disabled={submitting}
+            disabled={submitting || payosLoading}
             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-csnb-orange px-4 py-3 font-sans text-sm font-bold text-white transition-colors hover:bg-csnb-orange-deep disabled:cursor-not-allowed disabled:opacity-70"
           >
             {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <span className="text-lg leading-none">▶</span>}

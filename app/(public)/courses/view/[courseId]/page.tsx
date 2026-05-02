@@ -96,9 +96,13 @@ async function loadMarketingVm(courseId: string): Promise<MarketingVm | null> {
           ? String(pubEx.extra_info)
           : "";
     const level = (typeof pubEx.level_label === "string" && (pubEx.level_label as string).trim()) || "—";
-    const totalSec = Number(pubEx.total_duration_seconds ?? 0);
+    // total_duration_seconds đã bị drop khỏi courses → tính từ lessons array
+    const totalDurationFromLessons = (Array.isArray(pub.lessons) ? pub.lessons : []).reduce(
+      (sum: number, l: { duration_seconds?: number | null }) => sum + (l.duration_seconds ?? 0),
+      0,
+    );
     const totalDurationLabel =
-      totalSec > 0 ? formatCourseDurationFromSeconds(totalSec) : "—";
+      totalDurationFromLessons > 0 ? formatCourseDurationFromSeconds(totalDurationFromLessons) : "—";
     const lessonCount =
       Number(pubEx.lesson_count ?? 0) > 0
         ? Number(pubEx.lesson_count)

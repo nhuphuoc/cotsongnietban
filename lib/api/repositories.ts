@@ -679,7 +679,7 @@ export async function getCoursePurchaseStateForUser(userId: string, courseId: st
 
   const { data: enrollmentRows, error: enrollmentError } = await client
     .from("enrollments")
-    .select("id, status, created_at, expires_at")
+    .select("id, status, created_at, expires_at, order_item_id")
     .eq("user_id", userId)
     .eq("course_id", courseId)
     .order("created_at", { ascending: false })
@@ -687,6 +687,33 @@ export async function getCoursePurchaseStateForUser(userId: string, courseId: st
 
   if (enrollmentError) throw enrollmentError;
   const enrollment = enrollmentRows?.[0] ?? null;
+
+  // Enrollment chỉ hợp lệ nếu đến từ order đã duyệt (bank_transfer) hoặc đã thanh toán (payos)
+  let enrollmentOrderValid = false;
+  if (enrollment?.order_item_id) {
+    const { data: orderItem } = await client
+      .from("order_items")
+      .select("order_id")
+      .eq("id", enrollment.order_item_id)
+      .maybeSingle();
+
+    if (orderItem) {
+      const { data: linkedOrder } = await client
+        .from("orders")
+        .select("status, payment_method")
+        .eq("id", orderItem.order_id)
+        .maybeSingle();
+
+      if (linkedOrder) {
+        if (linkedOrder.status === "approved") {
+          enrollmentOrderValid = true;
+        } else if (linkedOrder.status === "paid" && linkedOrder.payment_method === "payos") {
+          // PayOS webhook tự cấp enrollment khi status=paid
+          enrollmentOrderValid = true;
+        }
+      }
+    }
+  }
 
   const { data: itemRows, error: itemError } = await client
     .from("order_items")
@@ -719,12 +746,14 @@ export async function getCoursePurchaseStateForUser(userId: string, courseId: st
     latestOrder = orders?.[0] ?? null;
   }
 
+  const enrollmentValid = Boolean(enrollment && enrollment.status === "active" && enrollmentOrderValid);
+
   return {
-    hasEnrollment: Boolean(enrollment),
-    enrollment,
+    hasEnrollment: enrollmentValid,
+    enrollment: enrollmentValid ? enrollment : null,
     hasOpenOrder: Boolean(latestOrder),
     latestOrder,
-    alreadyPurchased: Boolean(enrollment || latestOrder),
+    alreadyPurchased: Boolean(enrollmentValid || latestOrder),
   };
 }
 

@@ -47,4 +47,10 @@ alter table public.lessons
   drop column if exists attachment_url,
   drop column if exists poster_url;
 
-delete from storage.buckets where id = 'lesson-attachments';
+do $$
+begin
+  delete from storage.buckets where id = 'lesson-attachments';
+exception
+  when others then null;
+end
+$$;

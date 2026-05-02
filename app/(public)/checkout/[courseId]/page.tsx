@@ -50,6 +50,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ cours
               courseId={String(course.id)}
               courseTitle={String(course.title ?? "Khóa học")}
               priceLabel={formatVnd(typeof course.price_vnd === "number" ? course.price_vnd : Number(course.price_vnd))}
+              priceVnd={typeof course.price_vnd === "number" ? course.price_vnd : Number(course.price_vnd)}
             />
           )}
         </div>
