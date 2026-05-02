@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronUp, Clock, Loader2, Search, XCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { apiFetch, ApiError } from "@/lib/admin/api-client";
 
 type OrderItem = {
@@ -59,6 +60,8 @@ export default function OrdersPage() {
   const [confirmOrder, setConfirmOrder] = useState<AdminOrder | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
+  const [cancelDialogError, setCancelDialogError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -197,17 +200,18 @@ export default function OrdersPage() {
     }
   }
 
-  async function handleCancel(orderId: string) {
-    if (!confirm("Bạn có chắc muốn hủy đơn hàng này? Hành động này không thể hoàn tác.")) return;
+  async function executeCancelOrder(orderId: string) {
     setCancellingId(orderId);
     setError(null);
+    setCancelDialogError(null);
 
     try {
       await apiFetch(`/api/admin/orders/${orderId}/cancel`, { method: "POST" });
       setOrders((prev) => prev.map((item) => (item.id === orderId ? { ...item, status: "cancelled" } : item)));
+      setCancelTargetId(null);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Không thể hủy đơn hàng.";
-      setError(message);
+      setCancelDialogError(message);
     } finally {
       setCancellingId(null);
     }
@@ -345,15 +349,15 @@ export default function OrdersPage() {
                               Duyệt Đơn
                             </button>
                             <button
-                              onClick={() => handleCancel(order.id)}
+                              type="button"
+                              onClick={() => {
+                                setCancelDialogError(null);
+                                setCancelTargetId(order.id);
+                              }}
                               disabled={cancellingId === order.id}
                               className="whitespace-nowrap rounded-sm border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
                             >
-                              {cancellingId === order.id ? (
-                                <Loader2 className="size-3 animate-spin" />
-                              ) : (
-                                "Hủy"
-                              )}
+                              Hủy
                             </button>
                           </div>
                         ) : isPayosPaid ? (
@@ -375,13 +379,33 @@ export default function OrdersPage() {
         </div>
       </div>
 
+      <ConfirmDialog
+        open={cancelTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCancelTargetId(null);
+            setCancelDialogError(null);
+          }
+        }}
+        title="Hủy đơn hàng?"
+        description="Bạn có chắc muốn hủy đơn này? Hành động không thể hoàn tác; học viên sẽ không còn trạng thái chờ thanh toán trên đơn này."
+        confirmLabel="Hủy đơn"
+        cancelLabel="Quay lại"
+        tone="danger"
+        loading={cancelTargetId !== null && cancellingId === cancelTargetId}
+        error={cancelDialogError}
+        onConfirm={async () => {
+          if (cancelTargetId) await executeCancelOrder(cancelTargetId);
+        }}
+      />
+
       <Dialog open={!!confirmOrder} onOpenChange={() => setConfirmOrder(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
+        <DialogContent className="max-w-sm gap-6 p-6 sm:p-8">
+          <DialogHeader className="space-y-1 pb-1">
             <DialogTitle className="font-heading font-bold text-gray-900">Xác Nhận Duyệt Đơn</DialogTitle>
           </DialogHeader>
           {confirmOrder ? (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="space-y-2 rounded-sm border border-gray-200 bg-gray-50 p-4 text-sm">
                 <div className="flex justify-between gap-4">
                   <span className="text-gray-500">Mã đơn:</span>

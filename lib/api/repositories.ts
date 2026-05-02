@@ -757,48 +757,50 @@ export async function getCoursePurchaseStateForUser(userId: string, courseId: st
   };
 }
 
-export async function listPurchasedCourseIdsForUser(userId: string, courseIds: string[]) {
+/** Trạng thái hiển thị catalog — khớp logic trang chi tiết (view) + `enrollmentGrantsCourseAccess`. */
+export type CourseCatalogUiState = {
+  hasAccess: boolean;
+  awaitingPayment: boolean;
+  /** Đơn pending/paid gần nhất (để học viên tự hủy / đăng ký lại). */
+  pendingOrderId: string | null;
+};
+
+export async function getCourseCatalogUiStatesForUser(
+  userId: string,
+  courseIds: string[]
+): Promise<Map<string, CourseCatalogUiState>> {
   const normalizedIds = [...new Set(courseIds.map((id) => String(id).trim()).filter(Boolean))];
-  if (normalizedIds.length === 0) return new Set<string>();
+  const out = new Map<string, CourseCatalogUiState>();
+  if (normalizedIds.length === 0) return out;
 
-  const client = admin();
+  await Promise.all(
+    normalizedIds.map(async (courseId) => {
+      const purchaseState = await getCoursePurchaseStateForUser(userId, courseId);
+      const hasAccess = enrollmentGrantsCourseAccess(purchaseState.enrollment);
+      const latestOrder = purchaseState.latestOrder;
+      const awaitingPayment = Boolean(
+        !hasAccess &&
+          latestOrder &&
+          (latestOrder.status === "pending" || latestOrder.status === "paid")
+      );
+      out.set(courseId, {
+        hasAccess,
+        awaitingPayment,
+        pendingOrderId: awaitingPayment && latestOrder ? latestOrder.id : null,
+      });
+    })
+  );
+
+  return out;
+}
+
+/** Chỉ khóa học đã có quyền vào LMS (đơn pending / enrollment không hợp lệ không tính). */
+export async function listPurchasedCourseIdsForUser(userId: string, courseIds: string[]) {
+  const map = await getCourseCatalogUiStatesForUser(userId, courseIds);
   const purchased = new Set<string>();
-
-  const { data: enrollments, error: enrollmentError } = await client
-    .from("enrollments")
-    .select("course_id")
-    .eq("user_id", userId)
-    .in("course_id", normalizedIds);
-  if (enrollmentError) throw enrollmentError;
-
-  for (const row of enrollments ?? []) {
-    if (row.course_id) purchased.add(String(row.course_id));
+  for (const [id, s] of map) {
+    if (s.hasAccess) purchased.add(id);
   }
-
-  const { data: itemRows, error: itemError } = await client
-    .from("order_items")
-    .select("order_id, course_id")
-    .in("course_id", normalizedIds);
-  if (itemError) throw itemError;
-
-  const orderIds = [...new Set((itemRows ?? []).map((row) => row.order_id).filter(Boolean))];
-  if (orderIds.length > 0) {
-    const { data: orders, error: ordersError } = await client
-      .from("orders")
-      .select("id")
-      .eq("user_id", userId)
-      .in("id", orderIds)
-      .in("status", ["pending", "paid", "approved"]);
-    if (ordersError) throw ordersError;
-
-    const openOrderIds = new Set((orders ?? []).map((order) => String(order.id)));
-    for (const row of itemRows ?? []) {
-      if (row.course_id && row.order_id && openOrderIds.has(String(row.order_id))) {
-        purchased.add(String(row.course_id));
-      }
-    }
-  }
-
   return purchased;
 }
 

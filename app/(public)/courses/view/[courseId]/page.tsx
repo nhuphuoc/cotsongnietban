@@ -15,6 +15,7 @@ import {
 } from "@/lib/api/repositories";
 import { formatVnd } from "@/lib/format-vnd";
 import { getLmsCourseHref } from "@/lib/learning-hub";
+import { CancelPendingRegistrationButton } from "@/components/marketing/cancel-pending-registration-button";
 
 const FALLBACK_THUMB =
   "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop";
@@ -416,6 +417,15 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
                         <p className="mt-1 text-amber-900/90">
                           Bạn đã tạo đơn hoặc đang chờ duyệt. Sau khi admin xác nhận chuyển khoản, quyền học sẽ được bật tự động — hãy tải lại trang này hoặc vào Phòng học.
                         </p>
+                        {latestOrder?.id ? (
+                          <div className="mt-3 border-t border-amber-200/70 pt-3">
+                            <CancelPendingRegistrationButton
+                              orderId={latestOrder.id}
+                              variant="button"
+                              className="[&_button]:w-full"
+                            />
+                          </div>
+                        ) : null}
                       </div>
                     ) : (
                       <Link

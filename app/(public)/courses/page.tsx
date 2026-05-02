@@ -1,12 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Clock, BookOpen } from "lucide-react";
+import { ArrowRight, BookOpen, Calendar, Clock } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 import { SITE_CONTACT } from "@/lib/site-contact";
-import { listCourses, listPurchasedCourseIdsForUser } from "@/lib/api/repositories";
+import {
+  type CourseCatalogUiState,
+  getCourseCatalogUiStatesForUser,
+  listCourses,
+} from "@/lib/api/repositories";
 import { formatVnd } from "@/lib/format-vnd";
 import { getSessionActor } from "@/lib/api/auth";
+import { getLmsCourseHref } from "@/lib/learning-hub";
+import { CancelPendingRegistrationButton } from "@/components/marketing/cancel-pending-registration-button";
 
 const FALLBACK_THUMB =
   "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop";
@@ -21,12 +27,12 @@ function formatCatalogDuration(sec: number | null | undefined): string {
 export default async function CoursesPage() {
   const rows = await listCourses({ publishedOnly: true });
   const actor = await getSessionActor();
-  const purchasedCourseIds = actor
-    ? await listPurchasedCourseIdsForUser(
+  const catalogStates = actor
+    ? await getCourseCatalogUiStatesForUser(
         actor.id,
         rows.map((row) => String((row as { id: string }).id))
       )
-    : new Set<string>();
+    : new Map<string, CourseCatalogUiState>();
 
   return (
     <div className="relative min-h-screen overflow-x-clip bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pt-20">
@@ -34,23 +40,25 @@ export default async function CoursesPage() {
         <div className="csnb-ambient-mesh-surface absolute inset-0 opacity-[0.45]" aria-hidden />
       </div>
 
-      <section id="chuong-trinh" className="relative z-10 scroll-mt-24 border-b border-csnb-border/15 py-10 sm:py-14 lg:py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto mb-10 max-w-2xl text-center">
-            <span className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange-deep">
+      <section id="chuong-trinh" className="relative z-10 scroll-mt-24 border-b border-csnb-border/15 py-12 sm:py-16 lg:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <header className="mx-auto mb-12 max-w-2xl text-center lg:mb-14">
+            <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-csnb-orange-deep">
               Danh mục
             </span>
-            <h1 className="mt-2 font-sans text-2xl font-extrabold text-csnb-ink sm:text-3xl">Chọn khóa học phù hợp</h1>
-            <p className="mt-3 font-sans text-sm leading-relaxed text-neutral-600 sm:text-base">
-              Xem chi tiết chương trình, nội dung từng module và giá tham khảo. Đăng nhập để vào phòng học LMS.
+            <h1 className="mt-3 font-sans text-3xl font-extrabold tracking-tight text-csnb-ink sm:text-4xl">
+              Chọn khóa học phù hợp
+            </h1>
+            <p className="mt-4 font-sans text-sm leading-relaxed text-neutral-600 sm:text-base">
+              Chương trình rõ ràng, học theo tiến độ trên LMS. Xem nội dung và học phí trước khi đăng ký.
             </p>
-          </div>
+          </header>
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <ul className="mx-auto grid list-none grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6 lg:gap-8 xl:grid-cols-3">
             {rows.length === 0 ? (
-              <p className="col-span-full text-center font-sans text-sm text-neutral-600">
+              <li className="col-span-full text-center font-sans text-sm text-neutral-600">
                 Hiện chưa có khóa học công khai. Vui lòng quay lại sau.
-              </p>
+              </li>
             ) : (
               rows.map((raw) => {
                 const c = raw as {
@@ -67,7 +75,12 @@ export default async function CoursesPage() {
                   published_at?: string | null;
                 };
                 const viewSlug = (typeof c.slug === "string" && c.slug.trim()) || c.id;
-                const hasPurchased = purchasedCourseIds.has(String(c.id));
+                const catalogState = catalogStates.get(String(c.id)) ?? {
+                  hasAccess: false,
+                  awaitingPayment: false,
+                  pendingOrderId: null,
+                };
+                const { hasAccess, awaitingPayment, pendingOrderId } = catalogState;
                 const title = (typeof c.title === "string" && c.title) || "Khóa học";
                 const desc =
                   (typeof c.short_description === "string" && c.short_description.trim()) ||
@@ -87,75 +100,116 @@ export default async function CoursesPage() {
                   typeof c.access_duration_days === "number" && c.access_duration_days > 0
                     ? `${c.access_duration_days} ngày`
                     : "Theo gói đã mua";
+                const detailHref = `/courses/view/${viewSlug}`;
+                const primaryHref = hasAccess ? getLmsCourseHref(viewSlug) : detailHref;
 
                 return (
-                  <article
-                    key={c.id}
-                    className="flex flex-col overflow-hidden rounded-xl border border-csnb-border/25 bg-white shadow-sm transition-shadow hover:border-csnb-orange/25 hover:shadow-md sm:flex-row"
-                  >
-                    <Link
-                      href={`/courses/view/${viewSlug}`}
-                      className="relative aspect-[16/10] w-full shrink-0 sm:aspect-auto sm:h-auto sm:w-[min(42%,240px)] sm:min-h-[200px]"
-                    >
-                      <Image
-                        src={thumb}
-                        alt=""
-                        fill
-                        sizes="(max-width: 1023px) 100vw, 240px"
-                        className="object-cover transition-transform duration-300 hover:scale-[1.02]"
-                      />
-                    </Link>
-                    <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-                        <h3 className="min-w-0 font-sans text-base font-bold leading-snug text-csnb-ink sm:text-lg">{title}</h3>
-                        <div className="flex shrink-0 items-center gap-1.5">
-                          {hasPurchased ? (
-                            <span className="w-fit rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-center font-sans text-[10px] font-bold uppercase tracking-wide text-emerald-700">
-                              Đã có
-                            </span>
-                          ) : null}
-                          <span className="w-fit rounded-md border border-csnb-border/40 bg-csnb-panel/80 px-2 py-0.5 text-center font-sans text-[10px] font-bold uppercase tracking-wide text-csnb-ink">
-                            {publishedLabel}
+                  <li key={c.id} className="min-w-0">
+                    <article className="group/card flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(6,38,44,0.06)] ring-1 ring-csnb-border/20 transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(6,38,44,0.18)] hover:ring-csnb-border/35">
+                      <Link
+                        href={detailHref}
+                        className="relative isolate aspect-[16/10] w-full shrink-0 overflow-hidden bg-csnb-panel"
+                      >
+                        <Image
+                          src={thumb}
+                          alt=""
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                          className="object-cover transition duration-500 ease-out group-hover/card:scale-[1.04]"
+                        />
+                        <div
+                          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-csnb-ink/50 via-transparent to-transparent opacity-80"
+                          aria-hidden
+                        />
+                        {(hasAccess || awaitingPayment) && (
+                          <div className="absolute left-3 top-3 z-10 max-w-[calc(100%-1.5rem)]">
+                            {hasAccess ? (
+                              <span className="inline-flex items-center rounded-md bg-white/95 px-2 py-1 text-[11px] font-medium text-emerald-800 shadow-sm ring-1 ring-emerald-200/80 backdrop-blur-sm">
+                                Đã kích hoạt
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-md bg-white/95 px-2 py-1 text-[11px] font-medium text-amber-900 shadow-sm ring-1 ring-amber-200/90 backdrop-blur-sm">
+                                Chờ thanh toán
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </Link>
+
+                      <div className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4 sm:px-6 sm:pb-6 sm:pt-5">
+                        <h2 className="font-sans text-lg font-bold leading-snug tracking-tight text-csnb-ink sm:text-xl">
+                          <Link
+                            href={detailHref}
+                            className="line-clamp-2 text-balance transition-colors hover:text-csnb-orange-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-csnb-orange/40 focus-visible:ring-offset-2"
+                          >
+                            {title}
+                          </Link>
+                        </h2>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-neutral-500">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Clock className="size-3.5 shrink-0 text-csnb-orange-deep/80" strokeWidth={2} aria-hidden />
+                            {durationLabel}
+                          </span>
+                          <span className="hidden text-neutral-300 sm:inline" aria-hidden>
+                            ·
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <BookOpen className="size-3.5 shrink-0 text-csnb-orange-deep/80" strokeWidth={2} aria-hidden />
+                            {nLessons} bài
+                          </span>
+                          <span className="hidden text-neutral-300 sm:inline" aria-hidden>
+                            ·
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <Calendar className="size-3.5 shrink-0 text-csnb-orange-deep/80" strokeWidth={2} aria-hidden />
+                            {accessLabel}
                           </span>
                         </div>
+
+                        <p className="mt-3 line-clamp-2 flex-1 font-sans text-sm leading-relaxed text-neutral-600">
+                          {desc || "Khóa học trực tuyến, học theo tiến độ cá nhân."}
+                        </p>
+
+                        <p className="mt-3 font-sans text-[11px] tabular-nums text-neutral-400">
+                          {c.published_at && !Number.isNaN(new Date(c.published_at).getTime())
+                            ? `Cập nhật danh mục: ${publishedLabel}`
+                            : publishedLabel}
+                        </p>
+
+                        <div className="mt-5 flex flex-col gap-4 border-t border-neutral-200/80 pt-5 sm:flex-row sm:items-end sm:justify-between">
+                          <div>
+                            <p className="font-sans text-xs font-medium text-neutral-500">Học phí</p>
+                            <p className="mt-0.5 font-sans text-xl font-extrabold tabular-nums tracking-tight text-csnb-orange-deep sm:text-2xl">
+                              {priceLabel}
+                            </p>
+                          </div>
+                          <Link
+                            href={primaryHref}
+                            className={`inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 font-sans text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-csnb-orange/50 focus-visible:ring-offset-2 sm:h-10 sm:w-auto sm:min-w-[10.5rem] ${
+                              hasAccess
+                                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                : awaitingPayment
+                                  ? "border-2 border-amber-500/90 bg-white text-amber-950 hover:bg-amber-50"
+                                  : "bg-csnb-orange text-white hover:bg-csnb-orange-deep"
+                            }`}
+                          >
+                            {hasAccess ? "Vào học ngay" : awaitingPayment ? "Thanh toán tiếp" : "Xem chi tiết"}
+                            <ArrowRight className="size-4 shrink-0 opacity-90" strokeWidth={2} />
+                          </Link>
+                        </div>
+                        {awaitingPayment && pendingOrderId ? (
+                          <div className="mt-3 border-t border-dashed border-neutral-200/90 pt-3">
+                            <CancelPendingRegistrationButton orderId={pendingOrderId} />
+                          </div>
+                        ) : null}
                       </div>
-                      <p className="mt-2 line-clamp-2 flex-1 font-sans text-sm leading-relaxed text-neutral-600">{desc || "Khóa học trực tuyến."}</p>
-                      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 font-sans text-xs text-neutral-500">
-                        <span className="inline-flex items-center gap-1.5">
-                          <Clock className="size-3.5 shrink-0 text-csnb-orange-deep" strokeWidth={2} />
-                          {durationLabel}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                          <BookOpen className="size-3.5 shrink-0 text-csnb-orange-deep" strokeWidth={2} />
-                          {nLessons} bài
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                          Truy cập: {accessLabel}
-                        </span>
-                      </div>
-                      <div className="my-4 h-px bg-csnb-border/20" />
-                      <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-                        <span className="font-sans text-lg font-extrabold tabular-nums text-csnb-orange-deep sm:text-xl">
-                          {priceLabel}
-                        </span>
-                        <Link
-                          href={`/courses/view/${viewSlug}`}
-                          className={`inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border px-3 py-2 font-sans text-sm font-semibold transition-colors sm:w-auto sm:justify-start ${
-                            hasPurchased
-                              ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:border-emerald-400 hover:bg-emerald-100"
-                              : "border-csnb-border/35 bg-white text-csnb-ink hover:border-csnb-orange/40 hover:text-csnb-orange-deep"
-                          }`}
-                        >
-                          {hasPurchased ? "Vào học ngay" : "Chi tiết"}
-                          <ArrowRight className="size-4 shrink-0" />
-                        </Link>
-                      </div>
-                    </div>
-                  </article>
+                    </article>
+                  </li>
                 );
               })
             )}
-          </div>
+          </ul>
         </div>
       </section>
 

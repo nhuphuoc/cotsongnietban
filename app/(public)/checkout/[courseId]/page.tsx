@@ -25,6 +25,9 @@ export default async function CheckoutPage({ params }: { params: Promise<{ cours
 
   const purchaseState = await getCoursePurchaseStateForUser(actor.id, String(course.id));
   const hasAccess = enrollmentGrantsCourseAccess(purchaseState.enrollment);
+  const lo = purchaseState.latestOrder;
+  const cancellableOrderId =
+    !hasAccess && lo && (lo.status === "pending" || lo.status === "paid") ? lo.id : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-csnb-panel/35 to-csnb-panel pt-24 pb-16">
@@ -51,6 +54,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ cours
               courseTitle={String(course.title ?? "Khóa học")}
               priceLabel={formatVnd(typeof course.price_vnd === "number" ? course.price_vnd : Number(course.price_vnd))}
               priceVnd={typeof course.price_vnd === "number" ? course.price_vnd : Number(course.price_vnd)}
+              cancellableOrderId={cancellableOrderId}
             />
           )}
         </div>

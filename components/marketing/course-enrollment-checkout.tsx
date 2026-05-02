@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, CreditCard } from "lucide-react";
 import { SITE_CONTACT } from "@/lib/site-contact";
+import { CancelPendingRegistrationButton } from "@/components/marketing/cancel-pending-registration-button";
 
 type CheckoutResult = {
   orderId: string;
@@ -32,6 +33,8 @@ type Props = {
   courseTitle: string;
   priceLabel: string;
   priceVnd: number;
+  /** Đơn pending/paid trên server (PayOS hoặc CK) — cho phép hủy trước khi có state cục bộ */
+  cancellableOrderId?: string | null;
 };
 
 function formatVnd(value: number) {
@@ -51,7 +54,13 @@ async function readErrorMessage(res: Response) {
   }
 }
 
-export function CourseEnrollmentCheckout({ courseId, courseTitle, priceLabel, priceVnd }: Props) {
+export function CourseEnrollmentCheckout({
+  courseId,
+  courseTitle,
+  priceLabel,
+  priceVnd,
+  cancellableOrderId = null,
+}: Props) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [payosLoading, setPayosLoading] = useState(false);
@@ -162,11 +171,25 @@ export function CourseEnrollmentCheckout({ courseId, courseTitle, priceLabel, pr
     }
   }
 
+  const showServerPendingCancel = Boolean(cancellableOrderId && !result);
+
   return (
     <div>
       <p className="font-sans text-xs uppercase tracking-wide text-neutral-500">Checkout khóa học</p>
       <h1 className="mt-1 font-sans text-xl font-extrabold text-csnb-ink">{courseTitle}</h1>
       <p className="mt-1 font-sans text-2xl font-extrabold tabular-nums text-csnb-orange-deep">{priceLabel}</p>
+
+      {showServerPendingCancel ? (
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-3 font-sans text-sm text-amber-950">
+          <p className="font-medium">Bạn đang có đơn chờ thanh toán cho khóa này.</p>
+          <p className="mt-1 text-xs text-amber-900/85">
+            Ấn nhầm? Hủy đơn để chọn lại phương thức hoặc tạo đơn mới.
+          </p>
+          <div className="mt-3">
+            <CancelPendingRegistrationButton orderId={cancellableOrderId!} variant="button" className="[&_button]:w-full" />
+          </div>
+        </div>
+      ) : null}
 
       {!result ? (
         <div className="mt-4 space-y-3 rounded-lg border border-csnb-border/25 bg-white p-4">
@@ -260,6 +283,16 @@ export function CourseEnrollmentCheckout({ courseId, courseTitle, priceLabel, pr
             >
               Gửi ảnh chuyển khoản qua Zalo admin
             </Link>
+            {result.orderId ? (
+              <div className="border-t border-csnb-border/20 pt-3">
+                <CancelPendingRegistrationButton
+                  orderId={result.orderId}
+                  variant="button"
+                  className="[&_button]:w-full"
+                  confirmMessage="Hủy đơn chuyển khoản này? Bạn có thể tạo đơn mới sau."
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       )}
