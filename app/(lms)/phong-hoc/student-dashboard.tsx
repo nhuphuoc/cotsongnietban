@@ -106,7 +106,7 @@ export default async function StudentDashboardPage() {
           </Link>
         </div>
       ) : (
-        <div className="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {enrollmentsRows.map((row) => {
             const course = row.course;
             if (!course) return null;
@@ -121,64 +121,52 @@ export default async function StudentDashboardPage() {
               : completedLessons >= totalLessons && totalLessons > 0
                 ? "Đã hoàn thành chương trình"
                 : "Tiếp tục học";
-            const desc =
-              (course.short_description && course.short_description.trim()) ||
-              (course.description && course.description.trim()) ||
-              "";
             const hrefId = course.slug || course.id;
             const resumeHref = `${getLmsCourseHref(String(hrefId))}/resume`;
             return (
               <div
                 key={row.id}
-                className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-xl border border-neutral-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md md:flex-row md:items-center md:gap-3"
               >
-                <div className="relative aspect-video">
+                {/* Thumbnail */}
+                <div className="relative mx-auto h-24 w-full max-w-xs shrink-0 overflow-hidden rounded-lg md:mx-0 md:h-20 md:w-32 lg:w-36">
                   <Image
                     src={course.thumbnail_url || FALLBACK_THUMB}
                     alt={course.title}
                     fill
-                    sizes="(max-width: 1023px) 100vw, 50vw"
+                    sizes="(max-width: 767px) 320px, 144px"
                     className="object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
-                  <div className="absolute right-3 bottom-3 left-3 flex items-center justify-between text-xs text-white">
-                    <span className="font-heading font-bold">
-                      {totalLessons > 0 ? `${Math.min(completedLessons, totalLessons)}/${totalLessons} bài` : "0 bài"}
+                  {row.expires_at && (
+                    <span className={`absolute bottom-1 right-1 rounded px-1.5 py-0.5 font-heading text-[10px] font-bold text-white ${dl <= 30 ? "bg-orange-600" : "bg-sky-600"}`}>
+                      {dl}d
                     </span>
-                    {row.expires_at ? (
-                      <span
-                        className={`rounded px-2 py-0.5 font-heading font-bold ${
-                          dl <= 30 ? "bg-orange-600" : "bg-sky-600"
-                        }`}
-                      >
-                        Còn {dl} ngày
-                      </span>
-                    ) : (
-                      <span className="rounded bg-sky-600 px-2 py-0.5 font-heading font-bold">Không giới hạn</span>
-                    )}
-                  </div>
+                  )}
                 </div>
-                <div className="p-4">
-                  <h3 className="mb-1 font-heading text-base font-bold text-neutral-900">{course.title}</h3>
-                  <p className="mb-3 line-clamp-2 font-sans text-xs text-neutral-600">{desc || "Khóa học trực tuyến"}</p>
-                  <div className="mb-3">
-                    <div className="mb-1 flex items-center justify-between text-xs">
-                      <span className="text-neutral-500">Tiến độ</span>
-                      <span className="font-heading font-bold tabular-nums text-violet-700">{progress}%</span>
+
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 md:flex-row md:items-center md:gap-3">
+                  {/* Info */}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="line-clamp-2 font-heading text-sm font-bold text-neutral-900 md:truncate">{course.title}</h3>
+                    <p className="mt-0.5 font-sans text-[11px] text-neutral-400">
+                      {totalLessons > 0 ? `${Math.min(completedLessons, totalLessons)}/${totalLessons} bài` : "0 bài"}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-200">
+                        <div className="h-full rounded-full bg-violet-600" style={{ width: `${progress}%` }} />
+                      </div>
+                      <span className="shrink-0 font-heading text-[11px] font-bold tabular-nums text-violet-700">{progress}%</span>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-neutral-200">
-                      <div className="h-full rounded-full bg-violet-600" style={{ width: `${progress}%` }} />
-                    </div>
+                    <p className="mt-1.5 line-clamp-2 font-sans text-[11px] text-neutral-500 md:truncate">Tiếp: {nextLabel}</p>
                   </div>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <span className="line-clamp-2 font-sans text-xs text-neutral-600">Tiếp: {nextLabel}</span>
-                    <Link
-                      href={resumeHref}
-                      className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md bg-neutral-900 px-3 py-1.5 font-heading text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-black"
-                    >
-                      <Play size={12} /> Học ngay
-                    </Link>
-                  </div>
+
+                  {/* CTA */}
+                  <Link
+                    href={resumeHref}
+                    className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 font-heading text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-black md:self-center"
+                  >
+                    <Play size={11} /> Học
+                  </Link>
                 </div>
               </div>
             );

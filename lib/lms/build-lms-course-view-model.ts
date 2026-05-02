@@ -1,6 +1,6 @@
 import type { DemoCourse, DemoLesson, DemoPhase, LessonVideoProvider } from "@/lib/demo-courses";
 import { DEMO_VIDEO_MP4 } from "@/lib/demo-courses";
-import { signBunnyStreamEmbedUrl } from "@/lib/bunny/stream-signing";
+import { signBunnyStreamEmbedUrl, getBunnyStreamConfig, extractBunnyVideoGuid } from "@/lib/bunny/stream-signing";
 
 type DbLesson = Record<string, unknown>;
 type DbSection = Record<string, unknown> & { lessons?: DbLesson[] };
@@ -118,19 +118,29 @@ export function buildLmsCourseViewModel(bundle: EnrollmentCourseBundle): DemoCou
 
     let videoProvider: LessonVideoProvider | undefined;
     let videoUrl = rawUrl || DEMO_VIDEO_MP4;
+    let thumbnail: string | undefined;
 
     if (rawProvider === "bunny_stream") {
       videoProvider = "bunny_stream";
       const signed = signBunnyStreamEmbedUrl(rawUrl);
       if (signed) {
         videoUrl = signed.url;
+        const cdnHostname = getBunnyStreamConfig()?.cdnHostname;
+        if (cdnHostname) {
+          thumbnail = `https://${cdnHostname}/${signed.videoGuid}/thumbnail.jpg`;
+        }
       } else {
         // Thiếu env hoặc GUID không hợp lệ: fallback sang MP4 demo để không break UI.
         videoProvider = undefined;
         videoUrl = DEMO_VIDEO_MP4;
       }
-    } else if (rawProvider === "youtube" || rawProvider === "mp4") {
-      videoProvider = rawProvider;
+    } else if (rawProvider === "youtube") {
+      videoProvider = "youtube";
+      // YouTube thumbnail từ video ID
+      const ytMatch = rawUrl.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+      if (ytMatch) thumbnail = `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
+    } else if (rawProvider === "mp4") {
+      videoProvider = "mp4";
     }
 
     return {
@@ -142,6 +152,7 @@ export function buildLmsCourseViewModel(bundle: EnrollmentCourseBundle): DemoCou
       locked: false,
       videoUrl,
       ...(videoProvider ? { videoProvider } : {}),
+      ...(thumbnail ? { thumbnail } : {}),
       ...notesFromLesson(l),
       contentHtml: typeof (l as { content_html?: unknown }).content_html === "string" ? String((l as { content_html?: string }).content_html ?? "") : undefined,
     };

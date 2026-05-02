@@ -9,12 +9,15 @@ import {
   getNextPlayableLesson,
   getCompletedLessonCount,
   getCourseProgressPercent,
+  getCoursePhases,
+  getLessonsForPhase,
+  isPhaseComplete,
 } from "@/lib/demo-courses";
 import { getLmsCourseHref, getLmsHomeHref, getLmsLessonHref } from "@/lib/learning-hub";
 import { LessonVideoPlayer } from "@/components/lms/lesson-video-player";
-import { CourseCurriculumSidebar } from "@/components/lms/course-curriculum-sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, CheckCircle2, Clock, MessageCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, MessageCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
  
 function looksLikeHtml(s: string): boolean {
   return /<\w[\s\S]*>/.test(s);
@@ -202,8 +205,11 @@ function LessonViewLoaded({
 }) {
   const completed = lesson.completed;
 
+  const phases = getCoursePhases(course);
+
   return (
-    <div className="flex min-h-[100dvh] flex-col overflow-x-clip bg-neutral-100 lg:min-h-full">
+    <div className="flex min-h-[100dvh] flex-col bg-white">
+      {/* Top nav */}
       <header className="relative z-20 flex shrink-0 items-center justify-between gap-3 border-b border-neutral-800 bg-[#1c1d1f] px-4 py-3 sm:px-5">
         <Link
           href={getLmsCourseHref(courseId)}
@@ -212,159 +218,228 @@ function LessonViewLoaded({
           <ArrowLeft className="size-4 shrink-0" />
           <span className="truncate font-semibold">{course.title}</span>
         </Link>
-        <span className="hidden shrink-0 font-sans text-[11px] text-white/55 sm:block">Không có khu vực bình luận</span>
+        <a
+          href={SITE_CONTACT.zaloUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden shrink-0 items-center gap-1.5 font-sans text-xs font-medium text-white/60 no-underline hover:text-white sm:inline-flex"
+        >
+          <MessageCircle className="size-3.5" />
+          Tư vấn
+        </a>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:items-stretch">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <div className="relative z-0 shrink-0 border-t border-neutral-800/80 bg-black">
-            <LessonVideoPlayer
-              variant="embed"
-              src={lesson.videoUrl}
-              provider={lesson.videoProvider}
-              poster={course.thumbnail}
-              title={lesson.title}
-              className="mx-auto w-full max-w-5xl lg:max-w-none"
-            />
-          </div>
-
-          <div className="flex min-h-0 flex-1 flex-col border-t border-neutral-200 bg-white">
-            <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col">
-              <div className="shrink-0 overflow-x-auto border-b border-neutral-200 px-4 pt-3 sm:px-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <TabsList variant="line" className="h-auto min-w-max justify-start gap-4 rounded-none bg-transparent p-0 sm:w-full sm:min-w-0">
-                  <TabsTrigger value="overview" className="rounded-none px-0 pb-3 text-sm">
-                    Tổng quan
-                  </TabsTrigger>
-                  <TabsTrigger value="notes" className="rounded-none px-0 pb-3 text-sm">
-                    Ghi chú
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="overview" className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-                <h1 className="font-sans text-lg font-bold text-neutral-900 sm:text-xl">{lesson.title}</h1>
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-sans text-xs text-neutral-500">
-                  <span className="flex items-center gap-1">
-                    <Clock className="size-3.5" />
-                    {lesson.duration}
-                  </span>
-                  <span>
-                    Bài {currentIndex + 1} / {course.lessons.length}
-                  </span>
-                  <span className="tabular-nums">Tiến độ khóa: {courseProgress}%</span>
-                  <span>
-                    {doneCount}/{course.lessons.length} đã xong
-                  </span>
-                </div>
-
-                {saveError ? (
-                  <p className="mt-3 font-sans text-sm text-red-600" role="alert">
-                    {saveError}
-                  </p>
-                ) : null}
-
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                  {!completed ? (
-                    <button
-                      type="button"
-                      onClick={() => void onApplyProgress(true)}
-                      disabled={saving}
-                      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-violet-600 px-4 py-2 font-sans text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                    >
-                      <CheckCircle2 className="size-4" />
-                      {saving ? "Đang lưu…" : "Đánh dấu hoàn thành"}
-                    </button>
-                  ) : (
-                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-                      <span className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 font-sans text-sm font-semibold text-emerald-800 sm:w-auto">
-                        <CheckCircle2 className="size-4" />
-                        Đã hoàn thành
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => void onApplyProgress(false)}
-                        disabled={saving}
-                        className="inline-flex min-h-11 items-center justify-center rounded-md border border-neutral-300 bg-white px-4 py-2 font-sans text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {saving ? "Đang lưu…" : "Bỏ hoàn thành"}
-                      </button>
-                    </div>
-                  )}
-                  {nextLesson ? (
-                    <Link
-                      href={getLmsLessonHref(courseId, nextLesson.id)}
-                      className="inline-flex min-h-11 items-center font-sans text-sm font-medium text-violet-700 hover:underline sm:min-h-0"
-                    >
-                      Bài tiếp theo →
-                    </Link>
-                  ) : null}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="notes" className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-                <div className="max-w-2xl rounded-lg border border-neutral-200 bg-neutral-50/80 p-4 font-sans text-sm leading-relaxed text-neutral-700">
-                  {lesson.contentHtml?.trim() ? (
-                    looksLikeHtml(lesson.contentHtml) ? (
-                      <div
-                        className="prose prose-sm max-w-none text-neutral-800 [&_p]:my-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6"
-                        dangerouslySetInnerHTML={{ __html: lesson.contentHtml }}
-                      />
-                    ) : (
-                      <p className="text-neutral-800">{lesson.contentHtml}</p>
-                    )
-                  ) : (
-                    <>
-                      {lesson.notesIntro ? <p className="mb-3 text-neutral-900">{lesson.notesIntro}</p> : null}
-                      {lesson.noteBullets && lesson.noteBullets.length > 0 ? (
-                        <ul className="space-y-2">
-                          {lesson.noteBullets.map((line, i) => (
-                            <li key={i} className="flex gap-2">
-                              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
-                              {line}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : !lesson.notesIntro ? (
-                        <ul className="space-y-2">
-                          <li className="flex gap-2">
-                            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
-                            Khởi động nhẹ trước khi vào tải chính.
-                          </li>
-                          <li className="flex gap-2">
-                            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
-                            Giữ form trong tầm kiểm soát — chất lượng hơn số lần.
-                          </li>
-                        </ul>
-                      ) : null}
-                    </>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
+      {/* Lesson title */}
+      <div className="shrink-0 border-b border-neutral-100 bg-white px-4 py-4 sm:px-6 sm:py-5">
+        <div className="mx-auto max-w-5xl">
+          <h1 className="font-sans text-xl font-bold text-neutral-900 sm:text-2xl">{lesson.title}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-sans text-xs text-neutral-400">
+            <span className="flex items-center gap-1">
+              <Clock className="size-3.5" />
+              {lesson.duration}
+            </span>
+            <span>Bài {currentIndex + 1} / {course.lessons.length}</span>
+            <span className="tabular-nums">Tiến độ: {courseProgress}%</span>
+            <span>{doneCount}/{course.lessons.length} đã xong</span>
           </div>
         </div>
+      </div>
 
-        <aside className="flex w-full shrink-0 flex-col border-t border-neutral-200 bg-white lg:w-[min(100%,380px)] lg:border-t-0 lg:border-l lg:border-neutral-200">
-          <div className="flex max-h-[min(52vh,440px)] min-h-[min(44vh,320px)] flex-1 flex-col overflow-hidden lg:max-h-none lg:min-h-0 lg:flex-1">
-            <CourseCurriculumSidebar
-              course={course}
-              courseId={courseId}
-              activeLessonId={lesson.id}
-              getLessonHref={getLessonHref}
-            />
+      {/* Video player — centered, full width */}
+      <div className="shrink-0">
+        <LessonVideoPlayer
+          variant="embed"
+          src={lesson.videoUrl}
+          provider={lesson.videoProvider}
+          poster={course.thumbnail}
+          title={lesson.title}
+          className="mx-auto w-full max-w-5xl"
+          hideTitle
+        />
+      </div>
+
+      {/* Actions + tabs */}
+      <div className="shrink-0 border-b border-neutral-200 bg-white">
+        <div className="mx-auto max-w-5xl">
+          <Tabs defaultValue="overview">
+            <div className="overflow-x-auto border-b border-neutral-200 px-4 pt-3 sm:px-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <TabsList variant="line" className="h-auto min-w-max justify-start gap-4 rounded-none bg-transparent p-0">
+                <TabsTrigger value="overview" className="rounded-none px-0 pb-3 text-sm">
+                  Tổng quan
+                </TabsTrigger>
+                <TabsTrigger value="notes" className="rounded-none px-0 pb-3 text-sm">
+                  Ghi chú
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="overview" className="px-4 py-5 sm:px-6">
+              {saveError ? (
+                <p className="mb-3 font-sans text-sm text-red-600" role="alert">{saveError}</p>
+              ) : null}
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                {!completed ? (
+                  <button
+                    type="button"
+                    onClick={() => void onApplyProgress(true)}
+                    disabled={saving}
+                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-violet-600 px-4 py-2 font-sans text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  >
+                    <CheckCircle2 className="size-4" />
+                    {saving ? "Đang lưu…" : "Đánh dấu hoàn thành"}
+                  </button>
+                ) : (
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+                    <span className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 font-sans text-sm font-semibold text-emerald-800 sm:w-auto">
+                      <CheckCircle2 className="size-4" />
+                      Đã hoàn thành
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void onApplyProgress(false)}
+                      disabled={saving}
+                      className="inline-flex min-h-11 items-center justify-center rounded-md border border-neutral-300 bg-white px-4 py-2 font-sans text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {saving ? "Đang lưu…" : "Bỏ hoàn thành"}
+                    </button>
+                  </div>
+                )}
+                {nextLesson ? (
+                  <Link
+                    href={getLmsLessonHref(courseId, nextLesson.id)}
+                    className="inline-flex min-h-11 items-center font-sans text-sm font-medium text-violet-700 hover:underline sm:min-h-0"
+                  >
+                    Bài tiếp theo →
+                  </Link>
+                ) : null}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="notes" className="px-4 py-5 sm:px-6">
+              <div className="max-w-2xl rounded-lg border border-neutral-200 bg-neutral-50/80 p-4 font-sans text-sm leading-relaxed text-neutral-700">
+                {lesson.contentHtml?.trim() ? (
+                  looksLikeHtml(lesson.contentHtml) ? (
+                    <div
+                      className="prose prose-sm max-w-none text-neutral-800 [&_p]:my-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6"
+                      dangerouslySetInnerHTML={{ __html: lesson.contentHtml }}
+                    />
+                  ) : (
+                    <p className="text-neutral-800">{lesson.contentHtml}</p>
+                  )
+                ) : (
+                  <>
+                    {lesson.notesIntro ? <p className="mb-3 text-neutral-900">{lesson.notesIntro}</p> : null}
+                    {lesson.noteBullets && lesson.noteBullets.length > 0 ? (
+                      <ul className="space-y-2">
+                        {lesson.noteBullets.map((line, i) => (
+                          <li key={i} className="flex gap-2">
+                            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : !lesson.notesIntro ? (
+                      <ul className="space-y-2">
+                        <li className="flex gap-2">
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
+                          Khởi động nhẹ trước khi vào tải chính.
+                        </li>
+                        <li className="flex gap-2">
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
+                          Giữ form trong tầm kiểm soát — chất lượng hơn số lần.
+                        </li>
+                      </ul>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+
+      {/* Curriculum — phases with horizontal scroll per phase */}
+      <div className="border-t border-neutral-100 bg-white py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-5 flex items-center justify-between px-4 sm:px-6">
+            <h2 className="font-sans text-base font-bold text-neutral-900">Nội dung khóa học</h2>
+            <span className="font-sans text-xs text-neutral-400">{doneCount}/{course.lessons.length} hoàn thành</span>
           </div>
-          <div className="shrink-0 border-t border-neutral-200 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-            <a
-              href={SITE_CONTACT.zaloUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 font-sans text-xs font-semibold text-neutral-800 transition-colors hover:bg-neutral-100"
-            >
-              <MessageCircle className="size-4" />
-              Tư vấn trực tiếp
-            </a>
+          <div className="space-y-7">
+            {phases.map((phase) => {
+              const phaseLessons = getLessonsForPhase(course, phase);
+              const completedInPhase = phaseLessons.filter((l) => l.completed).length;
+              const phaseComplete = isPhaseComplete(course, phase);
+              return (
+                <div key={phase.id}>
+                  {/* Phase header */}
+                  <div className="mb-3 flex items-center gap-2 px-4 sm:px-6">
+                    <span className="font-sans text-sm font-semibold text-neutral-800">{phase.title}</span>
+                    <span className="font-sans text-xs text-neutral-400">{completedInPhase}/{phaseLessons.length}</span>
+                    {phaseComplete && <CheckCircle2 className="size-3.5 text-emerald-500" />}
+                  </div>
+                  {/* Horizontal scroll row */}
+                  <div className="flex gap-3 overflow-x-auto px-4 pb-2 sm:px-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {phaseLessons.map((l) => {
+                      const active = l.id === lesson.id;
+                      const cardClass = cn(
+                        "group relative w-44 shrink-0 overflow-hidden rounded-xl border transition-shadow hover:shadow-md sm:w-52",
+                        active ? "border-violet-300 ring-2 ring-violet-200" : "border-neutral-200"
+                      );
+                      const cardInner = (
+                        <>
+                          <div className="relative aspect-video w-full overflow-hidden bg-neutral-100">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={l.thumbnail || phase.thumbnail || course.thumbnail}
+                              alt={l.title}
+                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            {l.completed && (
+                              <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 font-sans text-[10px] font-semibold text-white">
+                                <CheckCircle2 className="size-3" />
+                                Xong
+                              </span>
+                            )}
+                            {active && !l.completed && (
+                              <span className="absolute right-2 top-2 rounded-full bg-violet-600 px-2 py-0.5 font-sans text-[10px] font-semibold text-white">
+                                Đang học
+                              </span>
+                            )}
+                            {l.locked && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <Lock className="size-5 text-white/80" />
+                              </div>
+                            )}
+                            <span className="absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 font-sans text-[10px] tabular-nums text-white">
+                              {l.duration}
+                            </span>
+                          </div>
+                          <div className="bg-white p-2.5">
+                            <p className={cn(
+                              "line-clamp-2 font-sans text-xs leading-snug",
+                              active ? "font-semibold text-violet-900" : "font-medium text-neutral-800"
+                            )}>
+                              {l.title}
+                            </p>
+                          </div>
+                        </>
+                      );
+                      if (l.locked) {
+                        return <div key={l.id} className={cn(cardClass, "cursor-default opacity-50")}>{cardInner}</div>;
+                      }
+                      return (
+                        <Link key={l.id} href={getLessonHref(l.id)} className={cn(cardClass, "no-underline hover:no-underline")}>
+                          {cardInner}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </aside>
+        </div>
       </div>
     </div>
   );

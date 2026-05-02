@@ -20,6 +20,8 @@ type LessonVideoPlayerProps = {
   className?: string;
   /** Gắn trong cột học (full-bleed, không bo góc) — giống Udemy */
   variant?: "default" | "embed";
+  /** Ẩn title overlay — dùng khi title đã hiển thị ở ngoài player */
+  hideTitle?: boolean;
   /**
    * Nhà cung cấp video. Khi không truyền sẽ auto-detect YouTube từ URL, còn lại dùng HTML5 video.
    * - `bunny_stream`: `src` phải là URL iframe Bunny đã được ký ở server.
@@ -67,6 +69,7 @@ export function LessonVideoPlayer({
   title,
   className,
   variant = "default",
+  hideTitle = false,
   provider,
 }: LessonVideoPlayerProps) {
   const ytEmbed = useMemo(
@@ -86,7 +89,7 @@ export function LessonVideoPlayer({
           loading="lazy"
           referrerPolicy="strict-origin-when-cross-origin"
         />
-        <VideoTitleOverlay title={title} />
+        {!hideTitle && <VideoTitleOverlay title={title} />}
       </FrameContainer>
     );
   }
@@ -103,7 +106,7 @@ export function LessonVideoPlayer({
           loading="lazy"
           referrerPolicy="strict-origin-when-cross-origin"
         />
-        <VideoTitleOverlay title={title} />
+        {!hideTitle && <VideoTitleOverlay title={title} />}
       </FrameContainer>
     );
   }
@@ -115,6 +118,7 @@ export function LessonVideoPlayer({
       title={title}
       className={className}
       variant={variant}
+      hideTitle={hideTitle}
     />
   );
 }
@@ -125,6 +129,7 @@ function LessonVideoPlayerHtml5({
   title,
   className,
   variant = "default",
+  hideTitle = false,
 }: Omit<LessonVideoPlayerProps, "provider">) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -238,11 +243,13 @@ function LessonVideoPlayerHtml5({
         onContextMenu={(e) => e.preventDefault()}
       />
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/75 via-black/35 to-transparent px-4 pb-10 pt-4 sm:pt-5">
-        <p className="pointer-events-none line-clamp-2 text-center font-sans text-xs font-semibold text-white/95 drop-shadow-md sm:text-left sm:text-sm">
-          {title}
-        </p>
-      </div>
+      {!hideTitle && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/75 via-black/35 to-transparent px-4 pb-10 pt-4 sm:pt-5">
+          <p className="pointer-events-none line-clamp-2 text-center font-sans text-xs font-semibold text-white/95 drop-shadow-md sm:text-left sm:text-sm">
+            {title}
+          </p>
+        </div>
+      )}
 
       {!playing && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/35">
