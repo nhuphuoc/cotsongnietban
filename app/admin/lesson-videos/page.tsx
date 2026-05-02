@@ -759,7 +759,8 @@ export default function LessonVideosPage() {
     const lessons = detail?.lessons ?? [];
     const total = lessons.length;
     const withVideo = lessons.filter((l) => Boolean(l.video_url)).length;
-    return { total, withVideo, missing: Math.max(0, total - withVideo) };
+    const theory = lessons.filter((l) => l.video_provider === "article").length;
+    return { total, withVideo, theory };
   }, [detail]);
 
   const filteredGroups = useMemo(() => {
@@ -2391,10 +2392,10 @@ export default function LessonVideosPage() {
                         <span className="font-medium text-gray-700">{stats.total} bài</span>
                         <span className="text-gray-300">·</span>
                         <span className="text-green-700">{stats.withVideo} có video</span>
-                        {stats.missing > 0 && (
+                        {stats.theory > 0 && (
                           <>
                             <span className="text-gray-300">·</span>
-                            <span className="font-semibold text-[#c0392b]">{stats.missing} thiếu video</span>
+                            <span className="font-medium text-[#004E4B]">{stats.theory} bài lý thuyết</span>
                           </>
                         )}
                       </div>
@@ -2498,7 +2499,10 @@ export default function LessonVideosPage() {
                         </div>
                         {filteredGroups.map((group, idx) => {
                           const isOpen = openSections[group.id] ?? true;
-                          const missingInGroup = group.lessons.filter((l) => !l.video_url).length;
+                          const theoryInGroup = group.lessons.filter((l) => l.video_provider === "article").length;
+                          const needsVideoInGroup = group.lessons.filter(
+                            (l) => !l.video_url && l.video_provider !== "article"
+                          ).length;
                           const sourceSection =
                             group.id === "__ungrouped__"
                               ? null
@@ -2513,8 +2517,15 @@ export default function LessonVideosPage() {
                                 <ChevronDown className={`size-4 shrink-0 text-gray-400 transition-transform ${isOpen ? "" : "-rotate-90"}`} />
                                 <span className="text-sm font-semibold text-gray-700">{group.title}</span>
                                 <span className="text-xs text-gray-400">{group.lessons.length} bài</span>
-                                {missingInGroup > 0 && (
-                                  <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-600">{missingInGroup} thiếu video</span>
+                                {theoryInGroup > 0 && (
+                                  <span className="rounded-full bg-[#004E4B]/10 px-2 py-0.5 text-[11px] font-semibold text-[#004E4B]">
+                                    {theoryInGroup} bài lý thuyết
+                                  </span>
+                                )}
+                                {needsVideoInGroup > 0 && (
+                                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                                    {needsVideoInGroup} chưa có URL video
+                                  </span>
                                 )}
                                 {sourceSection && (
                                   <span className="ml-auto flex items-center gap-1.5">
@@ -3005,12 +3016,12 @@ export default function LessonVideosPage() {
 
       {/* ── ADD LESSON DIALOG ── */}
       <Dialog open={addLessonOpen} onOpenChange={(open) => { if (!addLessonSaving) setAddLessonOpen(open); }}>
-        <DialogContent className="flex max-h-[min(90vh,920px)] flex-col gap-4 overflow-hidden sm:max-w-3xl">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[min(92vh,920px)] flex-col gap-4 overflow-hidden overscroll-contain sm:max-w-3xl">
+          <DialogHeader className="shrink-0 space-y-1.5">
             <DialogTitle>Thêm bài học mới</DialogTitle>
             <DialogDescription>Tạo bài học mới cho khoá học này. Có thể chỉnh sửa video sau.</DialogDescription>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-0.5 [-webkit-overflow-scrolling:touch]">
           <div className="grid gap-4">
             <div>
               <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
@@ -3310,8 +3321,8 @@ export default function LessonVideosPage() {
           if (!open) closeContentDialog();
         }}
       >
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[min(92vh,920px)] flex-col gap-4 overflow-hidden overscroll-contain sm:max-w-2xl">
+          <DialogHeader className="shrink-0 space-y-1.5">
             <DialogTitle>Chỉnh sửa nội dung bài học</DialogTitle>
             <DialogDescription>
               Cập nhật tên, tóm tắt, nội dung chi tiết và trạng thái preview của bài học.
@@ -3319,6 +3330,7 @@ export default function LessonVideosPage() {
           </DialogHeader>
 
           {contentDraft && contentDialogLesson ? (
+            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-0.5 [-webkit-overflow-scrolling:touch]">
             <div className="grid gap-4">
               <div>
                 <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
@@ -3389,9 +3401,10 @@ export default function LessonVideosPage() {
                 <p className="text-sm text-red-600">{contentError}</p>
               ) : null}
             </div>
+            </div>
           ) : null}
 
-          <DialogFooter>
+          <DialogFooter className="mt-0 shrink-0">
             <DialogClose
               disabled={contentSaving}
               render={

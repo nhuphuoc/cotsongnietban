@@ -54,6 +54,11 @@ function notesFromLesson(lesson: DbLesson): { notesIntro?: string; noteBullets?:
   return out;
 }
 
+function summaryFromLesson(lesson: DbLesson): { summary?: string } {
+  const s = typeof (lesson as { summary?: unknown }).summary === "string" ? (lesson as { summary: string }).summary.trim() : "";
+  return s ? { summary: s } : {};
+}
+
 function isLessonPublished(lesson: DbLesson): boolean {
   // Default to false if field missing (safer: không lộ bài nháp).
   return Boolean((lesson as { is_published?: boolean | null }).is_published);
@@ -132,6 +137,7 @@ export function buildLmsCourseViewModel(bundle: EnrollmentCourseBundle): DemoCou
         locked: false,
         videoUrl: "",
         isArticle: true,
+        ...summaryFromLesson(l),
         ...notesFromLesson(l),
         ...(contentHtml !== undefined ? { contentHtml } : {}),
       };
@@ -174,6 +180,7 @@ export function buildLmsCourseViewModel(bundle: EnrollmentCourseBundle): DemoCou
       videoUrl,
       ...(videoProvider ? { videoProvider } : {}),
       ...(thumbnail ? { thumbnail } : {}),
+      ...summaryFromLesson(l),
       ...notesFromLesson(l),
       ...(contentHtml !== undefined ? { contentHtml } : {}),
     };

@@ -397,7 +397,8 @@ export function RichTextEditor({ valueHtml, onChangeHtml, placeholder, className
       {uploadMessage ? (
         <p className="border-b border-amber-200 bg-amber-50 px-3 py-2 font-sans text-xs text-amber-900">{uploadMessage}</p>
       ) : null}
-      <div className="max-h-[65vh] overflow-y-auto">
+      {/* Chiều cao không clamp — dialog/page bọc ngoài cuộn để nút Lưu luôn tới được */}
+      <div className="min-h-[260px]">
         <EditorContent editor={editor} />
       </div>
     </div>

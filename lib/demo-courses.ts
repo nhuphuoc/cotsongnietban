@@ -21,6 +21,8 @@ export type DemoLesson = {
   isArticle?: boolean;
   /** Thumbnail tự động từ Bunny Stream hoặc do admin upload. */
   thumbnail?: string;
+  /** Tóm tắt ngắn (cột `summary` trong DB). */
+  summary?: string;
   notesIntro?: string;
   noteBullets?: string[];
   /** Nội dung chi tiết dạng HTML (soạn từ admin). */

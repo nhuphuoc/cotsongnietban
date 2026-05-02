@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, useLayoutEffect } from "react";
 import { useParams } from "next/navigation";
 import { SITE_CONTACT } from "@/lib/site-contact";
 import type { DemoCourse, DemoLesson } from "@/lib/demo-courses";
@@ -15,12 +15,64 @@ import {
 } from "@/lib/demo-courses";
 import { getLmsCourseHref, getLmsHomeHref, getLmsLessonHref } from "@/lib/learning-hub";
 import { LessonVideoPlayer } from "@/components/lms/lesson-video-player";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, CheckCircle2, Circle, Clock, Lock, MessageCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Lock, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
- 
-function looksLikeHtml(s: string): boolean {
-  return /<\w[\s\S]*>/.test(s);
+
+/** Nội dung Tổng quan: tối đa ~4 dòng, có Xem thêm / Thu gọn khi dài. */
+function LessonOverviewRichText({ html, lessonKey }: { html: string; lessonKey: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [showToggle, setShowToggle] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setExpanded(false);
+  }, [lessonKey, html]);
+
+  const measureClamp = useCallback(() => {
+    const el = bodyRef.current;
+    if (!el || expanded) return;
+    setShowToggle(el.scrollHeight > el.clientHeight + 2);
+  }, [expanded]);
+
+  useLayoutEffect(() => {
+    measureClamp();
+    const id = requestAnimationFrame(measureClamp);
+    return () => cancelAnimationFrame(id);
+  }, [html, expanded, measureClamp]);
+
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      if (!expanded) measureClamp();
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [expanded, measureClamp, html]);
+
+  const toggleVisible = expanded || showToggle;
+
+  return (
+    <div>
+      <div
+        ref={bodyRef}
+        className={cn(
+          "prose prose-neutral max-w-none text-neutral-800 [&_p]:my-3 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6",
+          !expanded && "line-clamp-4"
+        )}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+      {toggleVisible ? (
+        <button
+          type="button"
+          className="mt-2 font-sans text-sm font-medium text-[#004E4B] hover:underline"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "Thu gọn" : "Xem thêm"}
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 export default function LessonViewPage() {
@@ -233,6 +285,11 @@ function LessonViewLoaded({
       <div className="shrink-0 border-b border-neutral-100 bg-white px-4 py-4 sm:px-6 sm:py-5">
         <div className="mx-auto max-w-5xl">
           <h1 className="font-sans text-xl font-bold text-neutral-900 sm:text-2xl">{lesson.title}</h1>
+          {lesson.summary?.trim() ? (
+            <p className="mt-2 max-w-3xl font-sans text-sm leading-relaxed text-neutral-600 sm:text-[15px]">
+              {lesson.summary.trim()}
+            </p>
+          ) : null}
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-sans text-xs text-neutral-400">
             <span className="flex items-center gap-1">
               <Clock className="size-3.5" />
@@ -245,20 +302,9 @@ function LessonViewLoaded({
         </div>
       </div>
 
-      {/* Video hoặc nội dung bài viết (bài bổ sung không video) */}
-      <div className="shrink-0">
-        {lesson.isArticle ? (
-          <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
-            {lesson.contentHtml?.trim() ? (
-              <div
-                className="prose prose-neutral max-w-none text-neutral-800 [&_p]:my-3 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6"
-                dangerouslySetInnerHTML={{ __html: lesson.contentHtml }}
-              />
-            ) : (
-              <p className="font-sans text-sm text-neutral-500">Chưa có nội dung bài học.</p>
-            )}
-          </div>
-        ) : (
+      {/* Video — bài có video; nội dung chi tiết nằm trong khối Tổng quan (content_html) */}
+      {!lesson.isArticle ? (
+        <div className="shrink-0">
           <LessonVideoPlayer
             variant="embed"
             src={lesson.videoUrl}
@@ -268,42 +314,40 @@ function LessonViewLoaded({
             className="mx-auto w-full max-w-5xl"
             hideTitle
           />
-        )}
-      </div>
+        </div>
+      ) : null}
 
-      {/* Actions + tabs */}
+      {/* Tổng quan = Nội dung chi tiết (content_html trong admin) + hoàn thành + bài tiếp */}
       <div className="shrink-0 border-b border-neutral-200 bg-white">
         <div className="mx-auto max-w-5xl">
-          <Tabs defaultValue="overview">
-            <div className="overflow-x-auto border-b border-neutral-200 px-4 pt-3 sm:px-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <TabsList variant="line" className="h-auto min-w-max justify-start gap-4 rounded-none bg-transparent p-0">
-                <TabsTrigger value="overview" className="rounded-none px-0 pb-3 text-sm">
-                  Tổng quan
-                </TabsTrigger>
-                <TabsTrigger value="notes" className="rounded-none px-0 pb-3 text-sm">
-                  Ghi chú
-                </TabsTrigger>
-              </TabsList>
-            </div>
+          <div className="border-b border-neutral-200 px-4 pt-3 sm:px-6">
+            <h2 className="pb-2.5 font-sans text-sm font-semibold text-neutral-900 sm:pb-3">Tổng quan</h2>
+          </div>
 
-            <TabsContent value="overview" className="px-4 py-5 sm:px-6">
-              {saveError ? (
-                <p className="mb-3 font-sans text-sm text-red-600" role="alert">{saveError}</p>
-              ) : null}
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="px-4 py-5 sm:px-6">
+            {lesson.contentHtml?.trim() ? (
+              <LessonOverviewRichText lessonKey={lesson.id} html={lesson.contentHtml} />
+            ) : (
+              <p className="font-sans text-sm text-neutral-500">Chưa có nội dung chi tiết.</p>
+            )}
+            {saveError ? (
+              <p className="mt-4 font-sans text-sm text-red-600" role="alert">{saveError}</p>
+            ) : null}
+            <div className="mt-6 flex flex-row flex-wrap items-center justify-between gap-x-4 gap-y-3 sm:mt-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
                 {!completed ? (
                   <button
                     type="button"
                     onClick={() => void onApplyProgress(true)}
                     disabled={saving}
-                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-[#004E4B] px-4 py-2 font-sans text-sm font-semibold text-white hover:bg-[#003835] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-[#004E4B] px-4 py-2 font-sans text-sm font-semibold text-white hover:bg-[#003835] disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-9 sm:w-auto"
                   >
                     <CheckCircle2 className="size-4" />
                     {saving ? "Đang lưu…" : "Đánh dấu hoàn thành"}
                   </button>
                 ) : (
-                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-                    <span className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 font-sans text-sm font-semibold text-emerald-800 sm:w-auto">
+                  <>
+                    <span className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 font-sans text-sm font-semibold text-emerald-800 sm:min-h-9 sm:w-auto sm:px-3">
                       <CheckCircle2 className="size-4" />
                       Đã hoàn thành
                     </span>
@@ -311,65 +355,23 @@ function LessonViewLoaded({
                       type="button"
                       onClick={() => void onApplyProgress(false)}
                       disabled={saving}
-                      className="inline-flex min-h-11 items-center justify-center rounded-md border border-neutral-300 bg-white px-4 py-2 font-sans text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-neutral-300 bg-white px-3 py-2 font-sans text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-9 sm:w-auto"
                     >
                       {saving ? "Đang lưu…" : "Bỏ hoàn thành"}
                     </button>
-                  </div>
-                )}
-                {nextLesson ? (
-                  <Link
-                    href={getLmsLessonHref(courseId, nextLesson.id)}
-                    className="inline-flex min-h-11 items-center font-sans text-sm font-medium text-[#004E4B] hover:underline sm:min-h-0"
-                  >
-                    Bài tiếp theo →
-                  </Link>
-                ) : null}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="notes" className="px-4 py-5 sm:px-6">
-              <div className="max-w-2xl rounded-lg border border-neutral-200 bg-neutral-50/80 p-4 font-sans text-sm leading-relaxed text-neutral-700">
-                {lesson.isArticle ? (
-                  <p className="text-neutral-600">Nội dung bài đã hiển thị ở khu vực phía trên (dạng bài viết).</p>
-                ) : lesson.contentHtml?.trim() ? (
-                  looksLikeHtml(lesson.contentHtml) ? (
-                    <div
-                      className="prose prose-sm max-w-none text-neutral-800 [&_p]:my-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6"
-                      dangerouslySetInnerHTML={{ __html: lesson.contentHtml }}
-                    />
-                  ) : (
-                    <p className="text-neutral-800">{lesson.contentHtml}</p>
-                  )
-                ) : (
-                  <>
-                    {lesson.notesIntro ? <p className="mb-3 text-neutral-900">{lesson.notesIntro}</p> : null}
-                    {lesson.noteBullets && lesson.noteBullets.length > 0 ? (
-                      <ul className="space-y-2">
-                        {lesson.noteBullets.map((line, i) => (
-                          <li key={i} className="flex gap-2">
-                            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#004E4B]" />
-                            {line}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : !lesson.notesIntro ? (
-                      <ul className="space-y-2">
-                        <li className="flex gap-2">
-                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#004E4B]" />
-                          Khởi động nhẹ trước khi vào tải chính.
-                        </li>
-                        <li className="flex gap-2">
-                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#004E4B]" />
-                          Giữ form trong tầm kiểm soát — chất lượng hơn số lần.
-                        </li>
-                      </ul>
-                    ) : null}
                   </>
                 )}
               </div>
-            </TabsContent>
-          </Tabs>
+              {nextLesson ? (
+                <Link
+                  href={getLmsLessonHref(courseId, nextLesson.id)}
+                  className="ml-auto inline-flex min-h-10 shrink-0 items-center font-sans text-sm font-medium text-[#004E4B] hover:underline sm:min-h-9"
+                >
+                  Bài tiếp theo →
+                </Link>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
 
