@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, Eye, EyeOff, MessageSquareQuote, Plus, Search, Trash2, User } from "lucide-react";
 import { apiFetch } from "@/lib/admin/api-client";
+import type { FeedbackTabCounts } from "@/lib/api/repositories";
 import { crudNotify, notifyApiProblem } from "@/lib/ui/notify";
 import type { AdminFeedback, AdminFeedbackType } from "@/lib/admin/feedback-types";
 
@@ -33,58 +34,91 @@ function ActiveBadge({ isActive }: { isActive: boolean }) {
   );
 }
 
+type FeedbackPagePayload = {
+  items: AdminFeedback[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+function feedbackListUrl(
+  page: number,
+  pageSize: number,
+  typeFilter: AdminFeedbackType | "all",
+  q: string,
+  sortBy: "created_at" | "customer_name" | "type" | "is_active" | "content",
+  sortDir: "asc" | "desc",
+) {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("pageSize", String(pageSize));
+  if (typeFilter !== "all") params.set("type", typeFilter);
+  const trimmed = q.trim();
+  if (trimmed) params.set("q", trimmed);
+  params.set("sort", sortBy);
+  params.set("dir", sortDir);
+  return `/api/admin/feedback?${params.toString()}`;
+}
+
 export default function AdminFeedbackPage() {
   const router = useRouter();
   const [items, setItems] = useState<AdminFeedback[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [tabCounts, setTabCounts] = useState<FeedbackTabCounts | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<AdminFeedbackType | "all">("all");
   const [sortBy, setSortBy] = useState<"created_at" | "customer_name" | "type" | "is_active" | "content">("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return items.filter((f) => {
-      const matchSearch =
-        !q ||
-        (f.customer_name ?? "").toLowerCase().includes(q) ||
-        (f.customer_info ?? "").toLowerCase().includes(q) ||
-        (f.content ?? "").toLowerCase().includes(q);
-      const matchType = typeFilter === "all" || f.type === typeFilter;
-      return matchSearch && matchType;
-    });
-  }, [items, search, typeFilter]);
-
-  const sorted = useMemo(() => {
-    const toTs = (value: string | null | undefined) => {
-      if (!value) return null;
-      const ts = new Date(value).getTime();
-      return Number.isNaN(ts) ? null : ts;
-    };
-    const list = [...filtered];
-    list.sort((a, b) => {
-      let result = 0;
-      if (sortBy === "customer_name") {
-        result = (a.customer_name ?? "").localeCompare(b.customer_name ?? "", "vi");
-      } else if (sortBy === "type") {
-        result = a.type.localeCompare(b.type, "vi");
-      } else if (sortBy === "is_active") {
-        result = Number(a.is_active) - Number(b.is_active);
-      } else if (sortBy === "content") {
-        result = (a.content ?? "").localeCompare(b.content ?? "", "vi");
-      } else {
-        const aTs = toTs(a.created_at);
-        const bTs = toTs(b.created_at);
-        if (aTs == null && bTs == null) result = (a.customer_name ?? "").localeCompare(b.customer_name ?? "", "vi");
-        else if (aTs == null) result = 1;
-        else if (bTs == null) result = -1;
-        else result = aTs - bTs;
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const c = await apiFetch<FeedbackTabCounts>("/api/admin/feedback?meta=1");
+        if (!cancelled) setTabCounts(c);
+      } catch {
+        if (!cancelled) setTabCounts(null);
       }
-      return sortDir === "asc" ? result : -result;
-    });
-    return list;
-  }, [filtered, sortBy, sortDir]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (searchInput === debouncedSearch) return;
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchInput, debouncedSearch]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiFetch<FeedbackPagePayload>(
+        feedbackListUrl(page, pageSize, typeFilter, debouncedSearch, sortBy, sortDir),
+      );
+      setItems(data.items);
+      setTotal(data.total);
+    } catch (e: unknown) {
+      notifyApiProblem(e, { fallbackTitle: "Không thể tải feedback" });
+      setError(e instanceof Error ? e.message : "Không thể tải feedback.");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, typeFilter, debouncedSearch, sortBy, sortDir]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const handleSort = (next: "created_at" | "customer_name" | "type" | "is_active" | "content") => {
     if (sortBy === next) {
@@ -93,6 +127,7 @@ export default function AdminFeedbackPage() {
     }
     setSortBy(next);
     setSortDir("desc");
+    setPage(1);
   };
 
   const SortMark = ({ active }: { active: boolean }) => (
@@ -102,41 +137,24 @@ export default function AdminFeedbackPage() {
     </span>
   );
 
-  const counts = useMemo(() => {
-    const result: Record<string, number> = { all: items.length, before_after: 0, testimonial: 0, comment: 0 };
-    items.forEach((f) => {
-      result[f.type] = (result[f.type] ?? 0) + 1;
-    });
-    return result;
-  }, [items]);
-
-  const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiFetch<AdminFeedback[]>("/api/admin/feedback");
-      setItems(data);
-    } catch (e: any) {
-      notifyApiProblem(e, { fallbackTitle: "Không thể tải feedback" });
-      setError(e?.message ?? "Không thể tải feedback.");
-    } finally {
-      setLoading(false);
-    }
+  const counts: Record<string, number> = {
+    all: tabCounts?.all ?? 0,
+    before_after: tabCounts?.before_after ?? 0,
+    testimonial: tabCounts?.testimonial ?? 0,
+    comment: tabCounts?.comment ?? 0,
   };
 
-  useEffect(() => {
-    void load();
-  }, []);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const toggleActive = async (id: string, current: boolean) => {
     try {
-      const updated = await crudNotify.update(
+      await crudNotify.update(
         () => apiFetch<AdminFeedback>(`/api/admin/feedback/${id}`, { method: "PATCH", body: JSON.stringify({ isActive: !current }) }),
         { entity: "feedback", successMessage: current ? "Đã ẩn feedback." : "Đã hiển thị feedback." }
       );
-      setItems((prev) => prev.map((it) => (it.id === id ? { ...it, is_active: updated.is_active } : it)));
-    } catch (e: any) {
-      setError(e?.message ?? "Không thể cập nhật trạng thái.");
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Không thể cập nhật trạng thái.");
     }
   };
 
@@ -145,9 +163,15 @@ export default function AdminFeedbackPage() {
       await crudNotify.remove(() => apiFetch<{ id: string; deleted: true }>(`/api/admin/feedback/${id}`, { method: "DELETE" }), {
         entity: "feedback",
       });
-      setItems((prev) => prev.filter((it) => it.id !== id));
-    } catch (e: any) {
-      setError(e?.message ?? "Không thể xóa feedback.");
+      await load();
+      try {
+        const c = await apiFetch<FeedbackTabCounts>("/api/admin/feedback?meta=1");
+        setTabCounts(c);
+      } catch {
+        /* ignore */
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Không thể xóa feedback.");
     }
   };
 
@@ -178,7 +202,11 @@ export default function AdminFeedbackPage() {
                 return (
                   <button
                     key={b.k}
-                    onClick={() => setTypeFilter(b.k)}
+                    type="button"
+                    onClick={() => {
+                      setTypeFilter(b.k);
+                      setPage(1);
+                    }}
                     className={`inline-flex h-10 items-center gap-2 border-r border-gray-100 px-3 text-xs font-semibold transition-colors last:border-r-0 ${
                       active ? "bg-[#c0392b] text-white" : "text-gray-600 hover:bg-gray-50"
                     }`}
@@ -210,12 +238,28 @@ export default function AdminFeedbackPage() {
           <div className="relative max-w-sm flex-1 min-w-64">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Tìm theo tên, thông tin, nội dung..."
               className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-sm text-sm focus:outline-none focus:border-[#c0392b] bg-white"
             />
           </div>
+          <label className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="hidden sm:inline">Hiển thị</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="rounded-sm border border-gray-200 bg-white py-2 pl-2 pr-8 text-xs font-semibold text-gray-700"
+            >
+              <option value={10}>10 / trang</option>
+              <option value={20}>20 / trang</option>
+              <option value={50}>50 / trang</option>
+              <option value={100}>100 / trang</option>
+            </select>
+          </label>
         </div>
       </div>
 
@@ -262,8 +306,14 @@ export default function AdminFeedbackPage() {
                 <tr>
                   <td className="px-5 py-10 text-center text-sm text-gray-400" colSpan={6}>Đang tải...</td>
                 </tr>
-              ) : null}
-              {sorted.map((f) => (
+              ) : items.length === 0 ? (
+                <tr>
+                  <td className="px-5 py-10 text-center text-sm text-gray-400" colSpan={6}>
+                    Không có feedback phù hợp.
+                  </td>
+                </tr>
+              ) : (
+                items.map((f) => (
                 <tr
                   key={f.id}
                   className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
@@ -325,16 +375,38 @@ export default function AdminFeedbackPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
-              {!loading && sorted.length === 0 ? (
-                <tr>
-                  <td className="px-5 py-10 text-center text-sm text-gray-400" colSpan={6}>
-                    Không có feedback phù hợp bộ lọc.
-                  </td>
-                </tr>
-              ) : null}
+                ))
+              )}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-3 text-sm text-gray-600">
+          <span>
+            {total === 0
+              ? "0 feedback"
+              : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} / ${total}`}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded-sm border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40"
+            >
+              Trước
+            </button>
+            <span className="tabular-nums text-xs">
+              Trang {page} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-sm border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40"
+            >
+              Sau
+            </button>
+          </div>
         </div>
       </div>
     </div>

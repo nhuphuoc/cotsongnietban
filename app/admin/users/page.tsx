@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { Ban, CheckCircle2, ChevronDown, ChevronUp, Loader2, Search, Shield, Trash2, User } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -24,82 +24,76 @@ type AdminUserRow = {
   }>;
 };
 
+type UsersPagePayload = {
+  items: AdminUserRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+function usersListUrl(
+  page: number,
+  pageSize: number,
+  role: "all" | UserRole,
+  q: string,
+  sortBy: "created_at" | "full_name" | "role" | "is_active",
+  sortDir: "asc" | "desc",
+) {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("pageSize", String(pageSize));
+  params.set("role", role);
+  const trimmed = q.trim();
+  if (trimmed) params.set("q", trimmed);
+  params.set("sort", sortBy);
+  params.set("dir", sortDir);
+  return `/api/admin/users?${params.toString()}`;
+}
+
 export default function AdminUsersPage() {
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | UserRole>("all");
   const [sortBy, setSortBy] = useState<"created_at" | "full_name" | "role" | "is_active">("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [items, setItems] = useState<AdminUserRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ action: "ban" | "unban" | "remove"; userId: string } | null>(null);
 
-  const loadUsers = async () => {
+  useEffect(() => {
+    if (searchInput === debouncedSearch) return;
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchInput, debouncedSearch]);
+
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<AdminUserRow[]>("/api/admin/users");
-      setItems(data);
+      const data = await apiFetch<UsersPagePayload>(
+        usersListUrl(page, pageSize, roleFilter, debouncedSearch, sortBy, sortDir),
+      );
+      setItems(data.items);
+      setTotal(data.total);
     } catch (e) {
       notifyApiProblem(e, { fallbackTitle: "Không thể tải danh sách người dùng" });
       setError(e instanceof Error ? e.message : "Không thể tải danh sách người dùng.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, pageSize, roleFilter, debouncedSearch, sortBy, sortDir]);
 
   useEffect(() => {
     void loadUsers();
-  }, []);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return items.filter((u) => {
-      const name = (u.full_name ?? "").toLowerCase();
-      const email = (u.email ?? "").toLowerCase();
-      const matchSearch = !q || name.includes(q) || email.includes(q);
-      const matchRole = roleFilter === "all" || u.role === roleFilter;
-      return matchSearch && matchRole;
-    });
-  }, [items, search, roleFilter]);
-
-  const sorted = useMemo(() => {
-    const toTs = (value: string | null | undefined) => {
-      if (!value) return null;
-      const ts = new Date(value).getTime();
-      return Number.isNaN(ts) ? null : ts;
-    };
-    const list = [...filtered];
-    list.sort((a, b) => {
-      let result = 0;
-      if (sortBy === "full_name") {
-        const aName = a.full_name?.trim() || a.email || "";
-        const bName = b.full_name?.trim() || b.email || "";
-        result = aName.localeCompare(bName, "vi");
-      } else if (sortBy === "role") {
-        result = a.role.localeCompare(b.role, "vi");
-      } else if (sortBy === "is_active") {
-        result = Number(a.is_active) - Number(b.is_active);
-      } else {
-        const aTs = toTs(a.created_at);
-        const bTs = toTs(b.created_at);
-        if (aTs == null && bTs == null) {
-          const aName = a.full_name?.trim() || a.email || "";
-          const bName = b.full_name?.trim() || b.email || "";
-          result = aName.localeCompare(bName, "vi");
-        } else if (aTs == null) {
-          result = 1;
-        } else if (bTs == null) {
-          result = -1;
-        } else {
-          result = aTs - bTs;
-        }
-      }
-      return sortDir === "asc" ? result : -result;
-    });
-    return list;
-  }, [filtered, sortBy, sortDir]);
+  }, [loadUsers]);
 
   const handleSort = (next: "created_at" | "full_name" | "role" | "is_active") => {
     if (sortBy === next) {
@@ -108,6 +102,7 @@ export default function AdminUsersPage() {
     }
     setSortBy(next);
     setSortDir("desc");
+    setPage(1);
   };
 
   const SortMark = ({ active }: { active: boolean }) => (
@@ -118,6 +113,7 @@ export default function AdminUsersPage() {
   );
 
   const selectedUser = confirm ? items.find((u) => u.id === confirm.userId) ?? null : null;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const displayName = (user: AdminUserRow) => {
     return user.full_name?.trim() || user.email || `User ${user.id.slice(0, 8)}`;
@@ -138,10 +134,9 @@ export default function AdminUsersPage() {
           () => apiFetch<{ id: string; deleted: true }>(`/api/admin/users/${selectedUser.id}`, { method: "DELETE" }),
           { entity: "người dùng" }
         );
-        setItems((prev) => prev.filter((u) => u.id !== selectedUser.id));
       } else {
         const nextIsActive = confirm.action === "unban";
-        const updated = await crudNotify.update(
+        await crudNotify.update(
           () =>
             apiFetch<AdminUserRow>(`/api/admin/users/${selectedUser.id}`, {
               method: "PATCH",
@@ -152,9 +147,9 @@ export default function AdminUsersPage() {
             successMessage: nextIsActive ? "Đã mở khóa tài khoản." : "Đã khóa tài khoản.",
           }
         );
-        setItems((prev) => prev.map((u) => (u.id === selectedUser.id ? { ...u, is_active: updated.is_active } : u)));
       }
       setConfirm(null);
+      await loadUsers();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Không thể xử lý thao tác.");
     } finally {
@@ -166,20 +161,20 @@ export default function AdminUsersPage() {
     <div className="p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="font-heading font-black text-gray-900 text-2xl">Quản Lý Người Dùng</h1>
-        <p className="text-gray-500 text-sm mt-1">{items.length} tài khoản trong hệ thống</p>
+        <p className="text-gray-500 text-sm mt-1">{total.toLocaleString("vi-VN")} tài khoản trong hệ thống</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Tìm kiếm tên, email..."
             className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-sm text-sm focus:outline-none focus:border-[#c0392b] bg-white"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {[
             { value: "all", label: "Tất Cả" },
             { value: "student", label: "Học Viên" },
@@ -188,7 +183,11 @@ export default function AdminUsersPage() {
           ].map((f) => (
             <button
               key={f.value}
-              onClick={() => setRoleFilter(f.value as "all" | UserRole)}
+              type="button"
+              onClick={() => {
+                setRoleFilter(f.value as "all" | UserRole);
+                setPage(1);
+              }}
               className={`px-4 py-2.5 text-xs font-semibold rounded-sm border transition-colors ${
                 roleFilter === f.value
                   ? "bg-[#c0392b] text-white border-[#c0392b]"
@@ -198,6 +197,22 @@ export default function AdminUsersPage() {
               {f.label}
             </button>
           ))}
+          <label className="ml-auto flex items-center gap-2 text-xs text-gray-500">
+            <span className="hidden sm:inline">Hiển thị</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="rounded-sm border border-gray-200 bg-white py-2 pl-2 pr-8 text-xs font-semibold text-gray-700"
+            >
+              <option value={10}>10 / trang</option>
+              <option value={20}>20 / trang</option>
+              <option value={50}>50 / trang</option>
+              <option value={100}>100 / trang</option>
+            </select>
+          </label>
         </div>
       </div>
 
@@ -257,8 +272,14 @@ export default function AdminUsersPage() {
                     Đang tải...
                   </td>
                 </tr>
-              ) : null}
-              {sorted.map((user) => {
+              ) : items.length === 0 ? (
+                <tr>
+                  <td className="px-5 py-10 text-center text-sm text-gray-400" colSpan={7}>
+                    Không có người dùng phù hợp bộ lọc.
+                  </td>
+                </tr>
+              ) : (
+                items.map((user) => {
                 const courses = (user.enrollments ?? [])
                   .map((enrollment) => enrollment.course?.title?.trim() ?? "")
                   .filter(Boolean);
@@ -352,16 +373,38 @@ export default function AdminUsersPage() {
                     </td>
                   </tr>
                 );
-              })}
-              {!loading && sorted.length === 0 ? (
-                <tr>
-                  <td className="px-5 py-10 text-center text-sm text-gray-400" colSpan={7}>
-                    Không có người dùng phù hợp bộ lọc.
-                  </td>
-                </tr>
-              ) : null}
+              })
+              )}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-3 text-sm text-gray-600">
+          <span>
+            {total === 0
+              ? "0 người dùng"
+              : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} / ${total.toLocaleString("vi-VN")}`}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded-sm border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40"
+            >
+              Trước
+            </button>
+            <span className="tabular-nums text-xs">
+              Trang {page} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-sm border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40"
+            >
+              Sau
+            </button>
+          </div>
         </div>
       </div>
 

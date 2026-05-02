@@ -79,6 +79,27 @@ describe("POST /api/webhook/payos", () => {
     expect(activateEnrollmentForOrder).not.toHaveBeenCalled();
   });
 
+  it("returns 200 when order is cancelled — không ghi paid (webhook muộn)", async () => {
+    const mockPayos = {
+      webhooks: {
+        verify: vi.fn().mockResolvedValue({ orderCode: 123456789 }),
+      },
+    };
+    vi.mocked(getPayos).mockReturnValue(mockPayos as never);
+
+    const { client, refs } = createClientMock();
+    vi.mocked(createAdminClient).mockReturnValue(client as never);
+    refs.selectEq.mockResolvedValue({
+      data: [{ id: "order-1", status: "cancelled", payos_order_code: 123456789 }],
+      error: null,
+    });
+
+    const res = await webhookHandler(buildReq({ code: "00", success: true, data: { orderCode: 123456789 }, signature: "sig" }));
+    expect(res.status).toBe(200);
+    expect(refs.updateEq).not.toHaveBeenCalled();
+    expect(activateEnrollmentForOrder).not.toHaveBeenCalled();
+  });
+
   it("returns 200 when order already paid (idempotent)", async () => {
     const mockPayos = {
       webhooks: {

@@ -1,16 +1,29 @@
 import { requireAdminActor } from "@/lib/api/auth";
+import { parsePageParams } from "@/lib/api/admin-query";
 import { ok, fail } from "@/lib/api/http";
-import { listBlogPosts, resolveCategoryId, slugify } from "@/lib/api/repositories";
+import { listBlogPostsAdminPaginated, resolveCategoryId, slugify } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ALLOWED_STATUS = new Set(["draft", "published", "archived"]);
 
-export async function GET() {
+export async function GET(request: Request) {
   const auth = await requireAdminActor();
   if (!auth.actor) return fail(auth.message ?? "Forbidden", auth.status);
 
   try {
-    const posts = await listBlogPosts({ publishedOnly: false });
+    const url = new URL(request.url);
+    const { page, pageSize } = parsePageParams(url);
+    const SORTS = new Set(["published_at", "view_count", "title", "status"]);
+    const sortRaw = url.searchParams.get("sort") || "published_at";
+    const sortBy = SORTS.has(sortRaw) ? (sortRaw as "published_at" | "view_count" | "title" | "status") : "published_at";
+    const sortDir = url.searchParams.get("dir") === "asc" ? "asc" : "desc";
+    const posts = await listBlogPostsAdminPaginated({
+      page,
+      pageSize,
+      publishedOnly: false,
+      sortBy,
+      sortDir,
+    });
     return ok(posts);
   } catch (error) {
     return fail("Không thể tải bài viết admin.", 500, error);

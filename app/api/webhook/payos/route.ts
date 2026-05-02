@@ -40,12 +40,16 @@ export async function POST(request: Request) {
       return Response.json({ success: true });
     }
 
-    // Idempotent: đã xử lý rồi thì không làm gì nữa
-    if (order.status === "paid") {
+    // Idempotent / terminal: không ghi đè đơn đã xử lý hoặc đã hủy (tránh webhook muộn sau khi user hủy)
+    if (order.status === "paid" || order.status === "approved") {
+      return Response.json({ success: true });
+    }
+    if (order.status === "cancelled" || order.status === "refunded") {
+      console.warn(`[payos-webhook] Bỏ qua order=${order.id} (status=${order.status})`);
       return Response.json({ success: true });
     }
 
-    // Cập nhật trạng thái paid
+    // Cập nhật trạng thái paid (chỉ từ pending)
     const { error: updateError } = await admin
       .from("orders")
       .update({

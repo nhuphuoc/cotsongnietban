@@ -44,7 +44,8 @@ export async function POST(request: Request) {
           .from("enrollments")
           .update({ status: "cancelled" })
           .eq("id", purchaseState.enrollment.id);
-      }    }
+      }
+    }
 
     // Verify course + amount
     const { data: course, error: courseError } = await client

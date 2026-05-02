@@ -1,3 +1,7 @@
+/**
+ * TODO(bank-transfer-removal): Checkout công khai đã ẩn CK tay; route vẫn mở cho đơn cũ / tích hợp khác.
+ * Xóa khi làm checklist `docs/TODO-remove-bank-transfer.md`.
+ */
 import { requireActiveActor } from "@/lib/api/auth";
 import { fail, ok } from "@/lib/api/http";
 import { enrollmentGrantsCourseAccess, getCoursePurchaseStateForUser } from "@/lib/api/repositories";

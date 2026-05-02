@@ -9,6 +9,8 @@ vi.mock("@/lib/api/repositories", async (importOriginal) => {
   return {
     ...orig,
     listFeedbacks: vi.fn(),
+    listFeedbacksPaginated: vi.fn(),
+    getFeedbackTabCounts: vi.fn(),
     getFeedbackById: vi.fn(),
   };
 });
@@ -18,7 +20,7 @@ vi.mock("@/utils/supabase/admin", () => ({
 }));
 
 import { requireAdminActor } from "@/lib/api/auth";
-import { listFeedbacks, getFeedbackById } from "@/lib/api/repositories";
+import { listFeedbacksPaginated, getFeedbackTabCounts, getFeedbackById } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { GET as listHandler, POST as createHandler } from "./route";
 import { GET as getOneHandler, PATCH as patchHandler, DELETE as deleteHandler } from "./[id]/route";
@@ -48,13 +50,51 @@ describe("admin feedback API", () => {
       expect(res.status).toBe(403);
     });
 
-    it("returns list from listFeedbacks", async () => {
-      const rows = [{ id: "f1", name: "A", rating: 5, message_html: "<p>x</p>", course: null }];
-      vi.mocked(listFeedbacks).mockResolvedValue(rows as never);
-      const res = await listHandler();
+    it("returns paginated list from listFeedbacksPaginated", async () => {
+      const rows = [{ id: "f1", type: "comment", customer_name: "A", is_active: true, created_at: "2024-01-01" }];
+      vi.mocked(listFeedbacksPaginated).mockResolvedValue({
+        items: rows as never[],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+      });
+      const res = await listHandler(new Request("http://x/api/admin/feedback?page=1&pageSize=10"));
       expect(res.status).toBe(200);
       const body = await jsonResponse(res);
-      expect(body.data).toEqual(rows);
+      expect(body.data).toEqual({ items: rows, total: 1, page: 1, pageSize: 10 });
+    });
+
+    it("forwards type, q, sort and dir to listFeedbacksPaginated", async () => {
+      vi.mocked(listFeedbacksPaginated).mockResolvedValue({
+        items: [],
+        total: 0,
+        page: 1,
+        pageSize: 10,
+      });
+      await listHandler(
+        new Request("http://x/api/admin/feedback?type=testimonial&q=hello&sort=customer_name&dir=asc"),
+      );
+      expect(listFeedbacksPaginated).toHaveBeenCalledWith({
+        page: 1,
+        pageSize: 10,
+        type: "testimonial",
+        search: "hello",
+        sortBy: "customer_name",
+        sortDir: "asc",
+      });
+    });
+
+    it("returns tab counts when meta=1", async () => {
+      vi.mocked(getFeedbackTabCounts).mockResolvedValue({
+        all: 10,
+        before_after: 2,
+        testimonial: 3,
+        comment: 5,
+      });
+      const res = await listHandler(new Request("http://x/api/admin/feedback?meta=1"));
+      expect(res.status).toBe(200);
+      const body = await jsonResponse(res);
+      expect(body.data).toEqual({ all: 10, before_after: 2, testimonial: 3, comment: 5 });
     });
   });
 

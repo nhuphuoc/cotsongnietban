@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/admin/api-client";
 import { crudNotify, notifyApiProblem } from "@/lib/ui/notify";
@@ -13,7 +13,7 @@ type BlogPostRow = {
   slug: string;
   excerpt: string | null;
   cover_image_url: string | null;
-  content_html: string;
+  content_html?: string;
   status: "draft" | "published" | "archived";
   published_at: string | null;
   created_at: string;
@@ -22,31 +22,56 @@ type BlogPostRow = {
   category: { id: string; name: string; slug: string } | null;
 };
 
+type BlogPagePayload = {
+  items: BlogPostRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+function blogListUrl(
+  page: number,
+  pageSize: number,
+  sortBy: "published_at" | "view_count" | "title" | "status",
+  sortDir: "asc" | "desc",
+) {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("pageSize", String(pageSize));
+  params.set("sort", sortBy);
+  params.set("dir", sortDir);
+  return `/api/admin/blog?${params.toString()}`;
+}
+
 export default function AdminBlogPage() {
   const router = useRouter();
   const [posts, setPosts] = useState<BlogPostRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"published_at" | "view_count" | "title" | "status">("published_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<BlogPostRow[]>("/api/admin/blog");
-      setPosts(data);
-    } catch (e: any) {
+      const data = await apiFetch<BlogPagePayload>(blogListUrl(page, pageSize, sortBy, sortDir));
+      setPosts(data.items);
+      setTotal(data.total);
+    } catch (e: unknown) {
       notifyApiProblem(e, { fallbackTitle: "Không thể tải bài viết" });
-      setError(e?.message ?? "Không thể tải bài viết.");
+      setError(e instanceof Error ? e.message : "Không thể tải bài viết.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, pageSize, sortBy, sortDir]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   const toggleStatus = async (id: string, current: BlogPostRow["status"]) => {
     const next = current === "published" ? "draft" : "published";
@@ -63,8 +88,8 @@ export default function AdminBlogPage() {
         }
       );
       setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status: next } : p)));
-    } catch (e: any) {
-      setError(e?.message ?? "Không thể cập nhật trạng thái.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Không thể cập nhật trạng thái.");
     }
   };
 
@@ -73,40 +98,12 @@ export default function AdminBlogPage() {
       await crudNotify.remove(() => apiFetch<{ id: string; deleted: true }>(`/api/admin/blog/${id}`, { method: "DELETE" }), {
         entity: "bài viết",
       });
-      setPosts((prev) => prev.filter((p) => p.id !== id));
-    } catch (e: any) {
-      setError(e?.message ?? "Không thể xóa bài viết.");
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Không thể xóa bài viết.");
     }
   };
 
-  const rows = useMemo(() => {
-    const toPublishedTs = (post: BlogPostRow) => {
-      const source = post.published_at ?? post.created_at ?? null;
-      if (!source) return null;
-      const ts = new Date(source).getTime();
-      return Number.isNaN(ts) ? null : ts;
-    };
-    const sorted = [...posts];
-    sorted.sort((a, b) => {
-      let result = 0;
-      if (sortBy === "view_count") {
-        result = (a.view_count ?? 0) - (b.view_count ?? 0);
-      } else if (sortBy === "title") {
-        result = a.title.localeCompare(b.title, "vi");
-      } else if (sortBy === "status") {
-        result = a.status.localeCompare(b.status, "vi");
-      } else {
-        const aTs = toPublishedTs(a);
-        const bTs = toPublishedTs(b);
-        if (aTs == null && bTs == null) result = a.title.localeCompare(b.title, "vi");
-        else if (aTs == null) result = 1;
-        else if (bTs == null) result = -1;
-        else result = aTs - bTs;
-      }
-      return sortDir === "asc" ? result : -result;
-    });
-    return sorted;
-  }, [posts, sortBy, sortDir]);
   const formatDate = (iso: string) => {
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return "—";
@@ -120,7 +117,10 @@ export default function AdminBlogPage() {
     }
     setSortBy(next);
     setSortDir("desc");
+    setPage(1);
   };
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const SortMark = ({ active }: { active: boolean }) => (
     <span className={`ml-1 inline-flex flex-col leading-none ${active ? "text-[#c0392b]" : "text-gray-300"}`}>
@@ -136,12 +136,30 @@ export default function AdminBlogPage() {
           <h1 className="font-heading font-black text-gray-900 text-2xl">Quản Lý Blog</h1>
           <p className="text-gray-500 text-sm mt-1">Đăng bài viết và nội dung kiến thức</p>
         </div>
-        <Link
-          href="/admin/blog/new"
-          className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-[#c0392b] hover:bg-[#96281b] text-white text-sm font-semibold px-4 py-2.5 rounded-sm transition-colors"
-        >
-          <Plus size={16} /> Bài Viết Mới
-        </Link>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <label className="flex items-center justify-end gap-2 text-xs text-gray-500 sm:order-first">
+            <span className="hidden sm:inline">Hiển thị</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="rounded-sm border border-gray-200 bg-white py-2 pl-2 pr-8 text-xs font-semibold text-gray-700"
+            >
+              <option value={10}>10 / trang</option>
+              <option value={20}>20 / trang</option>
+              <option value={50}>50 / trang</option>
+              <option value={100}>100 / trang</option>
+            </select>
+          </label>
+          <Link
+            href="/admin/blog/new"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-[#c0392b] hover:bg-[#96281b] text-white text-sm font-semibold px-4 py-2.5 rounded-sm transition-colors"
+          >
+            <Plus size={16} /> Bài Viết Mới
+          </Link>
+        </div>
       </div>
 
       {error ? (
@@ -158,12 +176,12 @@ export default function AdminBlogPage() {
           <div className="rounded-sm border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-400">
             Đang tải...
           </div>
-        ) : rows.length === 0 ? (
+        ) : posts.length === 0 ? (
           <div className="rounded-sm border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-400">
             Chưa có bài viết.
           </div>
         ) : (
-          rows.map((post) => (
+          posts.map((post) => (
             <div key={post.id} className="rounded-sm border border-gray-200 bg-white p-4">
               <div className="flex items-start justify-between gap-3">
                 <Link href={`/admin/blog/${post.id}`} className="line-clamp-2 font-semibold text-gray-900 hover:underline">
@@ -257,8 +275,14 @@ export default function AdminBlogPage() {
                     Đang tải...
                   </td>
                 </tr>
-              ) : null}
-              {rows.map((post) => (
+              ) : posts.length === 0 ? (
+                <tr>
+                  <td className="px-5 py-10 text-center text-sm text-gray-400" colSpan={6}>
+                    Chưa có bài viết.
+                  </td>
+                </tr>
+              ) : (
+                posts.map((post) => (
                 <tr
                   key={post.id}
                   className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer"
@@ -308,9 +332,38 @@ export default function AdminBlogPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-3 text-sm text-gray-600">
+          <span>
+            {total === 0
+              ? "0 bài"
+              : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} / ${total}`}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded-sm border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40"
+            >
+              Trước
+            </button>
+            <span className="tabular-nums text-xs">
+              Trang {page} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-sm border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40"
+            >
+              Sau
+            </button>
+          </div>
         </div>
       </div>
     </div>

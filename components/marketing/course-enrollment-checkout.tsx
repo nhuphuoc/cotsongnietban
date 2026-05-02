@@ -7,6 +7,11 @@ import { CheckCircle2, Loader2, CreditCard } from "lucide-react";
 import { SITE_CONTACT } from "@/lib/site-contact";
 import { CancelPendingRegistrationButton } from "@/components/marketing/cancel-pending-registration-button";
 
+/**
+ * TODO(bank-transfer-removal): Đặt `true` chỉ khi cần bật lại CK tay. Xóa hẳn: `docs/TODO-remove-bank-transfer.md`.
+ */
+const ENABLE_BANK_TRANSFER_CHECKOUT = false;
+
 type CheckoutResult = {
   orderId: string;
   orderCode: string;
@@ -33,8 +38,16 @@ type Props = {
   courseTitle: string;
   priceLabel: string;
   priceVnd: number;
-  /** Đơn pending/paid trên server (PayOS hoặc CK) — cho phép hủy trước khi có state cục bộ */
   cancellableOrderId?: string | null;
+  /** Plain-text blurb shown under the price (optional). */
+  courseSummary?: string | null;
+  /**
+   * When true, only pending notices + PayOS / bank UI (no title, price, or summary).
+   * Use when the page renders course info elsewhere.
+   */
+  paymentOnly?: boolean;
+  /** Tighter spacing and copy for above-the-fold checkout. */
+  compact?: boolean;
 };
 
 function formatVnd(value: number) {
@@ -60,6 +73,9 @@ export function CourseEnrollmentCheckout({
   priceLabel,
   priceVnd,
   cancellableOrderId = null,
+  courseSummary = null,
+  paymentOnly = false,
+  compact = false,
 }: Props) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -71,7 +87,7 @@ export function CourseEnrollmentCheckout({
   const [transferConfirmed, setTransferConfirmed] = useState(false);
 
   const qrUrl = useMemo(() => {
-    if (!result || result.totalVnd == null || !result.paymentReference) return null;
+    if (!ENABLE_BANK_TRANSFER_CHECKOUT || !result || result.totalVnd == null || !result.paymentReference) return null;
     const payload = [
       `BANK:${result.bankInfo.bankName}`,
       `ACCOUNT:${result.bankInfo.accountNumber}`,
@@ -172,67 +188,122 @@ export function CourseEnrollmentCheckout({
   }
 
   const showServerPendingCancel = Boolean(cancellableOrderId && !result);
+  const staleBankResult = Boolean(!ENABLE_BANK_TRANSFER_CHECKOUT && result);
 
   return (
     <div>
-      <p className="font-sans text-xs uppercase tracking-wide text-neutral-500">Checkout khóa học</p>
-      <h1 className="mt-1 font-sans text-xl font-extrabold text-csnb-ink">{courseTitle}</h1>
-      <p className="mt-1 font-sans text-2xl font-extrabold tabular-nums text-csnb-orange-deep">{priceLabel}</p>
+      {paymentOnly ? null : (
+        <>
+          <p className="font-sans text-xs uppercase tracking-wide text-neutral-500">Checkout khóa học</p>
+          <h1 className="mt-1 font-sans text-xl font-extrabold text-csnb-ink">{courseTitle}</h1>
+          <p className="mt-1 font-sans text-2xl font-extrabold tabular-nums text-csnb-orange-deep">{priceLabel}</p>
+
+          {courseSummary ? (
+            <p className="mt-3 font-sans text-sm leading-relaxed text-neutral-600">{courseSummary}</p>
+          ) : null}
+        </>
+      )}
 
       {showServerPendingCancel ? (
-        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-3 font-sans text-sm text-amber-950">
-          <p className="font-medium">Bạn đang có đơn chờ thanh toán cho khóa này.</p>
-          <p className="mt-1 text-xs text-amber-900/85">
-            Ấn nhầm? Hủy đơn để chọn lại phương thức hoặc tạo đơn mới.
+        <div
+          className={`rounded-lg border border-amber-200 bg-amber-50/90 font-sans text-amber-950 ${compact ? "mt-2 px-2.5 py-2 text-xs" : "mt-4 px-3 py-3 text-sm"}`}
+        >
+          <p className={compact ? "font-semibold leading-snug" : "font-medium"}>
+            Bạn đang có đơn chờ thanh toán cho khóa này.
           </p>
-          <div className="mt-3">
+          <p className={`text-amber-900/85 ${compact ? "mt-0.5 text-[11px] leading-snug" : "mt-1 text-xs"}`}>
+            Ấn nhầm? Hủy đơn để thanh toán lại qua PayOS.
+          </p>
+          <div className={compact ? "mt-2" : "mt-3"}>
             <CancelPendingRegistrationButton orderId={cancellableOrderId!} variant="button" className="[&_button]:w-full" />
           </div>
         </div>
       ) : null}
 
-      {!result ? (
-        <div className="mt-4 space-y-3 rounded-lg border border-csnb-border/25 bg-white p-4">
-          <p className="font-sans text-sm leading-relaxed text-neutral-700">
-            Chọn phương thức thanh toán cho khóa học này. Mỗi tài khoản chỉ có một đơn thanh toán cho mỗi khóa.
+      {staleBankResult ? (
+        <div
+          className={`space-y-3 rounded-lg border border-csnb-border/25 bg-csnb-panel/55 font-sans text-neutral-800 ${compact ? "mt-2 p-3 text-xs" : "mt-4 p-4 text-sm"}`}
+        >
+          <p>
+            Giao diện checkout hiện chỉ hỗ trợ <strong>PayOS</strong>. Nếu bạn vừa thao tác đơn chuyển khoản cũ trong phiên này, hãy{" "}
+            <strong>hủy đơn</strong> rồi bấm thanh toán PayOS bên dưới.
+          </p>
+          {result?.orderId ? (
+            <CancelPendingRegistrationButton
+              orderId={result.orderId}
+              variant="button"
+              className="[&_button]:w-full"
+              confirmMessage="Hủy đơn chuyển khoản này để thanh toán lại qua PayOS?"
+            />
+          ) : null}
+          <button
+            type="button"
+            className="text-xs font-medium text-neutral-500 underline underline-offset-2 hover:text-csnb-ink"
+            onClick={() => {
+              setResult(null);
+              setNotice(null);
+              setError(null);
+            }}
+          >
+            Đóng thông báo (không hủy đơn trên hệ thống)
+          </button>
+        </div>
+      ) : null}
+
+      {!(ENABLE_BANK_TRANSFER_CHECKOUT && result) ? (
+        <div
+          className={`rounded-lg border border-csnb-border/25 bg-white ${compact ? "mt-2 space-y-2 p-3" : "mt-4 space-y-3 p-4"}`}
+        >
+          <p
+            className={`font-sans text-neutral-700 ${compact ? "text-[11px] leading-snug" : "text-sm leading-relaxed"}`}
+          >
+            {ENABLE_BANK_TRANSFER_CHECKOUT
+              ? "Chọn phương thức thanh toán cho khóa học này. Mỗi tài khoản chỉ có một đơn thanh toán cho mỗi khóa."
+              : compact
+                ? "PayOS: thẻ hoặc QR. Thành công là kích hoạt học ngay."
+                : "Thanh toán an toàn qua PayOS (thẻ / QR). Sau khi giao dịch thành công, quyền học được kích hoạt tự động."}
           </p>
 
-          {/* PayOS — thanh toán tự động */}
           <button
             type="button"
             onClick={payWithPayos}
             disabled={payosLoading || submitting}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-3 font-sans text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+            className={`flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 font-sans text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70 ${compact ? "min-h-10 py-2.5" : "min-h-11 py-3"}`}
           >
             {payosLoading ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />
             ) : (
               <CreditCard className="size-4" />
             )}
-            Thanh toán qua PayOS (tự động)
+            {compact ? "Thanh toán ngay" : "Thanh toán qua PayOS"}
           </button>
 
-          <div className="flex items-center gap-2">
-            <div className="flex-1 border-t border-csnb-border/20" />
-            <span className="text-xs text-neutral-400">hoặc</span>
-            <div className="flex-1 border-t border-csnb-border/20" />
-          </div>
+          {ENABLE_BANK_TRANSFER_CHECKOUT ? (
+            <>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 border-t border-csnb-border/20" />
+                <span className="text-xs text-neutral-400">hoặc</span>
+                <div className="flex-1 border-t border-csnb-border/20" />
+              </div>
 
-          {/* Bank transfer — thủ công */}
-          <p className="font-sans text-xs leading-relaxed text-neutral-500">
-            Chuyển khoản ngân hàng thủ công (admin duyệt tay, chậm hơn)
-          </p>
-          <button
-            type="button"
-            onClick={createOrder}
-            disabled={submitting || payosLoading}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-csnb-orange px-4 py-3 font-sans text-sm font-bold text-white transition-colors hover:bg-csnb-orange-deep disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <span className="text-lg leading-none">▶</span>}
-            Tạo đơn & nhận mã QR
-          </button>
+              <p className="font-sans text-xs leading-relaxed text-neutral-500">
+                Chuyển khoản ngân hàng thủ công (admin duyệt tay, chậm hơn)
+              </p>
+              <button
+                type="button"
+                onClick={createOrder}
+                disabled={submitting || payosLoading}
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-csnb-orange px-4 py-3 font-sans text-sm font-bold text-white transition-colors hover:bg-csnb-orange-deep disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <span className="text-lg leading-none">▶</span>}
+                Tạo đơn & nhận mã QR
+              </button>
+            </>
+          ) : null}
         </div>
-      ) : (
+      ) : null}
+
+      {ENABLE_BANK_TRANSFER_CHECKOUT && result ? (
         <div className="mt-4 space-y-3 rounded-lg border border-csnb-border/25 bg-csnb-panel/55 p-3.5">
           <p className="font-sans text-xs font-semibold uppercase tracking-wide text-csnb-ink/75">Đơn hàng</p>
           <p className="font-mono text-sm font-semibold text-csnb-orange-deep">{result.orderCode}</p>
@@ -295,10 +366,14 @@ export function CourseEnrollmentCheckout({
             ) : null}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {error ? <p className="mt-3 font-sans text-xs text-red-600">{error}</p> : null}
-      {notice ? <p className="mt-3 font-sans text-xs text-csnb-ink/70">{notice}</p> : null}
+      {error ? (
+        <p className={`font-sans text-red-600 ${compact ? "mt-2 text-[11px]" : "mt-3 text-xs"}`}>{error}</p>
+      ) : null}
+      {notice ? (
+        <p className={`font-sans text-csnb-ink/70 ${compact ? "mt-2 text-[11px]" : "mt-3 text-xs"}`}>{notice}</p>
+      ) : null}
     </div>
   );
 }

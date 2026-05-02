@@ -12,6 +12,11 @@ function admin() {
   return createAdminClient();
 }
 
+/** Escape `%` / `_` for PostgREST `ilike` patterns. */
+function sanitizeIlikePattern(raw: string) {
+  return raw.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
 /** PostgREST `id.eq.x` ép `x` sang kiểu cột `id` (uuid) → slug có chữ như `i` gây lỗi 22P02. */
 function isUuidString(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
@@ -291,6 +296,69 @@ export async function listBlogPosts(options?: { publishedOnly?: boolean }) {
   }));
 }
 
+const BLOG_ADMIN_LIST_FIELDS =
+  "id, title, slug, excerpt, cover_image_url, status, published_at, created_at, updated_at, category_id, view_count";
+
+export type AdminBlogPostsPage = {
+  items: Array<Record<string, unknown> & { category?: unknown }>;
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+/** Admin blog index: no full `content_html`, uses `view_count` on row (avoids scanning blog_post_views). */
+export async function listBlogPostsAdminPaginated(options: {
+  page: number;
+  pageSize: number;
+  publishedOnly?: boolean;
+  sortBy?: "published_at" | "view_count" | "title" | "status";
+  sortDir?: "asc" | "desc";
+}): Promise<AdminBlogPostsPage> {
+  const page = Math.max(1, Math.floor(options.page));
+  const pageSize = Math.min(100, Math.max(1, Math.floor(options.pageSize)));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const client = admin();
+
+  let q = client.from("blog_posts").select(BLOG_ADMIN_LIST_FIELDS, { count: "exact" });
+  if (options.publishedOnly) {
+    q = q.eq("status", "published");
+  }
+  const sortBy = options.sortBy ?? "published_at";
+  const sortDir = options.sortDir ?? "desc";
+  const ascending = sortDir === "asc";
+  const nullsFirst = sortBy === "published_at" ? false : true;
+  q = q
+    .order(sortBy, { ascending, nullsFirst })
+    .order("id", { ascending: false })
+    .range(from, to);
+
+  const { data: posts, error, count } = await q;
+  if (error) throw error;
+
+  const list = posts ?? [];
+  const categoryIds = [...new Set(list.map((post) => post.category_id).filter(Boolean))] as string[];
+  const { data: categories, error: categoriesError } = categoryIds.length
+    ? await client.from("blog_categories").select("*").in("id", categoryIds)
+    : { data: [], error: null };
+
+  if (categoriesError) throw categoriesError;
+  const categoriesById = new Map((categories ?? []).map((item) => [item.id, item]));
+
+  const items = list.map((post) => ({
+    ...post,
+    view_count: Number(post.view_count ?? 0),
+    category: post.category_id ? categoriesById.get(post.category_id as string) ?? null : null,
+  }));
+
+  return {
+    items,
+    total: count ?? 0,
+    page,
+    pageSize,
+  };
+}
+
 export async function getBlogPostByIdentifier(identifier: string) {
   const client = admin();
   const key = identifier.trim();
@@ -342,6 +410,86 @@ export async function listFeedbacks() {
   return data ?? [];
 }
 
+const FEEDBACK_ADMIN_FIELDS =
+  "id, type, customer_name, customer_info, content, avatar_url, image_url_1, image_url_2, is_active, created_at";
+
+export type AdminFeedbacksPage = {
+  items: Array<Record<string, unknown>>;
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export type FeedbackTabCounts = {
+  all: number;
+  before_after: number;
+  testimonial: number;
+  comment: number;
+};
+
+export async function getFeedbackTabCounts(): Promise<FeedbackTabCounts> {
+  const client = admin();
+  const [allR, baR, teR, coR] = await Promise.all([
+    client.from("feedbacks").select("id", { count: "exact", head: true }),
+    client.from("feedbacks").select("id", { count: "exact", head: true }).eq("type", "before_after"),
+    client.from("feedbacks").select("id", { count: "exact", head: true }).eq("type", "testimonial"),
+    client.from("feedbacks").select("id", { count: "exact", head: true }).eq("type", "comment"),
+  ]);
+  if (allR.error) throw allR.error;
+  if (baR.error) throw baR.error;
+  if (teR.error) throw teR.error;
+  if (coR.error) throw coR.error;
+  return {
+    all: allR.count ?? 0,
+    before_after: baR.count ?? 0,
+    testimonial: teR.count ?? 0,
+    comment: coR.count ?? 0,
+  };
+}
+
+export async function listFeedbacksPaginated(options: {
+  page: number;
+  pageSize: number;
+  type?: string;
+  search?: string;
+  sortBy?: "created_at" | "customer_name" | "type" | "is_active" | "content";
+  sortDir?: "asc" | "desc";
+}): Promise<AdminFeedbacksPage> {
+  const page = Math.max(1, Math.floor(options.page));
+  const pageSize = Math.min(100, Math.max(1, Math.floor(options.pageSize)));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const client = admin();
+
+  let q = client.from("feedbacks").select(FEEDBACK_ADMIN_FIELDS, { count: "exact" });
+
+  const t = options.type?.trim();
+  if (t && t !== "all") {
+    q = q.eq("type", t);
+  }
+
+  const search = options.search?.trim();
+  if (search) {
+    const esc = sanitizeIlikePattern(search);
+    q = q.or(`customer_name.ilike.%${esc}%,customer_info.ilike.%${esc}%,content.ilike.%${esc}%`);
+  }
+
+  const sortBy = options.sortBy ?? "created_at";
+  const sortDir = options.sortDir ?? "desc";
+  const ascending = sortDir === "asc";
+  q = q.order(sortBy, { ascending, nullsFirst: false }).order("id", { ascending: false }).range(from, to);
+
+  const { data, error, count } = await q;
+  if (error) throw error;
+
+  return {
+    items: data ?? [],
+    total: count ?? 0,
+    page,
+    pageSize,
+  };
+}
+
 export async function getFeedbackById(id: string) {
   const client = admin();
   const { data, error } = await client
@@ -353,17 +501,18 @@ export async function getFeedbackById(id: string) {
   return data ?? null;
 }
 
-export async function listOrders() {
+async function enrichOrdersWithItemsAndUsers(
+  orders: Array<Record<string, unknown> & { id: string; user_id?: string | null }>
+) {
+  if (orders.length === 0) return [];
   const client = admin();
-  const { data: orders, error } = await client.from("orders").select("*").order("created_at", { ascending: false });
-  if (error) throw error;
-
-  const orderIds = (orders ?? []).map((item) => item.id);
+  const orderIds = orders.map((item) => item.id);
+  const userIds = [...new Set(orders.map((o) => o.user_id).filter(Boolean) as string[])];
   const [itemsResult, profilesResult] = await Promise.all([
-    orderIds.length
-      ? client.from("order_items").select("*").in("order_id", orderIds)
-      : Promise.resolve({ data: [], error: null }),
-    client.from("profiles").select("id, full_name, email"),
+    client.from("order_items").select("*").in("order_id", orderIds),
+    userIds.length
+      ? client.from("profiles").select("id, full_name, email").in("id", userIds)
+      : Promise.resolve({ data: [] as { id: string; full_name: string | null; email: string | null }[], error: null }),
   ]);
 
   if (itemsResult.error) throw itemsResult.error;
@@ -372,16 +521,135 @@ export async function listOrders() {
   const profilesById = new Map((profilesResult.data ?? []).map((item) => [item.id, item]));
   const itemsByOrderId = new Map<string, unknown[]>();
   for (const item of itemsResult.data ?? []) {
-    const current = itemsByOrderId.get(item.order_id) ?? [];
+    const oid = String((item as { order_id: string }).order_id);
+    const current = itemsByOrderId.get(oid) ?? [];
     current.push(item);
-    itemsByOrderId.set(item.order_id, current);
+    itemsByOrderId.set(oid, current);
   }
 
-  return (orders ?? []).map((order) => ({
+  return orders.map((order) => ({
     ...order,
-    user: order.user_id ? profilesById.get(order.user_id) ?? null : null,
-    items: itemsByOrderId.get(order.id) ?? [],
+    user: order.user_id ? profilesById.get(String(order.user_id)) ?? null : null,
+    items: itemsByOrderId.get(String(order.id)) ?? [],
   }));
+}
+
+export async function listOrders() {
+  const client = admin();
+  const { data: orders, error } = await client.from("orders").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return enrichOrdersWithItemsAndUsers(orders ?? []);
+}
+
+export type AdminOrdersPage = {
+  items: Awaited<ReturnType<typeof enrichOrdersWithItemsAndUsers>>;
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export async function listOrdersPaginated(options: {
+  page: number;
+  pageSize: number;
+  statusFilter?: "all" | "pending" | "approved";
+  search?: string;
+  sortBy?: "created_at" | "total_vnd" | "customer_name" | "status";
+  sortDir?: "asc" | "desc";
+}): Promise<AdminOrdersPage> {
+  const page = Math.max(1, Math.floor(options.page));
+  const pageSize = Math.min(100, Math.max(1, Math.floor(options.pageSize)));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const client = admin();
+
+  let q = client.from("orders").select("*", { count: "exact" });
+
+  const sf = options.statusFilter ?? "all";
+  if (sf === "pending") {
+    q = q.in("status", ["pending", "paid"]);
+  } else if (sf === "approved") {
+    q = q.eq("status", "approved");
+  }
+
+  const search = options.search?.trim();
+  if (search) {
+    const esc = sanitizeIlikePattern(search);
+    q = q.or(`order_code.ilike.%${esc}%,customer_name.ilike.%${esc}%,customer_email.ilike.%${esc}%`);
+  }
+
+  const sortBy = options.sortBy ?? "created_at";
+  const sortDir = options.sortDir ?? "desc";
+  q = q.order(sortBy, { ascending: sortDir === "asc" }).order("id", { ascending: false });
+
+  q = q.range(from, to);
+
+  const { data: orders, error, count } = await q;
+  if (error) throw error;
+
+  const items = await enrichOrdersWithItemsAndUsers(orders ?? []);
+  return {
+    items,
+    total: count ?? 0,
+    page,
+    pageSize,
+  };
+}
+
+/** Lightweight: recent orders for admin dashboard (single query + scoped joins). */
+export async function listRecentOrdersForAdmin(limit: number) {
+  const client = admin();
+  const safeLimit = Math.min(50, Math.max(1, Math.floor(limit)));
+  const { data: orders, error } = await client
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(safeLimit);
+  if (error) throw error;
+  return enrichOrdersWithItemsAndUsers(orders ?? []);
+}
+
+export type AdminDashboardMetrics = {
+  revenueVndApproved: number;
+  approvedOrderCount: number;
+  userCount: number;
+  courseCount: number;
+  feedbackInactiveCount: number;
+  feedbackTotalCount: number;
+};
+
+export async function getAdminDashboardMetrics(): Promise<AdminDashboardMetrics> {
+  const client = admin();
+  const [
+    usersHead,
+    coursesHead,
+    feedbackInactiveHead,
+    feedbackTotalHead,
+    approvedTotals,
+  ] = await Promise.all([
+    client.from("profiles").select("id", { count: "exact", head: true }),
+    client.from("courses").select("id", { count: "exact", head: true }),
+    client.from("feedbacks").select("id", { count: "exact", head: true }).eq("is_active", false),
+    client.from("feedbacks").select("id", { count: "exact", head: true }),
+    client.from("orders").select("total_vnd").eq("status", "approved"),
+  ]);
+
+  if (usersHead.error) throw usersHead.error;
+  if (coursesHead.error) throw coursesHead.error;
+  if (feedbackInactiveHead.error) throw feedbackInactiveHead.error;
+  if (feedbackTotalHead.error) throw feedbackTotalHead.error;
+  if (approvedTotals.error) throw approvedTotals.error;
+
+  const rows = approvedTotals.data ?? [];
+  const revenueVndApproved = rows.reduce((s, r) => s + (Number((r as { total_vnd?: number }).total_vnd) || 0), 0);
+
+  return {
+    revenueVndApproved,
+    approvedOrderCount: rows.length,
+    userCount: usersHead.count ?? 0,
+    courseCount: coursesHead.count ?? 0,
+    feedbackInactiveCount: feedbackInactiveHead.count ?? 0,
+    feedbackTotalCount: feedbackTotalHead.count ?? 0,
+  };
 }
 
 export async function getOrderById(id: string) {
@@ -442,6 +710,90 @@ export async function listProfiles() {
     ...profile,
     enrollments: enrollmentsByUserId.get(profile.id) ?? [],
   }));
+}
+
+type ProfileRowWithEnrollments = Awaited<ReturnType<typeof listProfiles>>[number];
+
+export type AdminProfilesPage = {
+  items: ProfileRowWithEnrollments[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export async function listProfilesPaginated(options: {
+  page: number;
+  pageSize: number;
+  search?: string;
+  role?: "admin" | "coach" | "student" | "all";
+  sortBy?: "created_at" | "full_name" | "role" | "is_active";
+  sortDir?: "asc" | "desc";
+}): Promise<AdminProfilesPage> {
+  const page = Math.max(1, Math.floor(options.page));
+  const pageSize = Math.min(100, Math.max(1, Math.floor(options.pageSize)));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const client = admin();
+
+  let q = client.from("profiles").select("*", { count: "exact" });
+
+  const role = options.role ?? "all";
+  if (role !== "all") {
+    q = q.eq("role", role);
+  }
+
+  const search = options.search?.trim();
+  if (search) {
+    const esc = sanitizeIlikePattern(search);
+    q = q.or(`full_name.ilike.%${esc}%,email.ilike.%${esc}%`);
+  }
+
+  const sortBy = options.sortBy ?? "created_at";
+  const sortDir = options.sortDir ?? "desc";
+  q = q.order(sortBy, { ascending: sortDir === "asc", nullsFirst: false }).order("id", { ascending: false });
+
+  q = q.range(from, to);
+
+  const { data: profiles, error, count } = await q;
+  if (error) throw error;
+
+  const profileIds = (profiles ?? []).map((item) => item.id);
+  const { data: enrollments, error: enrollmentsError } = profileIds.length
+    ? await client.from("enrollments").select("id, user_id, status, course_id").in("user_id", profileIds)
+    : { data: [], error: null };
+
+  if (enrollmentsError) throw enrollmentsError;
+
+  const courseIds = [...new Set((enrollments ?? []).map((item) => item.course_id).filter(Boolean))];
+  const { data: courses, error: coursesError } = courseIds.length
+    ? await client.from("courses").select("id, title, slug").in("id", courseIds)
+    : { data: [], error: null };
+
+  if (coursesError) throw coursesError;
+
+  const courseById = new Map((courses ?? []).map((item) => [item.id, item]));
+  const enrollmentsByUserId = new Map<string, unknown[]>();
+
+  for (const enrollment of enrollments ?? []) {
+    const current = enrollmentsByUserId.get(enrollment.user_id) ?? [];
+    current.push({
+      ...enrollment,
+      course: courseById.get(enrollment.course_id) ?? null,
+    });
+    enrollmentsByUserId.set(enrollment.user_id, current);
+  }
+
+  const items = (profiles ?? []).map((profile) => ({
+    ...profile,
+    enrollments: enrollmentsByUserId.get(profile.id) ?? [],
+  }));
+
+  return {
+    items,
+    total: count ?? 0,
+    page,
+    pageSize,
+  };
 }
 
 export async function getProfileById(id: string) {

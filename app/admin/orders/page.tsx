@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronUp, Clock, Loader2, Search, XCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -49,11 +49,41 @@ function formatDate(value: string) {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString("vi-VN");
 }
 
+type OrdersPagePayload = {
+  items: AdminOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+function ordersListUrl(
+  page: number,
+  pageSize: number,
+  filter: "all" | "pending" | "approved",
+  q: string,
+  sortBy: "created_at" | "total_vnd" | "customer_name" | "status",
+  sortDir: "asc" | "desc",
+) {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("pageSize", String(pageSize));
+  params.set("status", filter);
+  const trimmed = q.trim();
+  if (trimmed) params.set("q", trimmed);
+  params.set("sort", sortBy);
+  params.set("dir", sortDir);
+  return `/api/admin/orders?${params.toString()}`;
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "pending" | "approved">("all");
   const [sortBy, setSortBy] = useState<"created_at" | "total_vnd" | "customer_name" | "status">("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -64,77 +94,34 @@ export default function OrdersPage() {
   const [cancelDialogError, setCancelDialogError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    if (searchInput === debouncedSearch) return;
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchInput, debouncedSearch]);
 
-    async function loadOrders() {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await apiFetch<AdminOrder[]>("/api/admin/orders");
-        if (!cancelled) setOrders(data);
-      } catch (err) {
-        const message = err instanceof ApiError ? err.message : "Không thể tải danh sách đơn hàng.";
-        if (!cancelled) setError(message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  const loadOrders = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiFetch<OrdersPagePayload>(
+        ordersListUrl(page, pageSize, filter, debouncedSearch, sortBy, sortDir),
+      );
+      setOrders(data.items as AdminOrder[]);
+      setTotal(data.total);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Không thể tải danh sách đơn hàng.";
+      setError(message);
+    } finally {
+      setLoading(false);
     }
+  }, [page, pageSize, filter, debouncedSearch, sortBy, sortDir]);
 
+  useEffect(() => {
     void loadOrders();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const filtered = useMemo(() => {
-    return orders.filter((order) => {
-      const haystack = [
-        order.order_code,
-        order.customer_name,
-        order.customer_email,
-        order.user?.full_name ?? "",
-        order.user?.email ?? "",
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      const matchSearch = haystack.includes(search.toLowerCase().trim());
-      const normalizedStatus =
-        order.status === "approved" ? "approved" :
-        order.status === "cancelled" || order.status === "refunded" ? "cancelled" :
-        "pending";
-      const matchFilter = filter === "all" || normalizedStatus === filter;
-      return matchSearch && matchFilter;
-    });
-  }, [orders, search, filter]);
-
-  const sorted = useMemo(() => {
-    const toTs = (value: string | null | undefined) => {
-      if (!value) return null;
-      const ts = new Date(value).getTime();
-      return Number.isNaN(ts) ? null : ts;
-    };
-    const list = [...filtered];
-    list.sort((a, b) => {
-      let result = 0;
-      if (sortBy === "total_vnd") {
-        result = (a.total_vnd ?? 0) - (b.total_vnd ?? 0);
-      } else if (sortBy === "customer_name") {
-        result = a.customer_name.localeCompare(b.customer_name, "vi");
-      } else if (sortBy === "status") {
-        result = a.status.localeCompare(b.status, "vi");
-      } else {
-        const aTs = toTs(a.created_at);
-        const bTs = toTs(b.created_at);
-        if (aTs == null && bTs == null) result = a.customer_name.localeCompare(b.customer_name, "vi");
-        else if (aTs == null) result = 1;
-        else if (bTs == null) result = -1;
-        else result = aTs - bTs;
-      }
-      return sortDir === "asc" ? result : -result;
-    });
-    return list;
-  }, [filtered, sortBy, sortDir]);
+  }, [loadOrders]);
 
   const handleSort = (next: "created_at" | "total_vnd" | "customer_name" | "status") => {
     if (sortBy === next) {
@@ -143,7 +130,10 @@ export default function OrdersPage() {
     }
     setSortBy(next);
     setSortDir("desc");
+    setPage(1);
   };
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const SortMark = ({ active }: { active: boolean }) => (
     <span className={`ml-1 inline-flex flex-col leading-none ${active ? "text-[#c0392b]" : "text-gray-300"}`}>
@@ -221,20 +211,22 @@ export default function OrdersPage() {
     <div className="p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="font-heading font-black text-2xl text-gray-900">Quản Lý Đơn Hàng</h1>
-        <p className="mt-1 text-sm text-gray-500">Xem xét và duyệt đơn hàng chuyển khoản của học viên</p>
+        <p className="mt-1 text-sm text-gray-500">
+          Đơn PayOS được kích hoạt tự động. Duyệt / hủy phía dưới chủ yếu phục vụ đơn chuyển khoản cũ (sẽ gỡ khi chỉ còn PayOS).
+        </p>
       </div>
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Tìm mã đơn, tên, email..."
             className="w-full rounded-sm border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-[#c0392b] focus:outline-none"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {[
             { value: "all", label: "Tất Cả" },
             { value: "pending", label: "Chờ Duyệt" },
@@ -242,7 +234,11 @@ export default function OrdersPage() {
           ].map((item) => (
             <button
               key={item.value}
-              onClick={() => setFilter(item.value as typeof filter)}
+              type="button"
+              onClick={() => {
+                setFilter(item.value as typeof filter);
+                setPage(1);
+              }}
               className={`rounded-sm border px-4 py-2.5 text-xs font-semibold transition-colors ${
                 filter === item.value
                   ? "border-[#c0392b] bg-[#c0392b] text-white"
@@ -252,6 +248,22 @@ export default function OrdersPage() {
               {item.label}
             </button>
           ))}
+          <label className="ml-auto flex items-center gap-2 text-xs text-gray-500">
+            <span className="hidden sm:inline">Hiển thị</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="rounded-sm border border-gray-200 bg-white py-2 pl-2 pr-8 text-xs font-semibold text-gray-700"
+            >
+              <option value={10}>10 / trang</option>
+              <option value={20}>20 / trang</option>
+              <option value={50}>50 / trang</option>
+              <option value={100}>100 / trang</option>
+            </select>
+          </label>
         </div>
       </div>
 
@@ -309,14 +321,14 @@ export default function OrdersPage() {
                     </span>
                   </td>
                 </tr>
-              ) : sorted.length === 0 ? (
+              ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-8 text-center text-sm text-gray-500">
                     Không có đơn hàng phù hợp.
                   </td>
                 </tr>
               ) : (
-                sorted.map((order) => {
+                orders.map((order) => {
                   const isApproved = order.status === "approved";
                   // PayOS paid = đã tự động cấp enrollment, không cần admin duyệt
                   const isPayosPaid = order.status === "paid" && order.payment_method === "payos";
@@ -376,6 +388,34 @@ export default function OrdersPage() {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-3 text-sm text-gray-600">
+          <span>
+            {total === 0
+              ? "0 đơn"
+              : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} / ${total} đơn`}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded-sm border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40"
+            >
+              Trước
+            </button>
+            <span className="tabular-nums text-xs">
+              Trang {page} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-sm border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:opacity-40"
+            >
+              Sau
+            </button>
+          </div>
         </div>
       </div>
 

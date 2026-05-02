@@ -9,6 +9,7 @@ vi.mock("@/lib/api/repositories", async (importOriginal) => {
   return {
     ...orig,
     listBlogPosts: vi.fn(),
+    listBlogPostsAdminPaginated: vi.fn(),
     getBlogPostByIdentifier: vi.fn(),
     resolveCategoryId: vi.fn(),
   };
@@ -19,7 +20,7 @@ vi.mock("@/utils/supabase/admin", () => ({
 }));
 
 import { requireAdminActor } from "@/lib/api/auth";
-import { listBlogPosts, getBlogPostByIdentifier, resolveCategoryId } from "@/lib/api/repositories";
+import { listBlogPosts, listBlogPostsAdminPaginated, getBlogPostByIdentifier, resolveCategoryId } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { GET as listHandler, POST as createHandler } from "./route";
 import { GET as getOneHandler, PATCH as patchHandler, DELETE as deleteHandler } from "./[id]/route";
@@ -45,20 +46,48 @@ describe("admin blog API", () => {
         status: 401 as const,
         message: "Bạn chưa đăng nhập.",
       });
-      const res = await listHandler();
+      const res = await listHandler(new Request("http://localhost/api/admin/blog"));
       expect(res.status).toBe(401);
       const body = await jsonResponse(res);
       expect(body.error?.message).toBe("Bạn chưa đăng nhập.");
     });
 
-    it("returns posts from listBlogPosts", async () => {
+    it("returns paginated posts from listBlogPostsAdminPaginated", async () => {
       const rows = [{ id: "p1", title: "Hello", slug: "hello", category: null }];
-      vi.mocked(listBlogPosts).mockResolvedValue(rows as never);
-      const res = await listHandler();
+      vi.mocked(listBlogPostsAdminPaginated).mockResolvedValue({
+        items: rows as never[],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+      });
+      const res = await listHandler(new Request("http://localhost/api/admin/blog?page=1&pageSize=10"));
       expect(res.status).toBe(200);
       const body = await jsonResponse(res);
-      expect(body.data).toEqual(rows);
-      expect(listBlogPosts).toHaveBeenCalledWith({ publishedOnly: false });
+      expect(body.data).toEqual({ items: rows, total: 1, page: 1, pageSize: 10 });
+      expect(listBlogPostsAdminPaginated).toHaveBeenCalledWith({
+        page: 1,
+        pageSize: 10,
+        publishedOnly: false,
+        sortBy: "published_at",
+        sortDir: "desc",
+      });
+    });
+
+    it("forwards sort and dir query to listBlogPostsAdminPaginated", async () => {
+      vi.mocked(listBlogPostsAdminPaginated).mockResolvedValue({
+        items: [],
+        total: 0,
+        page: 1,
+        pageSize: 10,
+      });
+      await listHandler(new Request("http://localhost/api/admin/blog?sort=title&dir=asc"));
+      expect(listBlogPostsAdminPaginated).toHaveBeenCalledWith({
+        page: 1,
+        pageSize: 10,
+        publishedOnly: false,
+        sortBy: "title",
+        sortDir: "asc",
+      });
     });
   });
 

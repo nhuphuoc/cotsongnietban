@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { BarChart3, BookOpen, DollarSign, MessageSquareQuote, ShoppingCart, Users, CheckCircle2, Clock } from "lucide-react";
-import { listCourses, listFeedbacks, listOrders, listProfiles } from "@/lib/api/repositories";
+import { getAdminDashboardMetrics, listRecentOrdersForAdmin } from "@/lib/api/repositories";
 import { formatVnd } from "@/lib/format-vnd";
 
 type AdminOrder = {
@@ -67,14 +67,9 @@ export default async function AdminDashboardPage({
           : "created_at";
   const dashboardDir = resolvedSearchParams?.dir === "asc" ? "asc" : "desc";
 
-  const [ordersRaw, profiles, courses, feedbacks] = await Promise.all([
-    listOrders(),
-    listProfiles(),
-    listCourses(),
-    listFeedbacks(),
-  ]);
+  const [metrics, recentOrdersRaw] = await Promise.all([getAdminDashboardMetrics(), listRecentOrdersForAdmin(6)]);
 
-  const orders = ordersRaw as unknown as AdminOrder[];
+  const orders = recentOrdersRaw as unknown as AdminOrder[];
   const sortedOrders = [...orders].sort((a, b) => {
     const result =
       dashboardSort === "total_vnd"
@@ -86,17 +81,25 @@ export default async function AdminDashboardPage({
         : new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     return dashboardDir === "asc" ? result : -result;
   });
-  const recentOrders = sortedOrders.slice(0, 6);
-  const revenue = orders
-    .filter((order) => order.status === "approved")
-    .reduce((sum, order) => sum + (Number(order.total_vnd) || 0), 0);
-  const newFeedbackCount = (feedbacks as Array<{ status?: string }>).filter((fb) => fb.status === "new").length;
+  const recentOrders = sortedOrders;
 
   const stats = [
-    { label: "Doanh thu đã duyệt", value: formatVnd(revenue), icon: DollarSign, hint: `${orders.filter((o) => o.status === "approved").length} đơn`, color: "bg-green-50 text-green-700 border-green-200" },
-    { label: "Người dùng", value: String(profiles.length), icon: Users, hint: "Tổng tài khoản", color: "bg-blue-50 text-blue-700 border-blue-200" },
-    { label: "Khóa học", value: String(courses.length), icon: BookOpen, hint: "Tổng khóa học", color: "bg-[#004E4B]/10 text-[#004E4B] border-[#004E4B]/25" },
-    { label: "Feedback mới", value: String(newFeedbackCount), icon: MessageSquareQuote, hint: `Tổng feedback: ${feedbacks.length}`, color: "bg-orange-50 text-[#c0392b] border-orange-200" },
+    {
+      label: "Doanh thu đã duyệt",
+      value: formatVnd(metrics.revenueVndApproved),
+      icon: DollarSign,
+      hint: `${metrics.approvedOrderCount} đơn`,
+      color: "bg-green-50 text-green-700 border-green-200",
+    },
+    { label: "Người dùng", value: String(metrics.userCount), icon: Users, hint: "Tổng tài khoản", color: "bg-blue-50 text-blue-700 border-blue-200" },
+    { label: "Khóa học", value: String(metrics.courseCount), icon: BookOpen, hint: "Tổng khóa học", color: "bg-[#004E4B]/10 text-[#004E4B] border-[#004E4B]/25" },
+    {
+      label: "Feedback ẩn / chờ",
+      value: String(metrics.feedbackInactiveCount),
+      icon: MessageSquareQuote,
+      hint: `Tổng feedback: ${metrics.feedbackTotalCount}`,
+      color: "bg-orange-50 text-[#c0392b] border-orange-200",
+    },
   ];
 
   const nextSortHref = (column: "customer_name" | "total_vnd" | "status" | "created_at") => {

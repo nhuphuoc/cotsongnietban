@@ -1,16 +1,39 @@
 import { requireAdminActor } from "@/lib/api/auth";
+import { parsePageParams } from "@/lib/api/admin-query";
 import { ok, fail } from "@/lib/api/http";
-import { listFeedbacks } from "@/lib/api/repositories";
+import { getFeedbackTabCounts, listFeedbacksPaginated } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ALLOWED_TYPES = new Set(["before_after", "testimonial", "comment"]);
 
-export async function GET() {
+export async function GET(request: Request) {
   const auth = await requireAdminActor();
   if (!auth.actor) return fail(auth.message ?? "Forbidden", auth.status);
 
   try {
-    return ok(await listFeedbacks());
+    const url = new URL(request.url);
+    if (url.searchParams.get("meta") === "1") {
+      return ok(await getFeedbackTabCounts());
+    }
+
+    const { page, pageSize } = parsePageParams(url);
+    const typeRaw = url.searchParams.get("type") || "all";
+    const type = typeRaw !== "all" && ALLOWED_TYPES.has(typeRaw) ? typeRaw : undefined;
+    const search = url.searchParams.get("q") ?? undefined;
+    const SORTS = new Set(["created_at", "customer_name", "type", "is_active", "content"]);
+    const sortRaw = url.searchParams.get("sort") || "created_at";
+    const sortBy = SORTS.has(sortRaw) ? (sortRaw as "created_at" | "customer_name" | "type" | "is_active" | "content") : "created_at";
+    const sortDir = url.searchParams.get("dir") === "asc" ? "asc" : "desc";
+
+    const result = await listFeedbacksPaginated({
+      page,
+      pageSize,
+      type: type ?? "all",
+      search: search?.trim() || undefined,
+      sortBy,
+      sortDir,
+    });
+    return ok(result);
   } catch (error) {
     return fail("Không thể tải feedback.", 500, error);
   }

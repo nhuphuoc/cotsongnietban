@@ -415,7 +415,7 @@ export default async function MarketingCourseDetailPage({ params }: { params: Pr
                       <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 font-sans text-sm text-amber-950">
                         <p className="font-semibold text-amber-900">Đang chờ xác nhận thanh toán</p>
                         <p className="mt-1 text-amber-900/90">
-                          Bạn đã tạo đơn hoặc đang chờ duyệt. Sau khi admin xác nhận chuyển khoản, quyền học sẽ được bật tự động — hãy tải lại trang này hoặc vào Phòng học.
+                          Bạn đã tạo đơn chưa hoàn tất. Với PayOS, quyền học bật ngay sau khi thanh toán thành công; đơn cũ chờ xác nhận sẽ do admin xử lý. Hãy tải lại trang, vào checkout hoặc hủy đơn bên dưới nếu cần đăng ký lại.
                         </p>
                         {latestOrder?.id ? (
                           <div className="mt-3 border-t border-amber-200/70 pt-3">
