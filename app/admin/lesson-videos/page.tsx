@@ -1,6 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+
+function parseVndPriceInput(raw: string): { ok: true; value: number } | { ok: false; message: string } {
+  const t = raw.trim();
+  if (t === "") return { ok: false, message: "Giá (VND) không được để trống. Nhập 0 nếu khóa học miễn phí." };
+  const n = Number(t);
+  if (!Number.isFinite(n) || n < 0) return { ok: false, message: "Giá (VND) phải là số không âm." };
+  if (!Number.isInteger(n)) return { ok: false, message: "Giá (VND) phải là số nguyên (không dùng số thập phân)." };
+  if (n > Number.MAX_SAFE_INTEGER) return { ok: false, message: "Giá (VND) quá lớn." };
+  return { ok: true, value: n };
+}
+
+function isValidVndPriceInput(raw: string): boolean {
+  return parseVndPriceInput(raw).ok;
+}
+
+const ADMIN_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 import { useParams, useRouter } from "next/navigation";
 import {
   CirclePlay,
@@ -432,6 +448,7 @@ export default function LessonVideosPage() {
   const [courseInfoSavedAt, setCourseInfoSavedAt] = useState<number | null>(null);
   const [courseInfoErrors, setCourseInfoErrors] = useState<Record<string, string>>({});
   const [thumbnailUploading, setThumbnailUploading] = useState(false);
+  const [heroImageUploading, setHeroImageUploading] = useState(false);
 
   // Create-course dialog
   const [createCourseOpen, setCreateCourseOpen] = useState(false);
@@ -450,6 +467,8 @@ export default function LessonVideosPage() {
   const [ccIsFeatured, setCcIsFeatured] = useState(false);
   const [ccSaving, setCcSaving] = useState(false);
   const [ccError, setCcError] = useState<string | null>(null);
+  const [ccThumbUploading, setCcThumbUploading] = useState(false);
+  const [ccHeroUploading, setCcHeroUploading] = useState(false);
 
   // Add-lesson dialog
   const [addLessonOpen, setAddLessonOpen] = useState(false);
@@ -481,6 +500,8 @@ export default function LessonVideosPage() {
   const showConfirm = (title: string, description: string, onConfirm: () => void) =>
     setConfirmDialog({ open: true, title, description, onConfirm });
   const closeConfirm = () => setConfirmDialog({ open: false });
+
+  const ccPriceInputValid = useMemo(() => isValidVndPriceInput(ccPriceVnd), [ccPriceVnd]);
 
   useEffect(() => {
     let mounted = true;
@@ -1126,6 +1147,16 @@ export default function LessonVideosPage() {
   const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      notify.error("Ảnh bìa", "Chỉ chấp nhận file hình (JPEG, PNG, WebP, GIF).");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > ADMIN_IMAGE_MAX_BYTES) {
+      notify.error("Ảnh bìa", "Tối đa 5MB.");
+      e.target.value = "";
+      return;
+    }
     setThumbnailUploading(true);
     try {
       const url = await uploadAdminImage(file);
@@ -1135,6 +1166,36 @@ export default function LessonVideosPage() {
       notify.error("Upload ảnh thất bại.", error instanceof Error ? error.message : undefined);
     } finally {
       setThumbnailUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      notify.error("Ảnh hero", "Chỉ chấp nhận file hình (JPEG, PNG, WebP, GIF).");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > ADMIN_IMAGE_MAX_BYTES) {
+      notify.error("Ảnh hero", "Tối đa 5MB.");
+      e.target.value = "";
+      return;
+    }
+    setHeroImageUploading(true);
+    try {
+      const url = await uploadAdminImage(file);
+      setCourseInfoDraft((prev) => (prev ? { ...prev, heroImageUrl: url } : prev));
+      setCourseInfoErrors((prev) => {
+        const next = { ...prev };
+        delete next.heroImageUrl;
+        return next;
+      });
+    } catch (error) {
+      notify.error("Upload ảnh hero thất bại.", error instanceof Error ? error.message : undefined);
+    } finally {
+      setHeroImageUploading(false);
       e.target.value = "";
     }
   };
@@ -1156,28 +1217,20 @@ export default function LessonVideosPage() {
     const extraInfoText = stripHtmlToText(courseInfoDraft.extraInfo);
 
     const thumbnailUrl = courseInfoDraft.thumbnailUrl.trim();
-    if (!thumbnailUrl) errs.thumbnailUrl = "Ảnh bìa không được để trống.";
-    else if (!isValidUrl(thumbnailUrl)) errs.thumbnailUrl = "Ảnh bìa phải là URL hợp lệ.";
+    if (!thumbnailUrl) errs.thumbnailUrl = "Ảnh bìa không được để trống — vui lòng upload.";
+    else if (!isValidUrl(thumbnailUrl)) errs.thumbnailUrl = "Ảnh bìa không hợp lệ.";
 
     const heroImageUrl = courseInfoDraft.heroImageUrl.trim();
-    if (heroImageUrl && !isValidUrl(heroImageUrl)) errs.heroImageUrl = "Ảnh hero phải là URL hợp lệ.";
+    if (!heroImageUrl) errs.heroImageUrl = "Ảnh hero không được để trống — vui lòng upload.";
+    else if (!isValidUrl(heroImageUrl)) errs.heroImageUrl = "Ảnh hero không hợp lệ.";
 
     const trailerUrl = courseInfoDraft.trailerUrl.trim();
-    if (!trailerUrl) errs.trailerUrl = "Trailer URL không được để trống.";
-    else if (!isValidUrl(trailerUrl)) errs.trailerUrl = "Trailer URL phải là URL hợp lệ.";
+    if (trailerUrl && !isValidUrl(trailerUrl)) errs.trailerUrl = "Trailer URL phải là URL hợp lệ.";
 
+    const parsedEditPrice = parseVndPriceInput(courseInfoDraft.priceVnd);
     let priceVnd: number | null = null;
-    const priceStr = courseInfoDraft.priceVnd.trim();
-    if (priceStr === "") {
-      errs.priceVnd = "Giá không được để trống.";
-    } else {
-      const n = Number(priceStr);
-      if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) {
-        errs.priceVnd = "Giá phải là số nguyên không âm.";
-      } else {
-        priceVnd = n;
-      }
-    }
+    if (!parsedEditPrice.ok) errs.priceVnd = parsedEditPrice.message;
+    else priceVnd = parsedEditPrice.value;
 
     let accessDurationDays: number | null = null;
     const durationStr = courseInfoDraft.accessDurationDays.trim();
@@ -1332,7 +1385,65 @@ export default function LessonVideosPage() {
     setCcStatus("draft");
     setCcIsFeatured(false);
     setCcError(null);
+    setCcThumbUploading(false);
+    setCcHeroUploading(false);
     setCreateCourseOpen(true);
+  };
+
+  const handleCcThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setCcError("Ảnh bìa: chỉ chấp nhận file hình (JPEG, PNG, WebP, GIF).");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > ADMIN_IMAGE_MAX_BYTES) {
+      setCcError("Ảnh bìa: tối đa 5MB.");
+      e.target.value = "";
+      return;
+    }
+    setCcThumbUploading(true);
+    setCcError(null);
+    try {
+      const url = await uploadAdminImage(file);
+      setCcThumbnailUrl(url);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Upload thất bại.";
+      setCcError(`Ảnh bìa: ${msg}`);
+      notify.error("Upload ảnh bìa thất bại.", msg);
+    } finally {
+      setCcThumbUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleCcHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setCcError("Ảnh hero: chỉ chấp nhận file hình (JPEG, PNG, WebP, GIF).");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > ADMIN_IMAGE_MAX_BYTES) {
+      setCcError("Ảnh hero: tối đa 5MB.");
+      e.target.value = "";
+      return;
+    }
+    setCcHeroUploading(true);
+    setCcError(null);
+    try {
+      const url = await uploadAdminImage(file);
+      setCcHeroImageUrl(url);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Upload thất bại.";
+      setCcError(`Ảnh hero: ${msg}`);
+      notify.error("Upload ảnh hero thất bại.", msg);
+    } finally {
+      setCcHeroUploading(false);
+      e.target.value = "";
+    }
   };
 
   const handleCreateCourse = async () => {
@@ -1342,15 +1453,21 @@ export default function LessonVideosPage() {
       return;
     }
 
-    let priceVnd = 0;
-    if (ccPriceVnd.trim() !== "") {
-      const n = Number(ccPriceVnd);
-      if (!Number.isFinite(n) || n < 0) {
-        setCcError("Giá không hợp lệ.");
-        return;
-      }
-      priceVnd = Math.floor(n);
+    if (!ccThumbnailUrl.trim()) {
+      setCcError("Vui lòng upload ảnh bìa (không dùng link thủ công).");
+      return;
     }
+    if (!ccHeroImageUrl.trim()) {
+      setCcError("Vui lòng upload ảnh hero (không dùng link thủ công).");
+      return;
+    }
+
+    const parsedPrice = parseVndPriceInput(ccPriceVnd);
+    if (!parsedPrice.ok) {
+      setCcError(parsedPrice.message);
+      return;
+    }
+    const priceVnd = parsedPrice.value;
 
     let accessDurationDays: number | null = null;
     if (ccAccessDurationDays.trim() !== "") {
@@ -2074,7 +2191,13 @@ export default function LessonVideosPage() {
                               <button
                                 type="button"
                                 onClick={handleSaveCourseInfo}
-                                disabled={courseInfoSaving || !courseInfoDraft || !isCourseInfoDraftDirty(courseInfoDraft, detail)}
+                                disabled={
+                                  courseInfoSaving ||
+                                  !courseInfoDraft ||
+                                  !isCourseInfoDraftDirty(courseInfoDraft, detail) ||
+                                  thumbnailUploading ||
+                                  heroImageUploading
+                                }
                                 className="inline-flex items-center gap-1.5 rounded-md bg-[#c0392b] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#96281b] disabled:bg-gray-300 disabled:text-gray-500"
                               >
                                 {courseInfoSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
@@ -2107,8 +2230,9 @@ export default function LessonVideosPage() {
                                 <label className="mb-1 block text-xs font-medium text-gray-500">Giá (VND) <span className="text-red-500">*</span></label>
                                 <input
                                   type="number"
+                                  inputMode="numeric"
                                   min={0}
-                                  step={1000}
+                                  step={1}
                                   value={courseInfoDraft.priceVnd}
                                   onChange={(e) => {
                                     setCourseInfoDraft((prev) => (prev ? { ...prev, priceVnd: e.target.value } : prev));
@@ -2117,6 +2241,7 @@ export default function LessonVideosPage() {
                                   className={`w-full rounded-md border ${courseInfoErrors.priceVnd ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
                                   disabled={courseInfoSaving}
                                 />
+                                <p className="mt-1 text-[11px] text-gray-500">Số nguyên ≥ 0. Nhập 0 nếu miễn phí.</p>
                                 {courseInfoErrors.priceVnd && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.priceVnd}</p>}
                               </div>
                               <div>
@@ -2190,6 +2315,7 @@ export default function LessonVideosPage() {
 
                             <div>
                               <label className="mb-1 block text-xs font-medium text-gray-500">Ảnh bìa <span className="text-red-500">*</span></label>
+                              <p className="mb-2 text-[11px] text-gray-500">Upload file (JPEG/PNG/WebP/GIF, tối đa 5MB).</p>
                               <div className="flex items-start gap-3">
                                 {courseInfoDraft.thumbnailUrl ? (
                                   <img
@@ -2206,7 +2332,7 @@ export default function LessonVideosPage() {
                                   <input
                                     id="thumbnail-upload-edit"
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/jpeg,image/png,image/webp,image/gif"
                                     className="hidden"
                                     onChange={handleThumbnailUpload}
                                     disabled={courseInfoSaving || thumbnailUploading}
@@ -2223,37 +2349,59 @@ export default function LessonVideosPage() {
                               </div>
                             </div>
 
-                            <div className="grid gap-4 lg:grid-cols-2">
-                              <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-500">Ảnh hero (URL)</label>
-                                <input
-                                  type="url"
-                                  value={courseInfoDraft.heroImageUrl}
-                                  onChange={(e) => {
-                                    setCourseInfoDraft((prev) => prev ? { ...prev, heroImageUrl: e.target.value } : prev);
-                                    if (courseInfoErrors.heroImageUrl) setCourseInfoErrors((p) => { const n = { ...p }; delete n.heroImageUrl; return n; });
-                                  }}
-                                  className={`w-full rounded-md border ${courseInfoErrors.heroImageUrl ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
-                                  disabled={courseInfoSaving}
-                                  spellCheck={false}
-                                />
-                                {courseInfoErrors.heroImageUrl && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.heroImageUrl}</p>}
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-gray-500">Ảnh hero <span className="text-red-500">*</span></label>
+                              <p className="mb-2 text-[11px] text-gray-500">Upload file — không nhập link thủ công.</p>
+                              <div className="flex items-start gap-3">
+                                {courseInfoDraft.heroImageUrl ? (
+                                  <img
+                                    src={courseInfoDraft.heroImageUrl}
+                                    alt="Ảnh hero"
+                                    className="h-20 w-40 shrink-0 rounded-md border border-gray-200 object-cover"
+                                  />
+                                ) : (
+                                  <div className={`flex h-20 w-40 shrink-0 items-center justify-center rounded-md border-2 border-dashed ${courseInfoErrors.heroImageUrl ? "border-red-300 bg-red-50" : "border-gray-200 bg-gray-50"}`}>
+                                    <ImageIcon className="size-6 text-gray-300" />
+                                  </div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <input
+                                    id="hero-upload-edit"
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,image/gif"
+                                    className="hidden"
+                                    onChange={handleHeroImageUpload}
+                                    disabled={courseInfoSaving || heroImageUploading}
+                                  />
+                                  <label
+                                    htmlFor="hero-upload-edit"
+                                    className={`inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 ${courseInfoSaving || heroImageUploading ? "pointer-events-none opacity-50" : ""}`}
+                                  >
+                                    {heroImageUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                                    {heroImageUploading ? "Đang tải lên…" : courseInfoDraft.heroImageUrl ? "Đổi ảnh hero" : "Chọn ảnh hero"}
+                                  </label>
+                                  {courseInfoErrors.heroImageUrl && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.heroImageUrl}</p>}
+                                </div>
                               </div>
-                              <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-500">Trailer URL <span className="text-red-500">*</span></label>
-                                <input
-                                  type="url"
-                                  value={courseInfoDraft.trailerUrl}
-                                  onChange={(e) => {
-                                    setCourseInfoDraft((prev) => prev ? { ...prev, trailerUrl: e.target.value } : prev);
-                                    if (courseInfoErrors.trailerUrl) setCourseInfoErrors((p) => { const n = { ...p }; delete n.trailerUrl; return n; });
-                                  }}
-                                  className={`w-full rounded-md border ${courseInfoErrors.trailerUrl ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
-                                  disabled={courseInfoSaving}
-                                  spellCheck={false}
-                                />
-                                {courseInfoErrors.trailerUrl && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.trailerUrl}</p>}
-                              </div>
+                            </div>
+
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-gray-500">
+                                Trailer URL <span className="font-normal text-gray-400">(tuỳ chọn)</span>
+                              </label>
+                              <p className="mb-1.5 text-[11px] text-gray-500">Link video (YouTube/Vimeo/file công khai). Để trống nếu chưa có.</p>
+                              <input
+                                type="url"
+                                value={courseInfoDraft.trailerUrl}
+                                onChange={(e) => {
+                                  setCourseInfoDraft((prev) => prev ? { ...prev, trailerUrl: e.target.value } : prev);
+                                  if (courseInfoErrors.trailerUrl) setCourseInfoErrors((p) => { const n = { ...p }; delete n.trailerUrl; return n; });
+                                }}
+                                className={`w-full rounded-md border ${courseInfoErrors.trailerUrl ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
+                                disabled={courseInfoSaving}
+                                spellCheck={false}
+                              />
+                              {courseInfoErrors.trailerUrl && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.trailerUrl}</p>}
                             </div>
 
                             <div className="grid gap-4 lg:grid-cols-2">
@@ -2287,6 +2435,10 @@ export default function LessonVideosPage() {
                                   <option value="published">Đã xuất bản</option>
                                   <option value="archived">Lưu trữ</option>
                                 </select>
+                                <p className="mt-1.5 text-[11px] leading-snug text-gray-500">
+                                  Khóa <strong className="font-medium text-gray-600">bản nháp</strong> chưa hiển thị như khóa đang mở bán;{" "}
+                                  <strong className="font-medium text-gray-600">đã xuất bản</strong> mới áp dụng logic hiện trên site.
+                                </p>
                               </div>
                             </div>
 
@@ -2783,13 +2935,14 @@ export default function LessonVideosPage() {
 
       {/* ── CREATE COURSE DIALOG ── */}
       <Dialog open={createCourseOpen} onOpenChange={(open) => { if (!ccSaving) setCreateCourseOpen(open); }}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[min(94vh,960px)] flex-col gap-4 overflow-hidden overscroll-contain sm:max-w-4xl">
+          <DialogHeader className="shrink-0 space-y-1.5">
             <DialogTitle>Tạo khoá học mới</DialogTitle>
             <DialogDescription>Nhập thông tin khoá học theo schema mới. Có thể chỉnh sửa thêm sau khi tạo.</DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4">
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-auto pr-0.5 [-webkit-overflow-scrolling:touch]">
+          <div className="grid min-w-0 gap-4 break-words">
             <div>
               <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                 Tên khoá học <span className="text-red-500">*</span>
@@ -2836,21 +2989,27 @@ export default function LessonVideosPage() {
                   <option value="published">Đã xuất bản</option>
                   <option value="archived">Lưu trữ</option>
                 </select>
+                <p className="mt-1.5 text-[11px] leading-snug text-gray-500">
+                  Khóa <strong className="font-medium text-gray-600">bản nháp</strong> chưa hiển thị như khóa đang mở bán;{" "}
+                  <strong className="font-medium text-gray-600">đã xuất bản</strong> mới áp dụng logic hiện trên site. Có thể để nháp khi tạo, chỉnh sau.
+                </p>
               </div>
               <div>
                 <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                  Giá (VND)
+                  Giá (VND) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min={0}
-                  step={1000}
+                  step={1}
                   value={ccPriceVnd}
                   onChange={(e) => setCcPriceVnd(e.target.value)}
                   placeholder="0"
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
                   disabled={ccSaving}
                 />
+                <p className="mt-1 text-[11px] text-gray-500">Số nguyên ≥ 0. Nhập 0 nếu miễn phí.</p>
               </div>
             </div>
 
@@ -2898,48 +3057,92 @@ export default function LessonVideosPage() {
 
             <div>
               <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                Ảnh bìa (URL)
+                Ảnh bìa <span className="text-red-500">*</span>
               </label>
+              <p className="mb-2 text-xs text-gray-500">Bắt buộc upload file (JPEG/PNG/WebP/GIF, tối đa 5MB) — không nhập link.</p>
+              <div className="flex items-start gap-3">
+                {ccThumbnailUrl ? (
+                  <img
+                    src={ccThumbnailUrl}
+                    alt="Ảnh bìa"
+                    className="h-20 w-32 shrink-0 rounded-md border border-gray-200 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-20 w-32 shrink-0 items-center justify-center rounded-md border-2 border-dashed border-gray-200 bg-gray-50">
+                    <ImageIcon className="size-6 text-gray-300" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <input
+                    id="cc-thumbnail-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleCcThumbnailUpload}
+                    disabled={ccSaving || ccThumbUploading}
+                  />
+                  <label
+                    htmlFor="cc-thumbnail-upload"
+                    className={`inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 ${ccSaving || ccThumbUploading ? "pointer-events-none opacity-50" : ""}`}
+                  >
+                    {ccThumbUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                    {ccThumbUploading ? "Đang tải lên…" : ccThumbnailUrl ? "Đổi ảnh bìa" : "Chọn ảnh bìa"}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                Ảnh hero <span className="text-red-500">*</span>
+              </label>
+              <p className="mb-2 text-xs text-gray-500">Bắt buộc upload file — không nhập link.</p>
+              <div className="flex items-start gap-3">
+                {ccHeroImageUrl ? (
+                  <img
+                    src={ccHeroImageUrl}
+                    alt="Ảnh hero"
+                    className="h-20 w-40 shrink-0 rounded-md border border-gray-200 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-20 w-40 shrink-0 items-center justify-center rounded-md border-2 border-dashed border-gray-200 bg-gray-50">
+                    <ImageIcon className="size-6 text-gray-300" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <input
+                    id="cc-hero-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleCcHeroUpload}
+                    disabled={ccSaving || ccHeroUploading}
+                  />
+                  <label
+                    htmlFor="cc-hero-upload"
+                    className={`inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 ${ccSaving || ccHeroUploading ? "pointer-events-none opacity-50" : ""}`}
+                  >
+                    {ccHeroUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                    {ccHeroUploading ? "Đang tải lên…" : ccHeroImageUrl ? "Đổi ảnh hero" : "Chọn ảnh hero"}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                Trailer (URL video)
+              </label>
+              <p className="mb-1.5 text-xs text-gray-500">Link video (YouTube/Vimeo/file công khai). Không bắt buộc khi tạo.</p>
               <input
                 type="url"
-                value={ccThumbnailUrl}
-                onChange={(e) => setCcThumbnailUrl(e.target.value)}
+                value={ccTrailerUrl}
+                onChange={(e) => setCcTrailerUrl(e.target.value)}
                 placeholder="https://..."
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
                 disabled={ccSaving}
                 spellCheck={false}
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                  Hero image URL
-                </label>
-                <input
-                  type="url"
-                  value={ccHeroImageUrl}
-                  onChange={(e) => setCcHeroImageUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
-                  disabled={ccSaving}
-                  spellCheck={false}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                  Trailer URL
-                </label>
-                <input
-                  type="url"
-                  value={ccTrailerUrl}
-                  onChange={(e) => setCcTrailerUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
-                  disabled={ccSaving}
-                  spellCheck={false}
-                />
-              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -2988,8 +3191,9 @@ export default function LessonVideosPage() {
               <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{ccError}</p>
             )}
           </div>
+          </div>
 
-          <DialogFooter className="mt-2">
+          <DialogFooter className="mt-0 shrink-0">
             <DialogClose
               disabled={ccSaving}
               render={
@@ -3004,7 +3208,15 @@ export default function LessonVideosPage() {
             <button
               type="button"
               onClick={handleCreateCourse}
-              disabled={ccSaving || !ccTitle.trim()}
+              disabled={
+                ccSaving ||
+                !ccTitle.trim() ||
+                !ccPriceInputValid ||
+                !ccThumbnailUrl.trim() ||
+                !ccHeroImageUrl.trim() ||
+                ccThumbUploading ||
+                ccHeroUploading
+              }
               className="flex items-center gap-2 rounded-md bg-[#c0392b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#96281b] disabled:bg-gray-300 disabled:text-gray-400"
             >
               {ccSaving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
