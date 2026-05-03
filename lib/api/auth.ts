@@ -45,8 +45,20 @@ export async function getSessionActor(): Promise<SessionActor | null> {
     error,
   } = await client.auth.getUser();
 
-  if (error || !user) return null;
-  return { id: user.id, email: user.email ?? null };
+  if (user) {
+    return { id: user.id, email: user.email ?? null };
+  }
+
+  if (error) {
+    console.warn("[auth] getUser failed, falling back to getSession:", error.message);
+  }
+
+  const {
+    data: { session },
+  } = await client.auth.getSession();
+
+  if (!session?.user) return null;
+  return { id: session.user.id, email: session.user.email ?? null };
 }
 
 export async function getSessionProfileActor(): Promise<SessionProfileActor | null> {
