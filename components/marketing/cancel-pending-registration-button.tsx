@@ -37,6 +37,7 @@ export function CancelPendingRegistrationButton({
     setError(null);
     const res = await fetch(`/api/me/orders/${encodeURIComponent(orderId)}/cancel`, {
       method: "POST",
+      credentials: "same-origin",
     });
     if (!res.ok) {
       setError(await readErrorMessage(res));

@@ -1,3 +1,7 @@
+/**
+ * Next.js 16: edge entry là `proxy.ts` + export `proxy`.
+ * Không thêm `middleware.ts` ở root — build sẽ lỗi nếu có cả hai (xem nextjs.org/docs/messages/middleware-to-proxy).
+ */
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
 import { requestHostIsLearningHub } from "@/lib/learning-hub";

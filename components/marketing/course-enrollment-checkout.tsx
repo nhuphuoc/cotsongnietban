@@ -105,6 +105,7 @@ export function CourseEnrollmentCheckout({
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId }),
       });
@@ -138,6 +139,7 @@ export function CourseEnrollmentCheckout({
     try {
       const res = await fetch("/api/checkout/payos", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId, amount: priceVnd }),
       });
@@ -168,6 +170,7 @@ export function CourseEnrollmentCheckout({
     try {
       const res = await fetch(`/api/orders/${result.orderId}/confirm-transfer`, {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ note: "User xác nhận đã chuyển khoản qua trang checkout." }),
       });
