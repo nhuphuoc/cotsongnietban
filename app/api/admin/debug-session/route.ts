@@ -8,12 +8,16 @@ import { getSupabasePublicEnv, getSupabaseServerEnv } from "@/utils/supabase/env
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   const cookieStore = await cookies();
   const allCookies = cookieStore.getAll();
   const authCookies = allCookies
     .filter((c) => c.name.startsWith("sb-"))
     .map((c) => ({ name: c.name, valueLength: c.value.length }));
+
+  // Raw Cookie header — xác nhận browser có gửi cookies không
+  const rawCookieHeader = request.headers.get("cookie");
+  const allCookieNames = allCookies.map((c) => c.name);
 
   const publicEnv = getSupabasePublicEnv();
   const serverEnv = getSupabaseServerEnv();
@@ -61,13 +65,17 @@ export async function GET() {
 
   return NextResponse.json({
     timestamp: new Date().toISOString(),
+    instructions: "Nếu cookies.total=0: bạn không logged in trên browser này. Hãy login xong, mở tab MỚI (không phải private window), copy/paste URL này và thử lại.",
     env: {
       hasPublicUrl: !!publicEnv?.url,
       hasPublicAnonKey: !!publicEnv?.anonKey,
       hasServiceRoleKey: !!serverEnv?.serviceRoleKey,
+      supabaseUrlPrefix: publicEnv?.url?.slice(0, 40) ?? null,
     },
     cookies: {
       total: allCookies.length,
+      rawCookieHeaderLength: rawCookieHeader?.length ?? 0,
+      allCookieNames,
       authCookies,
     },
     getUser: getUserResult,
