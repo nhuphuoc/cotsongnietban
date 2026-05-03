@@ -83,7 +83,6 @@ create table public.courses (
   trailer_url text,
   price_vnd bigint not null default 0 check (price_vnd >= 0),
   access_duration_days integer check (access_duration_days is null or access_duration_days > 0),
-  access_note text,
   is_featured boolean not null default false,
   status public.publication_status not null default 'draft',
   published_at timestamptz,

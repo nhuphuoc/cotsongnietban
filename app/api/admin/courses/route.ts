@@ -35,7 +35,6 @@ export async function POST(request: Request) {
       trailerUrl?: string | null;
       priceVnd?: number | null;
       accessDurationDays?: number | null;
-      accessNote?: string | null;
       status?: string;
       isFeatured?: boolean;
     };
@@ -76,7 +75,6 @@ export async function POST(request: Request) {
       trailer_url: body.trailerUrl?.trim() || null,
       price_vnd: priceVnd,
       access_duration_days: accessDurationDays,
-      access_note: body.accessNote?.trim() || null,
       is_featured: Boolean(body.isFeatured),
       status,
       published_at: status === "published" ? new Date().toISOString() : null,

@@ -43,7 +43,6 @@ export async function PATCH(
       trailerUrl?: string | null;
       priceVnd?: number | null;
       accessDurationDays?: number | null;
-      accessNote?: string | null;
       isFeatured?: boolean;
       status?: string;
       publishedAt?: string | null;
@@ -97,7 +96,6 @@ export async function PATCH(
       trailer_url: body.trailerUrl?.trim() || (body.trailerUrl === null ? null : undefined),
       price_vnd: priceVnd,
       access_duration_days: accessDurationDays,
-      access_note: body.accessNote?.trim() || (body.accessNote === null ? null : undefined),
       is_featured: body.isFeatured,
       status: body.status,
       published_at:

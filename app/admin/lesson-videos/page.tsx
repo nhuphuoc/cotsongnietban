@@ -191,7 +191,6 @@ type CourseRow = {
   extra_info: string | null;
   price_vnd: number | null;
   access_duration_days: number | null;
-  access_note: string | null;
   is_featured: boolean;
   published_at: string | null;
   created_at: string | null;
@@ -233,7 +232,6 @@ type CourseInfoDraft = {
   trailerUrl: string;
   priceVnd: string;
   accessDurationDays: string;
-  accessNote: string;
   status: "draft" | "published" | "archived";
   isFeatured: boolean;
 };
@@ -289,7 +287,6 @@ function courseInfoDraftFromDetail(detail: CourseDetail): CourseInfoDraft {
     priceVnd: detail.price_vnd != null ? String(detail.price_vnd) : "",
     accessDurationDays:
       detail.access_duration_days != null ? String(detail.access_duration_days) : "",
-    accessNote: detail.access_note ?? "",
     status: (detail.status as "draft" | "published" | "archived") ?? "draft",
     isFeatured: Boolean(detail.is_featured),
   };
@@ -308,7 +305,6 @@ function isCourseInfoDraftDirty(draft: CourseInfoDraft, detail: CourseDetail): b
     draft.trailerUrl !== original.trailerUrl ||
     draft.priceVnd !== original.priceVnd ||
     draft.accessDurationDays !== original.accessDurationDays ||
-    draft.accessNote !== original.accessNote ||
     draft.status !== original.status ||
     draft.isFeatured !== original.isFeatured
   );
@@ -335,7 +331,6 @@ type CourseDetail = {
   extra_info?: string | null;
   price_vnd?: number | null;
   access_duration_days?: number | null;
-  access_note?: string | null;
   is_featured?: boolean;
   published_at?: string | null;
   created_at?: string | null;
@@ -462,7 +457,6 @@ export default function LessonVideosPage() {
   const [ccTrailerUrl, setCcTrailerUrl] = useState("");
   const [ccPriceVnd, setCcPriceVnd] = useState("0");
   const [ccAccessDurationDays, setCcAccessDurationDays] = useState("");
-  const [ccAccessNote, setCcAccessNote] = useState("");
   const [ccStatus, setCcStatus] = useState<"draft" | "published" | "archived">("draft");
   const [ccIsFeatured, setCcIsFeatured] = useState(false);
   const [ccSaving, setCcSaving] = useState(false);
@@ -532,7 +526,6 @@ export default function LessonVideosPage() {
             extra_info: (c.extra_info as string) ?? null,
             price_vnd: (c.price_vnd as number) ?? null,
             access_duration_days: (c.access_duration_days as number) ?? null,
-            access_note: (c.access_note as string) ?? null,
             is_featured: Boolean(c.is_featured),
             published_at: (c.published_at as string) ?? null,
             created_at: (c.created_at as string) ?? null,
@@ -564,7 +557,6 @@ export default function LessonVideosPage() {
           extra_info: (c.extra_info as string) ?? null,
           price_vnd: (c.price_vnd as number) ?? null,
           access_duration_days: (c.access_duration_days as number) ?? null,
-          access_note: (c.access_note as string) ?? null,
           is_featured: Boolean(c.is_featured),
           published_at: (c.published_at as string) ?? null,
           created_at: (c.created_at as string) ?? null,
@@ -1269,7 +1261,6 @@ export default function LessonVideosPage() {
           trailerUrl: courseInfoDraft.trailerUrl.trim() || null,
           priceVnd,
           accessDurationDays,
-          accessNote: courseInfoDraft.accessNote.trim() || null,
           status: courseInfoDraft.status,
           isFeatured: courseInfoDraft.isFeatured,
         }),
@@ -1302,7 +1293,6 @@ export default function LessonVideosPage() {
           price_vnd: (patch.price_vnd as number) ?? prev.price_vnd ?? null,
           access_duration_days:
             (patch.access_duration_days as number) ?? prev.access_duration_days ?? null,
-          access_note: (patch.access_note as string) ?? prev.access_note ?? null,
           is_featured: (patch.is_featured as boolean) ?? prev.is_featured ?? false,
           created_at: (patch.created_at as string) ?? prev.created_at ?? null,
           updated_at: (patch.updated_at as string) ?? prev.updated_at ?? null,
@@ -1327,7 +1317,6 @@ export default function LessonVideosPage() {
                 price_vnd: (patch.price_vnd as number) ?? course.price_vnd ?? null,
                 access_duration_days:
                   (patch.access_duration_days as number) ?? course.access_duration_days ?? null,
-                access_note: (patch.access_note as string) ?? course.access_note ?? null,
                 is_featured: (patch.is_featured as boolean) ?? course.is_featured ?? false,
                 published_at: (patch.published_at as string) ?? course.published_at ?? null,
                 created_at: (patch.created_at as string) ?? course.created_at ?? null,
@@ -1351,7 +1340,6 @@ export default function LessonVideosPage() {
         price_vnd: (patch.price_vnd as number) ?? detail.price_vnd ?? null,
         access_duration_days:
           (patch.access_duration_days as number) ?? detail.access_duration_days ?? null,
-        access_note: (patch.access_note as string) ?? detail.access_note ?? null,
         is_featured: (patch.is_featured as boolean) ?? detail.is_featured ?? false,
         published_at: (patch.published_at as string) ?? detail.published_at ?? null,
         created_at: (patch.created_at as string) ?? detail.created_at ?? null,
@@ -1381,7 +1369,6 @@ export default function LessonVideosPage() {
     setCcTrailerUrl("");
     setCcPriceVnd("0");
     setCcAccessDurationDays("");
-    setCcAccessNote("");
     setCcStatus("draft");
     setCcIsFeatured(false);
     setCcError(null);
@@ -1498,7 +1485,6 @@ export default function LessonVideosPage() {
           trailerUrl: ccTrailerUrl.trim() || null,
           priceVnd,
           accessDurationDays,
-          accessNote: ccAccessNote.trim() || null,
           status: ccStatus,
           isFeatured: ccIsFeatured,
         }),
@@ -1520,7 +1506,6 @@ export default function LessonVideosPage() {
           extra_info: (newCourse.extra_info as string) ?? null,
           price_vnd: (newCourse.price_vnd as number) ?? null,
           access_duration_days: (newCourse.access_duration_days as number) ?? null,
-          access_note: (newCourse.access_note as string) ?? null,
           is_featured: Boolean(newCourse.is_featured),
           published_at: (newCourse.published_at as string) ?? null,
           created_at: (newCourse.created_at as string) ?? null,
@@ -2404,42 +2389,26 @@ export default function LessonVideosPage() {
                               {courseInfoErrors.trailerUrl && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.trailerUrl}</p>}
                             </div>
 
-                            <div className="grid gap-4 lg:grid-cols-2">
-                              <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-500">Ghi chú truy cập</label>
-                                <input
-                                  type="text"
-                                  value={courseInfoDraft.accessNote}
-                                  onChange={(e) =>
-                                    setCourseInfoDraft((prev) =>
-                                      prev ? { ...prev, accessNote: e.target.value } : prev
-                                    )
-                                  }
-                                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
-                                  disabled={courseInfoSaving}
-                                />
-                              </div>
-                              <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-500">Trạng thái</label>
-                                <select
-                                  value={courseInfoDraft.status}
-                                  onChange={(e) =>
-                                    setCourseInfoDraft((prev) =>
-                                      prev ? { ...prev, status: e.target.value as "draft" | "published" | "archived" } : prev
-                                    )
-                                  }
-                                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
-                                  disabled={courseInfoSaving}
-                                >
-                                  <option value="draft">Bản nháp</option>
-                                  <option value="published">Đã xuất bản</option>
-                                  <option value="archived">Lưu trữ</option>
-                                </select>
-                                <p className="mt-1.5 text-[11px] leading-snug text-gray-500">
-                                  Khóa <strong className="font-medium text-gray-600">bản nháp</strong> chưa hiển thị như khóa đang mở bán;{" "}
-                                  <strong className="font-medium text-gray-600">đã xuất bản</strong> mới áp dụng logic hiện trên site.
-                                </p>
-                              </div>
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-gray-500">Trạng thái</label>
+                              <select
+                                value={courseInfoDraft.status}
+                                onChange={(e) =>
+                                  setCourseInfoDraft((prev) =>
+                                    prev ? { ...prev, status: e.target.value as "draft" | "published" | "archived" } : prev
+                                  )
+                                }
+                                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                                disabled={courseInfoSaving}
+                              >
+                                <option value="draft">Bản nháp</option>
+                                <option value="published">Đã xuất bản</option>
+                                <option value="archived">Lưu trữ</option>
+                              </select>
+                              <p className="mt-1.5 text-[11px] leading-snug text-gray-500">
+                                Khóa <strong className="font-medium text-gray-600">bản nháp</strong> chưa hiển thị như khóa đang mở bán;{" "}
+                                <strong className="font-medium text-gray-600">đã xuất bản</strong> mới áp dụng logic hiện trên site.
+                              </p>
                             </div>
 
                             <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -3145,35 +3114,20 @@ export default function LessonVideosPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                  Thời hạn truy cập (ngày)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={ccAccessDurationDays}
-                  onChange={(e) => setCcAccessDurationDays(e.target.value)}
-                  placeholder="Để trống nếu không giới hạn"
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
-                  disabled={ccSaving}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                  Ghi chú truy cập
-                </label>
-                <input
-                  type="text"
-                  value={ccAccessNote}
-                  onChange={(e) => setCcAccessNote(e.target.value)}
-                  placeholder="VD: Truy cập theo thời hạn gói đã mua"
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
-                  disabled={ccSaving}
-                />
-              </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                Thời hạn truy cập (ngày)
+              </label>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={ccAccessDurationDays}
+                onChange={(e) => setCcAccessDurationDays(e.target.value)}
+                placeholder="Để trống nếu không giới hạn"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                disabled={ccSaving}
+              />
             </div>
 
             <label className="flex items-center gap-2 text-sm text-gray-700">
