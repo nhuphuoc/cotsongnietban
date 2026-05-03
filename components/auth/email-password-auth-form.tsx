@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { getLmsHomeHref } from "@/lib/learning-hub";
+import { signInAction } from "@/app/actions/auth";
 
 type Mode = "signin" | "signup";
 
@@ -72,27 +73,17 @@ export function EmailPasswordAuthForm({ initialMode = "signin" }: EmailPasswordA
 
     setPending(true);
     try {
-      const supabase = createClient();
       if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: trimmed,
-          password,
-        });
-        if (error) {
-          if (/Email not confirmed/i.test(error.message)) {
-            setMessage("Email chưa xác thực. Vui lòng kiểm tra hộp thư và bấm link xác thực.");
-          } else {
-            setMessage(error.message);
-          }
+        const result = await signInAction(trimmed, password);
+        if (!result.ok) {
+          setMessage(result.error);
           return;
         }
-
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user?.email_confirmed_at) {
-          router.push("/verify-email");
-          return;
-        }
+        // Server action đã set cookies đúng cách — hard navigate để browser nhận cookies mới
+        window.location.assign(result.redirectTo);
+        return;
       } else {
+        const supabase = createClient();
         const { error } = await supabase.auth.signUp({
           email: trimmed,
           password,
@@ -107,14 +98,6 @@ export function EmailPasswordAuthForm({ initialMode = "signin" }: EmailPasswordA
 
         router.push(`/check-email?email=${encodeURIComponent(trimmed)}`);
         return;
-      }
-
-      const home = getLmsHomeHref();
-      router.refresh();
-      if (home.startsWith("http://") || home.startsWith("https://")) {
-        window.location.assign(home);
-      } else {
-        router.push(home);
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Không thể đăng nhập.");

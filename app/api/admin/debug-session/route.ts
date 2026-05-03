@@ -71,6 +71,10 @@ export async function GET(request: Request) {
       hasPublicAnonKey: !!publicEnv?.anonKey,
       hasServiceRoleKey: !!serverEnv?.serviceRoleKey,
       supabaseUrlPrefix: publicEnv?.url?.slice(0, 40) ?? null,
+      // Xác nhận key đang dùng là JWT hay publishable
+      anonKeyPrefix: publicEnv?.anonKey?.slice(0, 20) ?? null,
+      rawAnonKeyEnv: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 20) ?? null,
+      rawPublishableKeyEnv: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.slice(0, 20) ?? null,
     },
     cookies: {
       total: allCookies.length,
