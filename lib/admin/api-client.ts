@@ -24,7 +24,8 @@ async function readJsonSafe(res: Response) {
 }
 
 export async function apiFetch<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const requestInit: RequestInit = {
     ...init,
     /** Luôn gửi cookie session (tránh trường hợp mặc định không rõ ràng). */
     credentials: "same-origin",
@@ -34,7 +35,16 @@ export async function apiFetch<T>(input: RequestInfo | URL, init?: RequestInit):
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),
     },
-  });
+  };
+
+  let res = await fetch(input, requestInit);
+
+  // Một số request đầu tiên sau điều hướng có thể dính race refresh cookie ở edge/proxy.
+  // Retry 1 lần cho request idempotent để giảm 401 giả trên trang admin dạng list.
+  if (res.status === 401 && (method === "GET" || method === "HEAD")) {
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    res = await fetch(input, requestInit);
+  }
 
   const json = (await readJsonSafe(res)) as ApiOk<T> | ApiFail | null;
 
