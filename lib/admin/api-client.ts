@@ -26,6 +26,10 @@ async function readJsonSafe(res: Response) {
 export async function apiFetch<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const res = await fetch(input, {
     ...init,
+    /** Luôn gửi cookie session (tránh trường hợp mặc định không rõ ràng). */
+    credentials: "same-origin",
+    /** Tránh browser/CDN giữ bản GET 401 cũ sau khi đã đăng nhập (hay gặp trên prod). */
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),

@@ -4,6 +4,8 @@ import { omitMissingColumnsUntilSuccess } from "@/lib/api/pgrst-schema-compat";
 import { listCourses, slugify } from "@/lib/api/repositories";
 import { createAdminClient } from "@/utils/supabase/admin";
 
+export const dynamic = "force-dynamic";
+
 const ALLOWED_STATUS = new Set(["draft", "published", "archived"]);
 
 export async function GET() {

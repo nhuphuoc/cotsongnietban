@@ -29,6 +29,12 @@ export function fail(message: string, status = 400, details?: unknown) {
         details: normalizeDetails(details),
       },
     },
-    { status }
+    {
+      status,
+      headers: {
+        // Tránh CDN/browser cache phản hồi lỗi (401/403) làm “treo” trạng thái chưa đăng nhập.
+        "Cache-Control": "private, no-store, must-revalidate",
+      },
+    }
   );
 }

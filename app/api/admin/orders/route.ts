@@ -3,6 +3,8 @@ import { parsePageParams } from "@/lib/api/admin-query";
 import { ok, fail } from "@/lib/api/http";
 import { listOrdersPaginated } from "@/lib/api/repositories";
 
+export const dynamic = "force-dynamic";
+
 const SORTS = new Set(["created_at", "total_vnd", "customer_name", "status"]);
 const FILTERS = new Set(["all", "pending", "approved"]);
 
