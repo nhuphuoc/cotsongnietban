@@ -25,14 +25,17 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
+          // 1. Cập nhật cookie vào request để downstream handler (Route Handler) thấy token mới.
           cookiesToSet.forEach(({ name, value }) => {
             request.cookies.set(name, value);
           });
 
+          // 2. Tạo response mới với request đã có cookie mới — đảm bảo downstream nhận đúng context.
           supabaseResponse = NextResponse.next({
             request,
           });
 
+          // 3. Set cookie lên response để browser lưu token mới.
           cookiesToSet.forEach(({ name, value, options }) => {
             supabaseResponse.cookies.set(name, value, options);
           });
