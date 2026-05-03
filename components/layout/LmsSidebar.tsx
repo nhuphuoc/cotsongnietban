@@ -135,6 +135,7 @@ export default function LmsSidebar({ className, onNavigate }: Props) {
           Tư vấn trực tiếp
         </a>
         <Link
+          prefetch={false}
           href="/auth/signout"
           onClick={nav}
           className="flex items-center gap-3 rounded-md px-3 py-2.5 font-heading text-sm font-semibold uppercase tracking-wide text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-[#004E4B]"

@@ -88,6 +88,7 @@ export default async function VerifyEmailPage({ searchParams }: Props) {
               Gửi lại email xác thực
             </Link>
             <Link
+              prefetch={false}
               href="/auth/signout"
               className="block w-full rounded-md border border-csnb-border px-4 py-3 text-center font-sans text-sm font-semibold text-csnb-muted transition-colors hover:text-white"
             >

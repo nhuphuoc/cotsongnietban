@@ -122,6 +122,7 @@ export default function Header() {
                 Phòng học
               </Link>
               <Link
+                prefetch={false}
                 href="/auth/signout"
                 className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-csnb-orange px-4 py-2 font-sans text-sm font-bold text-white shadow-sm transition-colors hover:bg-csnb-orange-deep sm:px-5"
               >
@@ -191,6 +192,7 @@ export default function Header() {
                     Phòng học
                   </Link>
                   <Link
+                    prefetch={false}
                     href="/auth/signout"
                     className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-csnb-orange px-5 py-3 text-center font-sans text-sm font-bold text-white hover:bg-csnb-orange-deep"
                   >
