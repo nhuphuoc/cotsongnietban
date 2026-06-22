@@ -2,6 +2,8 @@ import { requireAdminActor } from "@/lib/api/auth";
 import { ok, fail } from "@/lib/api/http";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { activateEnrollmentForOrder } from "@/lib/api/enrollments";
+import { sendEmailAsync } from "@/lib/email/send";
+import { CourseActivatedEmail } from "@/lib/email/templates/course-activated";
 
 export async function POST(
   request: Request,
@@ -31,6 +33,23 @@ export async function POST(
       .single();
 
     if (updateError) return fail("Không thể cập nhật trạng thái đơn hàng.", 400, updateError);
+
+    // Gửi email khóa học đã kích hoạt (fire-and-forget)
+    if (order.customer_email) {
+      const origin = new URL(request.url).origin;
+      sendEmailAsync({
+        to: order.customer_email,
+        subject: `Khóa học đã sẵn sàng — ${order.order_code}`,
+        template: "course_activated",
+        react: CourseActivatedEmail({
+          customerName: order.customer_name || "Học viên",
+          courseTitle: "khóa học",
+          courseUrl: `${origin}/phong-hoc`,
+        }),
+        metadata: { orderId: id },
+      });
+    }
+
     return ok(updated);
   } catch (error) {
     return fail("Không thể duyệt đơn hàng.", 500, error);

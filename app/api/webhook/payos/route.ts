@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getPayos } from "@/lib/payos";
 import { activateEnrollmentForOrder } from "@/lib/api/enrollments";
+import { sendEmailAsync } from "@/lib/email/send";
+import { PaymentSuccessEmail } from "@/lib/email/templates/payment-success";
 
 export const runtime = "nodejs";
 
@@ -67,6 +69,23 @@ export async function POST(request: Request) {
     try {
       const result = await activateEnrollmentForOrder(admin, order.id);
       console.log(`[payos-webhook] Đã cấp enrollment cho order=${order.id}: ${result.enrollmentIds.join(", ")}`);
+
+      // Gửi email thanh toán thành công (fire-and-forget)
+      if (order.customer_email) {
+        sendEmailAsync({
+          to: order.customer_email,
+          subject: `Thanh toán thành công — ${order.order_code}`,
+          template: "payment_success",
+          react: PaymentSuccessEmail({
+            customerName: order.customer_name || "Học viên",
+            courseTitle: "khóa học", // sẽ cập nhật khi có course info từ order_items
+            amountVnd: order.total_vnd || 0,
+            courseUrl: `${new URL(request.url).origin}/phong-hoc`,
+            orderCode: order.order_code,
+          }),
+          metadata: { orderId: order.id },
+        });
+      }
     } catch (enrollError) {
       console.error("[payos-webhook] Enrollment error:", enrollError);
     }

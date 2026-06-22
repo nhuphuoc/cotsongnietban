@@ -4,6 +4,8 @@ import { fail, ok } from "@/lib/api/http";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getCoursePurchaseStateForUser, enrollmentGrantsCourseAccess } from "@/lib/api/repositories";
 import { getPayos } from "@/lib/payos";
+import { sendEmailAsync } from "@/lib/email/send";
+import { OrderConfirmationEmail } from "@/lib/email/templates/order-confirmation";
 
 export const runtime = "nodejs";
 
@@ -155,6 +157,21 @@ export async function POST(request: Request) {
         .from("orders")
         .update({ checkout_url: paymentResult.checkoutUrl })
         .eq("id", String(createdOrder.id));
+
+      // Gửi email xác nhận đơn hàng (fire-and-forget)
+      sendEmailAsync({
+        to: customerEmail,
+        subject: `Xác nhận đơn hàng ${createdOrder.order_code} — ${course.title}`,
+        template: "order_confirmation",
+        react: OrderConfirmationEmail({
+          customerName: derivedName,
+          courseTitle: String(course.title),
+          amountVnd: amount,
+          checkoutUrl: paymentResult.checkoutUrl,
+          orderCode: String(createdOrder.order_code),
+        }),
+        metadata: { orderId: createdOrder.id, courseId },
+      });
 
       return ok({
         checkoutUrl: paymentResult.checkoutUrl,
