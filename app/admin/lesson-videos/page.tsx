@@ -71,6 +71,7 @@ import {
 } from "@/components/ui/dialog";
 import { notify } from "@/lib/ui/notify";
 import { uploadAdminImage } from "@/lib/admin/upload-image";
+import { deriveDurationPreset } from "@/lib/admin/course-duration";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 
 function isValidUrl(s: string): boolean {
@@ -442,6 +443,7 @@ export default function LessonVideosPage() {
   const [courseInfoError, setCourseInfoError] = useState<string | null>(null);
   const [courseInfoSavedAt, setCourseInfoSavedAt] = useState<number | null>(null);
   const [courseInfoErrors, setCourseInfoErrors] = useState<Record<string, string>>({});
+  const [courseInfoDurationPreset, setCourseInfoDurationPreset] = useState<string>("");
   const [thumbnailUploading, setThumbnailUploading] = useState(false);
   const [heroImageUploading, setHeroImageUploading] = useState(false);
 
@@ -457,6 +459,7 @@ export default function LessonVideosPage() {
   const [ccTrailerUrl, setCcTrailerUrl] = useState("");
   const [ccPriceVnd, setCcPriceVnd] = useState("0");
   const [ccAccessDurationDays, setCcAccessDurationDays] = useState("");
+  const [ccAccessDurationPreset, setCcAccessDurationPreset] = useState<string>("");
   const [ccStatus, setCcStatus] = useState<"draft" | "published" | "archived">("draft");
   const [ccIsFeatured, setCcIsFeatured] = useState(false);
   const [ccSaving, setCcSaving] = useState(false);
@@ -621,6 +624,9 @@ export default function LessonVideosPage() {
       setDetail(json.data ?? null);
       if (json.data) {
         setCourseInfoDraft(courseInfoDraftFromDetail(json.data));
+        setCourseInfoDurationPreset(
+          deriveDurationPreset(String(json.data.access_duration_days ?? ""))
+        );
       }
       setCourseInfoEdit(false);
       setCourseInfoError(null);
@@ -1369,6 +1375,7 @@ export default function LessonVideosPage() {
     setCcTrailerUrl("");
     setCcPriceVnd("0");
     setCcAccessDurationDays("");
+    setCcAccessDurationPreset("");
     setCcStatus("draft");
     setCcIsFeatured(false);
     setCcError(null);
@@ -2230,19 +2237,48 @@ export default function LessonVideosPage() {
                                 {courseInfoErrors.priceVnd && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.priceVnd}</p>}
                               </div>
                               <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-500">Thời hạn truy cập (ngày) <span className="text-red-500">*</span></label>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  step={1}
-                                  value={courseInfoDraft.accessDurationDays}
+                                <label className="mb-1 block text-xs font-medium text-gray-500">Thời hạn khoá học <span className="text-red-500">*</span></label>
+                                <select
+                                  value={courseInfoDurationPreset}
                                   onChange={(e) => {
-                                    setCourseInfoDraft((prev) => prev ? { ...prev, accessDurationDays: e.target.value } : prev);
+                                    const val = e.target.value;
+                                    setCourseInfoDurationPreset(val);
+                                    let newDays = "";
+                                    if (val === "6") newDays = "180";
+                                    else if (val === "9") newDays = "270";
+                                    else if (val === "12") newDays = "365";
+                                    else if (val === "unlimited") newDays = "";
+                                    setCourseInfoDraft((prev) => prev ? { ...prev, accessDurationDays: newDays } : prev);
                                     if (courseInfoErrors.accessDurationDays) setCourseInfoErrors((p) => { const n = { ...p }; delete n.accessDurationDays; return n; });
                                   }}
                                   className={`w-full rounded-md border ${courseInfoErrors.accessDurationDays ? "border-red-400" : "border-gray-300"} bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none`}
                                   disabled={courseInfoSaving}
-                                />
+                                >
+                                  <option value="">— Chọn thời hạn —</option>
+                                  <option value="6">6 tháng (180 ngày)</option>
+                                  <option value="9">9 tháng (270 ngày)</option>
+                                  <option value="12">12 tháng (365 ngày)</option>
+                                  <option value="unlimited">Không giới hạn</option>
+                                  <option value="custom">Khác (nhập số ngày)</option>
+                                </select>
+                                {courseInfoDurationPreset === "custom" && (
+                                  <div className="mt-2">
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      step={1}
+                                      value={courseInfoDraft.accessDurationDays}
+                                      onChange={(e) => {
+                                        setCourseInfoDraft((prev) => prev ? { ...prev, accessDurationDays: e.target.value } : prev);
+                                        if (courseInfoErrors.accessDurationDays) setCourseInfoErrors((p) => { const n = { ...p }; delete n.accessDurationDays; return n; });
+                                      }}
+                                      placeholder="Nhập số ngày…"
+                                      className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                                      disabled={courseInfoSaving}
+                                    />
+                                    <p className="mt-1 text-[11px] text-gray-500">Nhập số ngày cụ thể (VD: 30, 60, 90...)</p>
+                                  </div>
+                                )}
                                 {courseInfoErrors.accessDurationDays && <p className="mt-1 text-xs text-red-600">{courseInfoErrors.accessDurationDays}</p>}
                               </div>
                             </div>
@@ -3116,18 +3152,44 @@ export default function LessonVideosPage() {
 
             <div>
               <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                Thời hạn truy cập (ngày)
+                Thời hạn khoá học
               </label>
-              <input
-                type="number"
-                min={1}
-                step={1}
-                value={ccAccessDurationDays}
-                onChange={(e) => setCcAccessDurationDays(e.target.value)}
-                placeholder="Để trống nếu không giới hạn"
+              <select
+                value={ccAccessDurationPreset}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCcAccessDurationPreset(val);
+                  if (val === "6") setCcAccessDurationDays("180");
+                  else if (val === "9") setCcAccessDurationDays("270");
+                  else if (val === "12") setCcAccessDurationDays("365");
+                  else if (val === "unlimited") setCcAccessDurationDays("");
+                  else setCcAccessDurationDays(""); // "custom" — hiện input
+                }}
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
                 disabled={ccSaving}
-              />
+              >
+                <option value="">— Chọn thời hạn —</option>
+                <option value="6">6 tháng (180 ngày)</option>
+                <option value="9">9 tháng (270 ngày)</option>
+                <option value="12">12 tháng (365 ngày)</option>
+                <option value="unlimited">Không giới hạn</option>
+                <option value="custom">Khác (nhập số ngày)</option>
+              </select>
+              {ccAccessDurationPreset === "custom" && (
+                <div className="mt-2">
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={ccAccessDurationDays}
+                    onChange={(e) => setCcAccessDurationDays(e.target.value)}
+                    placeholder="Nhập số ngày…"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#c0392b] focus:outline-none"
+                    disabled={ccSaving}
+                  />
+                  <p className="mt-1 text-[11px] text-gray-500">Nhập số ngày cụ thể (VD: 30, 60, 90...)</p>
+                </div>
+              )}
             </div>
 
             <label className="flex items-center gap-2 text-sm text-gray-700">

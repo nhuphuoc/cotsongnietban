@@ -149,6 +149,44 @@ export default async function HocCuaToiPage() {
                             LMS
                           </span>
                         </div>
+                        {/* Expiry info */}
+                        {row.expires_at ? (
+                          (() => {
+                            const expiresMs = new Date(row.expires_at).getTime();
+                            const nowMs = Date.now();
+                            const daysLeft = Math.max(0, Math.ceil((expiresMs - nowMs) / (86400 * 1000)));
+                            const expiresFormatted = new Date(row.expires_at).toLocaleDateString("vi-VN", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            });
+                            const expired = daysLeft <= 0;
+                            return (
+                              <div className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                                expired
+                                  ? "bg-red-50 text-red-600"
+                                  : daysLeft <= 7
+                                    ? "bg-amber-50 text-amber-700"
+                                    : daysLeft <= 30
+                                      ? "bg-sky-50 text-sky-700"
+                                      : "bg-green-50 text-green-700"
+                              }`}>
+                                <Calendar className="size-3" />
+                                {expired
+                                  ? `Đã hết hạn ${expiresFormatted}`
+                                  : daysLeft <= 1
+                                    ? "Hết hạn vào ngày mai"
+                                    : `Còn ${daysLeft} ngày · hết hạn ${expiresFormatted}`
+                                }
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                            <Calendar className="size-3" />
+                            Không giới hạn thời gian
+                          </div>
+                        )}
                       </div>
                       <Link
                         href={href}
