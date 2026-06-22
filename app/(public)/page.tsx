@@ -56,61 +56,61 @@ const targetAudience = [
   {
     icon: AlertTriangle,
     title: "Thoát vị & bệnh lý cột sống",
-    desc: "Đã khám/chụp film trên 6 tháng, thể nhẹ, thoát vị dưới 7mm.",
+    desc: "Thoát vị hoặc các bệnh lý liên quan đến cột sống (thoái hóa, hẹp đĩa đệm, mất độ cong sinh lý...).",
   },
   {
     icon: Zap,
     title: "Đau lưng sinh hoạt",
-    desc: "Cúi, ngồi, vận động… thể nhẹ; cần thì sẽ gợi ý chụp film.",
+    desc: "Đau lưng trong sinh hoạt hằng ngày: cúi gập như rửa chén, ngồi làm việc, chơi thể thao...",
   },
   {
     icon: Clock,
     title: "Đau khớp mãn tính",
-    desc: "Đau trên 3 tháng, điều trị chưa hết — cần lộ trình chức năng.",
+    desc: "Đau khớp mãn tính (đau trên 3 tháng) đã điều trị nhưng không hết. Ngoài đau lưng còn đau cổ vai gáy, đau gối, đau cổ tay...",
   },
   {
     icon: Shield,
     title: "Phòng ngừa",
-    desc: "Muốn khỏe cột sống và cơ–xương–khớp khi chưa đau.",
+    desc: "Muốn tập để khỏe, để tránh các cơn đau khớp sau này.",
   },
 ];
 
-/** Nội dung tập — 3 phase + 3 chu kỳ (copy chuẩn chương trình) */
+/** Nội dung tập — 3 giai đoạn (copy chương trình) */
 const trainingPhases = [
   {
     step: "I",
-    title: "Movement Restoration",
-    text: "Giai đoạn này tập trung vào khôi phục lại các cơ tham gia vào các chuyển động khớp bị tổn thương, việc này sẽ giúp các khớp được giảm tải và cơ lấy lại vai trò vốn có là nâng đỡ và di động khớp.\n\nVị trí tác động là vùng LPHC (phức hợp hông – chậu – thắt lưng).",
+    title: "LÀM QUEN",
+    text: "Tôn trọng sự thích nghi từng bước của cơ thể, bạn sẽ học cách chuyển động đúng từng chút một. Dù là tốt, nhưng cơ thể đã quen với cái xấu trong thời gian dài, việc cho cơ thể thích nghi từng bước là cách tốt nhất để tránh bị xung đột và chấn thương không đáng có.",
   },
   {
     step: "II",
-    title: "Accumulation",
-    text: "Đây là giai đoạn tập trung vào muscles memory (trí nhớ cơ bắp), tăng dần số lượng tải thông qua tăng mật độ lặp lại giúp cho các cơ tăng sức bền và hạn chế được yếu tố điện cơ yếu và máu lưu thông kém.\n\nVị trí tác động là các vùng lân cận và bên ngoài cột sống như nhóm T-spine (đốt sống ngực).",
+    title: "CHUYỂN GIAO",
+    text: "Cơ thể đã quen với một trạng thái tốt mới, tiến dần vào các chuyển động phức tạp. Bạn sẽ học cách đối mặt với các thách thức từ các kỹ thuật bài tập, từ đó cơ thể sẽ biết cách ứng phó với môi trường xung quanh để không bị xảy ra các nguy cơ đau không được biết đến từ trước.",
   },
   {
     step: "III",
-    title: "Intensification",
-    text: "Giai đoạn tác động vào thẳng đốt sống thắt lưng với các chuyển động gập, duỗi và uốn cong đốt sống, đây là giai đoạn đòi hỏi cơ thể đã có nền tảng chuyển động từ 2 giai đoạn trước.\n\nTập trung vào lượng tải, khả năng tải, quãng đường di động khớp và sự phối hợp của toàn thân.",
+    title: "HOÀN THIỆN",
+    text: 'Đây là giai đoạn "nhẹ nhàng" nhất — khi đã qua chuyển giao, cơ thể bạn đạt được trạng thái mới, gần như không còn đau nữa. Việc tập luyện ở giai đoạn này là TÍCH LŨY để cơ thể bạn không còn bị tổn thương bởi những tai nạn đột ngột.',
   },
 ] as const;
 
 const trainingCycles = [
   {
-    name: "Mobilization",
-    desc: "Khả năng cơ co và duỗi, khả năng khớp di động, ngưỡng kháng cự và khả năng cho phép khớp di chuyển để đạt tính hiệu quả.",
+    name: "POSTURE RESTORATION",
+    desc: "Khôi phục tư thế gốc: giáo dục về tầm quan trọng của TƯ THẾ. Hướng dẫn cách trả về TƯ THẾ TRUNG TÍNH theo cấu trúc riêng của bạn. Biết chính xác cách đặt vị trí lồng ngực, khung chậu, bàn chân vào những ngữ cảnh nhất định, mang tính ứng dụng thực tế.",
   },
   {
-    name: "Activation",
-    desc: "Khả năng cơ giữ tĩnh để ổn định tư thế, cơ thể bắt đầu học cách huy động contraction (sức căng cơ) để tham gia vào chuyển động.",
+    name: "INTEGRATION",
+    desc: "Tập luyện phức hợp: học cách chuyển động để cơ bắp tham gia vào các hoạt động thường ngày, giảm áp lực lên khớp. Làm chủ hơi thở giúp cơ thể nhận nhiều oxi, tuần hoàn máu tốt. Tập luyện không chỉ trong phòng tập mà áp dụng vào từng cử chỉ sinh hoạt hằng ngày.",
   },
   {
-    name: "Integration",
-    desc: "Những bài tập đòi hỏi mức độ phối hợp các khớp để thực hiện các chuyển động phức tạp hơn, đây là khối khó nhất, và khi cơ thể bạn thực hiện được các bài tập ở khối này thì tất cả các cơ sẽ lấy lại chức năng vốn có của chúng và cột sống của bạn luôn được bảo vệ.",
+    name: "FASCIA ENHANCE",
+    desc: "Tăng cường mạc cơ dành cho học viên đạt trình độ nhất định và tham gia thể thao (chạy bộ, cầu lông, tennis...). Tập trung vào khả năng phối hợp các khớp để phát lực mạnh mẽ, không bị đứt gãy dẫn đến đau (đau gối do chạy, đau lưng do pickleball...).",
   },
 ] as const;
 
 const trainingProgressNote =
-  "Sau mỗi chu kỳ lặp lại bạn sẽ được tiếp cận các bài tập khó hơn, nặng hơn để cho cơ thể thích nghi liên tục về di động khớp cũng như lượng tải. Qua mỗi lần như thế, cơ thể của bạn được đào tạo mạnh mẽ và bền bỉ hơn, chống chọi đến các tác nhân bên trong dẫn đến các bệnh về cột sống hay viêm khớp.";
+  "Bạn sẽ cảm thấy nhẹ nhàng hơn ngay sau tuần đầu tiên tập luyện. Sau đó, giảm đau rõ rệt từ tuần thứ 5 trở đi (tỷ lệ trung bình, trường hợp nặng hơn thì tuần thứ 8). Đây là tập luyện để lấy lại cơ thể khỏe mạnh, không giống thuốc giảm đau tức thời — tập luyện là đầu tư, bạn sẽ nhận ra cơ thể đang trẻ hóa dần sau mỗi lần tập. Chúng tôi cần bạn kiên trì và nhẫn nại trong suốt quá trình coaching.";
 
 const beforeAfterData = [
   {
@@ -601,19 +601,19 @@ export default function LandingPage() {
           <Reveal className="mt-12" y={18}>
             <div className="rounded-2xl border border-csnb-orange/25 bg-csnb-surface/70 p-6 shadow-lg shadow-black/20 backdrop-blur-sm sm:p-8">
               <p className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange">
-                Trong mỗi phase
+                Ba đề mục tập luyện
               </p>
               <h3 className="mt-2 font-sans text-lg font-bold text-white sm:text-xl">
-                Ba chu kỳ luân phiên xen kẽ
+                Posture Restoration · Integration · Fascia Enhance
               </h3>
               <p className="mt-3 max-w-2xl font-sans text-[13px] leading-relaxed text-csnb-muted sm:text-sm">
-                <span className="font-medium text-csnb-orange-bright">Mobilization</span>
-                {" · "}
-                <span className="font-medium text-csnb-orange-bright">Activation</span>
+                <span className="font-medium text-csnb-orange-bright">Posture Restoration</span>
                 {" · "}
                 <span className="font-medium text-csnb-orange-bright">Integration</span>
+                {" · "}
+                <span className="font-medium text-csnb-orange-bright">Fascia Enhance</span>
                 {" "}
-                — mỗi phase lặp ba chu kỳ; mở rộng bên dưới để đọc định nghĩa đầy đủ và tiến trình tăng tải.
+                — ba đề mục luân phiên trong chương trình; mở rộng bên dưới để đọc định nghĩa đầy đủ và tiến trình tập luyện.
               </p>
 
               <Accordion defaultValue={[]} className="mt-5">
@@ -623,7 +623,7 @@ export default function LandingPage() {
                 >
                   <AccordionTrigger className="items-center px-4 py-3.5 hover:no-underline sm:px-5 sm:py-4 [&_[data-slot=accordion-trigger-icon]]:text-csnb-orange-bright">
                     <span className="font-sans text-sm font-semibold text-white">
-                      Đọc chi tiết ba chu kỳ &amp; lộ trình tập
+                      Đọc chi tiết ba đề mục &amp; lộ trình tập
                     </span>
                   </AccordionTrigger>
                   <AccordionContent>
