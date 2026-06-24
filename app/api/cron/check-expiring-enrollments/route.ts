@@ -42,7 +42,12 @@ export async function GET() {
     }
 
     const now = Date.now();
-    const milestones = [7, 3, 1]; // ngày
+    type Milestone = { days: number; minDays: number; maxDays: number };
+    const milestones: Milestone[] = [
+      { days: 7, minDays: 4, maxDays: 7 },   // 7-4 ngày → báo lần 1
+      { days: 3, minDays: 2, maxDays: 3 },    // 3-2 ngày → báo lần 2
+      { days: 1, minDays: 1, maxDays: 1 },    // 1 ngày   → báo lần cuối
+    ];
     let sentCount = 0;
 
     for (const enrollment of (enrollments ?? [])) {
@@ -51,11 +56,13 @@ export async function GET() {
       const expiresMs = new Date(enrollment.expires_at).getTime();
       const daysLeft = Math.ceil((expiresMs - now) / (86400 * 1000));
 
-      // Tìm milestone gần nhất
-      const matchingMilestone = milestones.find((m) => daysLeft === m);
-      if (!matchingMilestone) continue;
+      // Tìm milestone phù hợp (theo khoảng)
+      const milestone = milestones.find(
+        (m) => daysLeft >= m.minDays && daysLeft <= m.maxDays
+      );
+      if (!milestone) continue;
 
-      // Kiểm tra đã gửi email cho milestone này chưa
+      // Lấy thông tin user + course
       const email = (enrollment.profiles as unknown as { email?: string })?.email;
       const fullName = (enrollment.profiles as unknown as { full_name?: string })?.full_name;
       const courseTitle = (enrollment.courses as unknown as { title?: string })?.title;
@@ -63,17 +70,17 @@ export async function GET() {
 
       if (!email) continue;
 
-      // Kiểm tra email_logs xem đã gửi cho enrollment này chưa
+      // Kiểm tra email_logs xem đã gửi cho enrollment + milestone này chưa
       const { data: existing } = await admin
         .from("email_logs")
         .select("id")
         .eq("recipient", email)
         .eq("template", "course_expiring")
         .gte("created_at", new Date(now - 14 * 86400 * 1000).toISOString())
-        .contains("metadata", { enrollmentId: enrollment.id })
+        .contains("metadata", { enrollmentId: enrollment.id, milestoneDays: milestone.days })
         .maybeSingle();
 
-      if (existing) continue; // Đã gửi cho enrollment này rồi
+      if (existing) continue; // Đã gửi cho enrollment + milestone này rồi
 
       const displayName = fullName?.trim() || email.split("@")[0];
       const title = courseTitle?.trim() || "khóa học";
@@ -102,7 +109,7 @@ export async function GET() {
         }),
         metadata: {
           enrollmentId: enrollment.id,
-          milestoneDays: matchingMilestone,
+          milestoneDays: milestone.days,
           daysLeft,
         },
       });

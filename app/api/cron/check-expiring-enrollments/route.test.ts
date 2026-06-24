@@ -78,6 +78,37 @@ describe("GET /api/cron/check-expiring-enrollments", () => {
     expect(json.sent).toBe(0);
   });
 
+  it("gửi email cho enrollment còn 6 ngày (trong khoảng 4-7)", async () => {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 6 * 86400 * 1000).toISOString();
+
+    const client = makeClient({
+      enrollments: [
+        {
+          id: "enr-1b",
+          expires_at: expiresAt,
+          user_id: "user-1",
+          course_id: "course-1",
+          profiles: { email: "test@test.com", full_name: "Học Viên" },
+          courses: { title: "Khóa Test", slug: "khoa-test" },
+        },
+      ],
+    });
+    vi.mocked(createAdminClient).mockReturnValue(client as never);
+
+    const res = await cronHandler();
+    const json = (await res.json()) as { success: boolean; checked: number; sent: number };
+
+    expect(json.sent).toBe(1);
+    expect(sendEmailAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          milestoneDays: 7,
+        }),
+      })
+    );
+  });
+
   it("gửi email cho enrollment sắp hết hạn 7 ngày", async () => {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 7 * 86400 * 1000).toISOString();
@@ -179,9 +210,9 @@ describe("GET /api/cron/check-expiring-enrollments", () => {
     );
   });
 
-  it("không gửi email nếu enrollment không khớp milestone (vd: còn 5 ngày)", async () => {
+  it("không gửi email nếu enrollment ngoài khoảng milestone (vd: còn 8 ngày)", async () => {
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + 5 * 86400 * 1000).toISOString();
+    const expiresAt = new Date(now.getTime() + 8 * 86400 * 1000).toISOString();
 
     const client = makeClient({
       enrollments: [
@@ -204,7 +235,7 @@ describe("GET /api/cron/check-expiring-enrollments", () => {
     expect(sendEmailAsync).not.toHaveBeenCalled();
   });
 
-  it("không gửi email trùng lặp (đã có email_logs)", async () => {
+  it("không gửi email trùng lặp (đã có email_logs cho enrollment + milestone)", async () => {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 7 * 86400 * 1000).toISOString();
 
