@@ -37,14 +37,31 @@ export async function POST(
     // Gửi email khóa học đã kích hoạt (fire-and-forget)
     if (order.customer_email) {
       const origin = new URL(request.url).origin;
+      // Lấy tên khoá học từ order_items
+      const { data: items } = await client
+        .from("order_items")
+        .select("course_title_snapshot, access_duration_days")
+        .eq("order_id", id)
+        .limit(1);
+      const courseTitle =
+        (items?.[0] as { course_title_snapshot?: string } | undefined)
+          ?.course_title_snapshot || "khóa học";
+      // Tính ngày hết hạn
+      const durationDays = (items?.[0] as { access_duration_days?: number } | undefined)
+        ?.access_duration_days;
+      const expiresAt = durationDays
+        ? new Date(Date.now() + durationDays * 86400 * 1000).toISOString()
+        : null;
+
       sendEmailAsync({
         to: order.customer_email,
-        subject: `Khóa học đã sẵn sàng — ${order.order_code}`,
+        subject: `Khóa học đã sẵn sàng — ${courseTitle}`,
         template: "course_activated",
         react: CourseActivatedEmail({
           customerName: order.customer_name || "Học viên",
-          courseTitle: "khóa học",
+          courseTitle,
           courseUrl: `${origin}/phong-hoc`,
+          expiresAt,
         }),
         metadata: { orderId: id },
       });

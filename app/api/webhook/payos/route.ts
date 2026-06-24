@@ -72,13 +72,23 @@ export async function POST(request: Request) {
 
       // Gửi email thanh toán thành công (fire-and-forget)
       if (order.customer_email) {
+        // Lấy tên khoá học từ order_items
+        const { data: items } = await admin
+          .from("order_items")
+          .select("course_title_snapshot")
+          .eq("order_id", order.id)
+          .limit(1);
+        const courseTitle =
+          (items?.[0] as { course_title_snapshot?: string } | undefined)
+            ?.course_title_snapshot || "khóa học";
+
         sendEmailAsync({
           to: order.customer_email,
-          subject: `Thanh toán thành công — ${order.order_code}`,
+          subject: `Thanh toán thành công — ${courseTitle}`,
           template: "payment_success",
           react: PaymentSuccessEmail({
             customerName: order.customer_name || "Học viên",
-            courseTitle: "khóa học", // sẽ cập nhật khi có course info từ order_items
+            courseTitle,
             amountVnd: order.total_vnd || 0,
             courseUrl: `${new URL(request.url).origin}/phong-hoc`,
             orderCode: order.order_code,

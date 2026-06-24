@@ -29,7 +29,7 @@ export const pricingPlans: PricingPlan[] = [
       "Chương trình linh hoạt theo tình trạng thực tế (té ngã, đau cấp, chấn thương thể thao...)",
       "Đổi lịch báo trước 1 tuần. Nghỉ đột xuất báo trước 24h — nếu không buổi đó không được bảo lưu",
     ],
-    popular: false,
+    popular: true,
   },
   {
     id: "nhom",
@@ -47,7 +47,7 @@ export const pricingPlans: PricingPlan[] = [
       "Khóa cố định 12 tuần, nghỉ không bù",
       "Bắt đầu đúng giờ, không chờ người tới trễ",
     ],
-    popular: true,
+    popular: false,
   },
   {
     id: "zoom",

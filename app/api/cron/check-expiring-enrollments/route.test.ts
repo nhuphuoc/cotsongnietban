@@ -33,13 +33,16 @@ function makeClient(overrides: {
   const eqFn = vi.fn().mockReturnValue({ not: notFn });
   const selectFn = vi.fn().mockReturnValue({ eq: eqFn });
 
-  // email_logs check
+  // email_logs check — chain: eq().eq().gte().contains().maybeSingle()
   const emailLogMaybeSingle = vi.fn().mockResolvedValue({
     data: emailLogExisting ? { id: "log-1" } : null,
     error: null,
   });
-  const emailLogGte = vi.fn().mockReturnValue({
+  const emailLogContains = vi.fn().mockReturnValue({
     maybeSingle: emailLogMaybeSingle,
+  });
+  const emailLogGte = vi.fn().mockReturnValue({
+    contains: emailLogContains,
   });
   const emailLogEq2 = vi.fn().mockReturnValue({ gte: emailLogGte });
   const emailLogEq1 = vi.fn().mockReturnValue({ eq: emailLogEq2 });

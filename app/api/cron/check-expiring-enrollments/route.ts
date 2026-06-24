@@ -63,16 +63,17 @@ export async function GET() {
 
       if (!email) continue;
 
-      // Kiểm tra email_logs xem đã gửi chưa
+      // Kiểm tra email_logs xem đã gửi cho enrollment này chưa
       const { data: existing } = await admin
         .from("email_logs")
         .select("id")
         .eq("recipient", email)
         .eq("template", "course_expiring")
-        .gte("created_at", new Date(now - 7 * 86400 * 1000).toISOString())
+        .gte("created_at", new Date(now - 14 * 86400 * 1000).toISOString())
+        .contains("metadata", { enrollmentId: enrollment.id })
         .maybeSingle();
 
-      if (existing) continue; // Đã gửi trong 7 ngày qua
+      if (existing) continue; // Đã gửi cho enrollment này rồi
 
       const displayName = fullName?.trim() || email.split("@")[0];
       const title = courseTitle?.trim() || "khóa học";
