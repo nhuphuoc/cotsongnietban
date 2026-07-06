@@ -13,10 +13,6 @@ import {
   CheckCircle2,
   Play,
   Star,
-  AlertTriangle,
-  Zap,
-  Shield,
-  Clock,
   MessageCircle,
   HelpCircle,
   Activity,
@@ -44,29 +40,6 @@ import {
 /** Ảnh hero cột phải / nền blur mobile */
 const heroWorkoutPhotoSrc =
   "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&h=800&fit=crop&q=75";
-
-const targetAudience = [
-  {
-    icon: AlertTriangle,
-    title: "Thoát vị & bệnh lý cột sống",
-    desc: "Thoát vị hoặc các bệnh lý liên quan đến cột sống (thoái hóa, hẹp đĩa đệm, mất độ cong sinh lý...).",
-  },
-  {
-    icon: Zap,
-    title: "Đau lưng sinh hoạt",
-    desc: "Đau lưng trong sinh hoạt hằng ngày: cúi gập như rửa chén, ngồi làm việc, chơi thể thao...",
-  },
-  {
-    icon: Clock,
-    title: "Đau khớp mãn tính",
-    desc: "Đau khớp mãn tính (đau trên 3 tháng) đã điều trị nhưng không hết. Ngoài đau lưng còn đau cổ vai gáy, đau gối, đau cổ tay...",
-  },
-  {
-    icon: Shield,
-    title: "Phòng ngừa",
-    desc: "Muốn tập để khỏe, để tránh các cơn đau khớp sau này.",
-  },
-];
 
 /** Nội dung tập — 3 giai đoạn (copy chương trình) */
 const beforeAfterData = [
@@ -556,48 +529,6 @@ export default function LandingPage() {
             })}
           </div>
 
-        </div>
-      </section>
-
-      {/* ── PROBLEM ────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-csnb-bg py-14 sm:py-20 lg:py-28">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="csnb-ambient-mesh-dark absolute inset-0 opacity-70" />
-          <div className="csnb-ambient-grid absolute inset-0 opacity-50" />
-          <div className="csnb-ambient-noise absolute inset-0" />
-          <div className="csnb-drift-orb csnb-drift-orb--cool opacity-55" aria-hidden />
-        </div>
-        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Reveal className="mb-10 text-center sm:mb-14" y={22}>
-            <span className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange">
-              Đối tượng phù hợp
-            </span>
-            <h2 className="mt-3 font-sans text-2xl font-extrabold leading-snug tracking-normal text-white sm:text-3xl lg:text-4xl">
-              Ai nên đăng ký{" "}
-              <span className="text-csnb-orange-bright">Online Coaching?</span>
-            </h2>
-          </Reveal>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
-            {targetAudience.map((p, i) => (
-              <motion.div
-                key={i}
-                className="group rounded-xl border border-csnb-border bg-csnb-surface p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-csnb-orange/40 hover:shadow-md hover:shadow-csnb-orange/5 sm:rounded-sm sm:p-6"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-24px" }}
-                transition={{ delay: i * 0.06, duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-sm bg-csnb-orange/10 transition-colors group-hover:bg-csnb-orange/20">
-                  <p.icon size={20} className="text-csnb-orange" />
-                </div>
-                <h3 className="mb-2 font-sans text-base font-semibold leading-snug tracking-normal text-white">
-                  {p.title}
-                </h3>
-                <p className="font-sans text-sm leading-relaxed text-csnb-muted">{p.desc}</p>
-              </motion.div>
-            ))}
-          </div>
         </div>
       </section>
 

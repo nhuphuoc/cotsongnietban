@@ -67,18 +67,4 @@ export const pricingPlans: PricingPlan[] = [
     ],
     popular: false,
   },
-  {
-    id: "online",
-    name: "Tập luyện gián tiếp — Online Coaching",
-    tag: "ONLINE",
-    priceFrom: "Tạm ngưng",
-    tiers: [
-      "Hiện tại đang tạm ngưng",
-    ],
-    desc: "Tập luyện gián tiếp — Online Coaching.",
-    features: [
-      "Hiện tại đang tạm ngưng",
-    ],
-    popular: false,
-  },
 ];
