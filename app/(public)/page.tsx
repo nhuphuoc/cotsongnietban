@@ -487,53 +487,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA STRIP ──────────────────────────────── */}
-      <section className="relative overflow-hidden border-y border-csnb-border bg-csnb-orange py-10 text-white sm:py-12 lg:py-14">
-        <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_120%_at_0%_50%,rgba(255,255,255,0.12),transparent_50%),radial-gradient(ellipse_60%_100%_at_100%_0%,rgba(232,112,16,0.35),transparent_45%)]"
-          aria-hidden
-        />
-        <div className="csnb-cta-shine pointer-events-none absolute inset-0" aria-hidden />
-        <div className="csnb-ambient-noise pointer-events-none absolute inset-0 opacity-50 mix-blend-overlay" aria-hidden />
-        <motion.div
-          className="relative z-10 mx-auto flex max-w-7xl flex-col items-stretch justify-between gap-6 px-4 text-center sm:flex-row sm:items-center sm:gap-8 sm:px-6 sm:text-left lg:px-8"
-          initial={{ opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div>
-            <h3 className="font-sans text-xl font-extrabold leading-snug tracking-normal text-white sm:text-2xl">
-              Trở thành học viên Cột Sống Niết Bàn
-            </h3>
-            <p className="mt-2 max-w-xl font-sans text-sm leading-relaxed text-white/85">
-              Xem bảng giá hoặc tư vấn trực tiếp — team hỗ trợ theo tình trạng của bạn.
-            </p>
-          </div>
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-end">
-            <div className="flex -space-x-2 justify-center">
-              {testimonials.slice(0, 3).map((t) => (
-                <div
-                  key={`cta-${t.name}`}
-                  className="relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-csnb-orange-deep"
-                >
-                  <Image src={t.avatar} alt="" fill className="object-cover" sizes="44px" />
-                </div>
-              ))}
-            </div>
-            <Link
-              href={SITE_CONTACT.zaloUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 self-center rounded-md border border-white/30 bg-csnb-bg px-6 py-3 font-heading text-xs font-black uppercase tracking-wide text-white shadow-md transition-all duration-200 hover:bg-csnb-raised active:scale-[0.98] sm:w-auto sm:max-w-none sm:rounded-sm sm:hover:scale-[1.03]"
-            >
-              Liên hệ ngay
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-        </motion.div>
-      </section>
-
       {/* ── LỢI ÍCH ───────────────────────────────── */}
       <section className="relative overflow-hidden bg-gradient-to-b from-csnb-panel via-white to-[#e8f4f6] py-14 text-csnb-ink sm:py-20 lg:py-28">
         <div className="csnb-panel-depth pointer-events-none absolute inset-0 opacity-80" aria-hidden />
@@ -1227,22 +1180,6 @@ export default function LandingPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Nút tư vấn trực tiếp (nổi) */}
-      <motion.a
-        href={SITE_CONTACT.zaloUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed z-50 flex h-14 w-14 items-center justify-center rounded-full bg-csnb-orange text-white shadow-lg shadow-csnb-orange/30 transition-colors hover:bg-csnb-orange-deep max-sm:bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] max-sm:right-[max(1rem,env(safe-area-inset-right,0px))] sm:bottom-6 sm:right-6"
-        title="Thắc mắc - hỏi ngay"
-        aria-label="Thắc mắc - hỏi ngay"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.9, type: "spring", stiffness: 280, damping: 19 }}
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.92 }}
-      >
-        <MessageCircle size={24} />
-      </motion.a>
     </div>
   );
 }
