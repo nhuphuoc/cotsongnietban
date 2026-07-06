@@ -32,6 +32,9 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
+      <head>
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+      </head>
       <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
         {children}
         <Toaster position="top-right" richColors closeButton />

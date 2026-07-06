@@ -459,6 +459,7 @@ export default function LandingPage() {
                 fill
                 className="object-cover object-center"
                 sizes="(max-width: 1024px) 100vw, 960px"
+                loading="lazy"
               />
               <div
                 className="pointer-events-none absolute inset-0 bg-gradient-to-r from-csnb-ink/25 via-transparent to-csnb-ink/20"
@@ -534,13 +535,9 @@ export default function LandingPage() {
             {benefitPillars.map((item, i) => {
               const Icon = item.Icon;
               return (
-                <motion.article
+                <article
                   key={i}
                   className="group relative overflow-hidden rounded-2xl border border-neutral-200/90 bg-white/95 p-6 shadow-[0_4px_28px_-10px_rgba(6,38,44,0.1)] backdrop-blur-[2px] transition-all duration-300 hover:-translate-y-0.5 hover:border-csnb-orange/30 hover:shadow-[0_14px_40px_-12px_rgba(255,159,67,0.14)] sm:p-7"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-24px" }}
-                  transition={{ delay: i * 0.06, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <div
                     className="absolute inset-x-0 top-0 h-[3px] origin-left scale-x-0 bg-gradient-to-r from-csnb-orange-deep via-csnb-orange to-csnb-orange-bright transition-transform duration-300 group-hover:scale-x-100"
@@ -554,7 +551,7 @@ export default function LandingPage() {
                       {item.text}
                     </p>
                   </div>
-                </motion.article>
+                </article>
               );
             })}
           </div>
@@ -614,6 +611,7 @@ export default function LandingPage() {
             className="object-cover opacity-[0.14] blur-3xl"
             sizes="100vw"
             aria-hidden
+            loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-csnb-bg via-csnb-bg/92 to-csnb-bg" />
           <div className="csnb-ambient-mesh-dark absolute inset-0 opacity-55" />
@@ -665,6 +663,7 @@ export default function LandingPage() {
                           fill
                           sizes="(max-width: 639px) 50vw, (max-width: 1023px) 25vw, 17vw"
                           className="object-cover"
+                          loading="lazy"
                         />
                         <div className="absolute bottom-2 left-2 rounded-sm bg-csnb-bg/85 px-2 py-1 font-heading text-xs text-csnb-muted">
                           TRƯỚC
@@ -677,6 +676,7 @@ export default function LandingPage() {
                           fill
                           sizes="(max-width: 639px) 50vw, (max-width: 1023px) 25vw, 17vw"
                           className="object-cover"
+                          loading="lazy"
                         />
                         <div className="absolute bottom-2 right-2 rounded-sm bg-csnb-orange px-2 py-1 font-heading text-xs font-bold text-white">
                           SAU
@@ -793,6 +793,7 @@ export default function LandingPage() {
                     fill
                     sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
                   />
                   <span className="absolute left-3 top-3 rounded-sm bg-csnb-orange px-2 py-1 font-heading text-xs font-bold uppercase tracking-wide text-white">
                     {post.category}
@@ -825,6 +826,7 @@ export default function LandingPage() {
             className="object-cover opacity-[0.18] blur-3xl saturate-[1.1]"
             sizes="100vw"
             aria-hidden
+            loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-csnb-bg via-csnb-bg/92 to-csnb-bg" />
           <div className="absolute inset-0 bg-[radial-gradient(800px_circle_at_50%_0%,rgba(28,92,104,0.35),transparent_65%)]" />
