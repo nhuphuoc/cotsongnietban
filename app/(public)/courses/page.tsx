@@ -13,6 +13,7 @@ import { formatVnd } from "@/lib/format-vnd";
 import { getSessionActor } from "@/lib/api/auth";
 import { getLmsCourseHref } from "@/lib/learning-hub";
 import { CancelPendingRegistrationButton } from "@/components/marketing/cancel-pending-registration-button";
+import { TrainingPhasesSection } from "@/components/marketing/training-phases-section";
 
 const FALLBACK_THUMB =
   "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop";
@@ -212,6 +213,8 @@ export default async function CoursesPage() {
           </ul>
         </div>
       </section>
+
+      <TrainingPhasesSection />
 
       <section className="relative z-10 border-t border-csnb-orange/20 bg-gradient-to-br from-csnb-orange to-csnb-orange-deep py-12 text-center lg:py-14">
         <div className="mx-auto max-w-2xl px-4">
