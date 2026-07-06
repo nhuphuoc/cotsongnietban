@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-const LOGO_SRC = "/csnb-logo.jpg";
+const LOGO_SRC = "/main-logo-1.png";
 
 type Props = {
   className?: string;
@@ -11,7 +11,7 @@ type Props = {
   alt?: string;
 };
 
-/** Mark logo CSNB (ảnh vuông trong `public/csnb-logo.jpg`). */
+/** Mark logo CSNB (ảnh trong `public/main-logo-1.png`). */
 export function SiteLogoMark({ className, boxClassName, alt = "Cột Sống Niết Bàn" }: Props) {
   return (
     <span
