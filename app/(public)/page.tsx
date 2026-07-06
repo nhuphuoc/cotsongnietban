@@ -420,71 +420,77 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── NỘI DUNG TẬP: phase + chu kỳ (gộp một section) ─ */}
+      {/* ── NỘI DUNG TẬP ───────────────────────────── */}
       <section
         id="noi-dung-tap"
-        className="relative scroll-mt-24 overflow-hidden bg-csnb-bg py-14 sm:py-20 lg:py-28"
+        className="relative scroll-mt-24 overflow-hidden bg-white pb-0 pt-14 sm:pt-20 lg:pt-28"
       >
-        <div className="pointer-events-none absolute inset-0 z-0">
-          <Image
-            src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1400&h=900&fit=crop&q=70"
-            alt=""
-            fill
-            className="object-cover opacity-[0.22] blur-3xl saturate-[1.08]"
-            sizes="100vw"
-            aria-hidden
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-csnb-bg via-csnb-bg/88 to-csnb-bg" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_100%_50%,rgba(28,92,104,0.25),transparent_55%)]" />
-          <div className="csnb-ambient-mesh-dark absolute inset-0 opacity-60" />
-          <div className="csnb-ambient-grid absolute inset-0 opacity-80" />
-          <div className="csnb-ambient-noise absolute inset-0" />
-        </div>
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(255,159,67,0.05),transparent_55%)]"
+          aria-hidden
+        />
 
-        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Reveal className="grid items-center gap-8 sm:gap-12 lg:grid-cols-2 lg:gap-16" y={28}>
-            <div>
-              <span className="font-sans text-xs font-semibold uppercase tracking-widest text-csnb-orange">
-                Nội dung tập luyện
-              </span>
-              <h2 className="mt-3 font-sans text-2xl font-extrabold leading-snug tracking-normal text-white sm:text-3xl lg:text-4xl">
-                Thực hư việc tập luyện có thể giúp cải thiện và giảm đau xương khớp và thoát vị
-              </h2>
-              <p className="mt-5 max-w-xl font-sans text-[0.9375rem] leading-[1.65] text-csnb-muted sm:text-base sm:leading-[1.7]">
-                Để chứng tỏ nỗ lực đưa phương pháp giúp tăng sức khỏe cơ xương khớp và mang lại nhiều kết quả tốt cho
-                học viên đến thời điểm này. Tuy nhiên, phương pháp này vẫn còn rất mới với nhiều người. Dưới đây là
-                thông tin chi tiết:
-              </p>
-              <Link
-                href="/#pricing"
-                className="mt-8 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-csnb-orange px-6 py-3 font-sans text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] hover:bg-csnb-orange-deep active:scale-[0.99]"
-              >
-                HIỂU RÕ HƠN
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-            <div className="relative mt-2 pb-14 sm:mt-0 sm:pb-12 lg:pb-0">
-              <div className="relative aspect-[4/3] overflow-hidden rounded-xl shadow-xl ring-1 ring-white/10 sm:aspect-[5/4] sm:rounded-sm">
-                <Image
-                  src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=900&h=720&fit=crop"
-                  alt="Tập luyện cùng coach"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1023px) 100vw, 50vw"
-                />
-              </div>
-              <div className="absolute -bottom-2 left-3 right-3 max-w-none rounded-xl border border-csnb-border bg-csnb-surface p-3.5 shadow-lg sm:-bottom-4 sm:left-auto sm:right-6 sm:max-w-[260px] sm:rounded-sm sm:p-4">
-                <p className="font-sans text-xl font-extrabold leading-tight text-csnb-orange-bright sm:text-2xl">
-                  Tuần 1 · Tuần 5+
-                </p>
-                <p className="mt-1 font-sans text-xs leading-relaxed text-csnb-muted">
-                  Nhẹ hơn sau tuần đầu; giảm đau rõ hơn quanh tuần 5 (nặng có thể tuần 8).
-                </p>
-              </div>
-            </div>
+        <div className="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+          <Reveal y={22}>
+            <span className="font-sans text-xs font-semibold uppercase tracking-[0.2em] text-csnb-orange-deep">
+              Nội dung tập luyện
+            </span>
+            <h2 className="mt-4 text-balance font-sans text-2xl font-extrabold leading-snug tracking-normal text-csnb-ink sm:text-3xl lg:text-4xl">
+              Tập luyện có thực sự giúp giảm đau xương khớp &amp; thoát vị?
+            </h2>
+            <div
+              className="mx-auto mt-5 h-1 w-16 rounded-full bg-gradient-to-r from-csnb-orange to-csnb-border/40"
+              aria-hidden
+            />
+            <p className="mx-auto mt-5 max-w-2xl text-pretty font-sans text-[0.9375rem] leading-[1.7] text-neutral-600 sm:text-base sm:leading-[1.75]">
+              Phương pháp này còn khá mới với nhiều người. Nhưng với hàng trăm học viên đã cải thiện rõ rệt, kết quả
+              nói lên tất cả — dưới đây là những gì bạn sẽ được học.
+            </p>
           </Reveal>
-
         </div>
+
+        {/* Ảnh full-width + card nổi */}
+        <Reveal className="relative mt-12 sm:mt-16" y={28} delay={0.08}>
+          <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+            <div className="relative aspect-[16/7] overflow-hidden rounded-2xl shadow-xl ring-1 ring-black/5 sm:aspect-[21/7]">
+              <Image
+                src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1200&h=400&fit=crop&q=75"
+                alt="Tập luyện cùng coach"
+                fill
+                className="object-cover object-center"
+                sizes="(max-width: 1024px) 100vw, 960px"
+              />
+              <div
+                className="pointer-events-none absolute inset-0 bg-gradient-to-r from-csnb-ink/25 via-transparent to-csnb-ink/20"
+                aria-hidden
+              />
+            </div>
+
+            {/* Card nổi chồng lên mép dưới ảnh */}
+            <div className="relative z-10 mx-auto -mt-8 max-w-md sm:-mt-10">
+              <div className="rounded-2xl border border-csnb-orange/20 bg-white px-5 py-4 shadow-lg shadow-csnb-orange/5 sm:px-6 sm:py-5">
+                <div className="flex items-center justify-center gap-6">
+                  <div className="text-center">
+                    <p className="font-sans text-2xl font-extrabold text-csnb-orange sm:text-3xl">1</p>
+                    <p className="mt-0.5 font-sans text-base font-semibold text-csnb-ink">Tuần đầu</p>
+                    <p className="mt-0.5 font-sans text-sm text-neutral-400">Nhẹ nhàng hơn</p>
+                  </div>
+                  <div className="h-10 w-px bg-csnb-border/60" aria-hidden />
+                  <div className="text-center">
+                    <p className="font-sans text-2xl font-extrabold text-csnb-orange sm:text-3xl">5+</p>
+                    <p className="mt-0.5 font-sans text-base font-semibold text-csnb-ink">Tuần 5 trở đi</p>
+                    <p className="mt-0.5 font-sans text-sm text-neutral-400">Giảm đau rõ rệt</p>
+                  </div>
+                </div>
+                <p className="mt-3 border-t border-csnb-border/30 pt-3 text-center font-sans text-sm leading-relaxed text-neutral-400">
+                  Trường hợp nặng hơn có thể cần đến tuần 8. Tập luyện là đầu tư — không phải thuốc giảm đau tức thời.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Reveal>
+
+        <div className="h-14 sm:h-20 lg:h-28" aria-hidden />
       </section>
 
       {/* ── LỢI ÍCH ───────────────────────────────── */}
@@ -553,32 +559,6 @@ export default function LandingPage() {
             })}
           </div>
 
-          <Reveal
-            className="mt-12 flex flex-col items-stretch justify-between gap-5 rounded-2xl border border-csnb-orange/20 bg-gradient-to-br from-white via-csnb-panel/40 to-white px-6 py-6 shadow-sm sm:flex-row sm:items-center sm:px-8"
-            delay={0.1}
-            y={18}
-          >
-            <p className="max-w-xl text-pretty text-center font-sans text-sm leading-relaxed text-neutral-700 sm:text-left">
-              Sẵn sàng bắt đầu với lộ trình phù hợp tình trạng của bạn — xem gói tập hoặc nhắn team để được tư
-              vấn.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:shrink-0">
-              <Link
-                href="/#pricing"
-                className="inline-flex min-h-11 items-center justify-center rounded-full bg-csnb-orange px-6 font-sans text-sm font-semibold text-white shadow-md shadow-csnb-orange/20 transition hover:bg-csnb-orange-deep"
-              >
-                Sứ mệnh
-              </Link>
-              <Link
-                href={SITE_CONTACT.zaloUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-csnb-border/60 bg-white px-6 font-sans text-sm font-semibold text-csnb-ink transition hover:border-csnb-orange/40 hover:bg-csnb-panel/50"
-              >
-                Thắc mắc - hỏi ngay
-              </Link>
-            </div>
-          </Reveal>
         </div>
       </section>
 
