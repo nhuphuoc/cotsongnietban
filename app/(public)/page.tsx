@@ -45,13 +45,6 @@ import {
 const heroWorkoutPhotoSrc =
   "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&h=800&fit=crop&q=75";
 
-const trustStats = [
-  { number: "500+", label: "Học viên" },
-  { number: "91%", label: "Có kết quả rõ rệt" },
-  { number: "Mọi độ tuổi", label: "Phù hợp chương trình" },
-  { number: "Hầu hết", label: "Khắc phục bệnh lý xương khớp & chấn thương" },
-];
-
 const targetAudience = [
   {
     icon: AlertTriangle,
@@ -460,34 +453,6 @@ export default function LandingPage() {
               </div>
             </div>
           </motion.div>
-        </div>
-      </section>
-
-      {/* ── TRUST BANNER ───────────────────────────── */}
-      <section className="relative overflow-hidden border-y border-csnb-border bg-csnb-surface">
-        <div className="csnb-ambient-mesh-surface pointer-events-none absolute inset-0 opacity-80" aria-hidden />
-        <div className="csnb-ambient-grid pointer-events-none absolute inset-0 opacity-40" aria-hidden />
-        <div className="csnb-ambient-noise pointer-events-none absolute inset-0 opacity-70" aria-hidden />
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 md:gap-6 lg:gap-0 lg:divide-x lg:divide-csnb-border">
-            {trustStats.map((stat, i) => (
-              <motion.div
-                key={i}
-                className="text-center lg:px-5"
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-20px" }}
-                transition={{ delay: i * 0.07, duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <div className="font-sans text-2xl font-extrabold tabular-nums tracking-normal text-csnb-orange-bright sm:text-3xl lg:text-[1.85rem] xl:text-3xl">
-                  {stat.number}
-                </div>
-                <div className="mx-auto mt-2 max-w-[11.5rem] px-0.5 font-sans text-[10px] font-medium uppercase leading-snug tracking-wide text-csnb-muted sm:max-w-[14rem] sm:text-xs">
-                  {stat.label}
-                </div>
-              </motion.div>
-            ))}
-          </div>
         </div>
       </section>
 
