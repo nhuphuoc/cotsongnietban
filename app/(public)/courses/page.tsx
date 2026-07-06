@@ -14,6 +14,7 @@ import { getSessionActor } from "@/lib/api/auth";
 import { getLmsCourseHref } from "@/lib/learning-hub";
 import { CancelPendingRegistrationButton } from "@/components/marketing/cancel-pending-registration-button";
 import { TrainingPhasesSection } from "@/components/marketing/training-phases-section";
+import { PricingSection } from "@/components/marketing/pricing-section";
 
 const FALLBACK_THUMB =
   "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=450&fit=crop";
@@ -61,7 +62,8 @@ export default async function CoursesPage() {
                 Hiện chưa có khóa học công khai. Vui lòng quay lại sau.
               </li>
             ) : (
-              rows.map((raw) => {
+              rows.map((raw, idx) => {
+                const isFirst = idx === 0;
                 const c = raw as {
                   id: string;
                   slug?: string | null;
@@ -105,17 +107,17 @@ export default async function CoursesPage() {
                 const primaryHref = hasAccess ? getLmsCourseHref(viewSlug) : detailHref;
 
                 return (
-                  <li key={c.id} className="min-w-0">
-                    <article className="group/card flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(6,38,44,0.06)] ring-1 ring-csnb-border/20 transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(6,38,44,0.18)] hover:ring-csnb-border/35">
+                  <li key={c.id} className={isFirst ? "min-w-0 xl:col-span-3" : "min-w-0"}>
+                    <article className={`group/card flex h-full overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(6,38,44,0.06)] ring-1 ring-csnb-border/20 transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(6,38,44,0.18)] hover:ring-csnb-border/35 ${isFirst ? "flex-col sm:flex-row" : "flex-col"}`}>
                       <Link
                         href={detailHref}
-                        className="relative isolate aspect-[16/10] w-full shrink-0 overflow-hidden bg-csnb-panel"
+                        className={`relative isolate shrink-0 overflow-hidden bg-csnb-panel ${isFirst ? "aspect-[3/4] w-full sm:aspect-auto sm:min-h-[28rem] sm:w-[45%]" : "aspect-[16/10] w-full"}`}
                       >
                         <Image
                           src={thumb}
                           alt=""
                           fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                          sizes={isFirst ? "(max-width: 639px) 100vw, (max-width: 1279px) 50vw, 45vw" : "(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"}
                           className="object-cover transition duration-500 ease-out group-hover/card:scale-[1.04]"
                         />
                         <div
@@ -215,6 +217,8 @@ export default async function CoursesPage() {
       </section>
 
       <TrainingPhasesSection />
+
+      <PricingSection />
 
       <section className="relative z-10 border-t border-csnb-orange/20 bg-gradient-to-br from-csnb-orange to-csnb-orange-deep py-12 text-center lg:py-14">
         <div className="mx-auto max-w-2xl px-4">
