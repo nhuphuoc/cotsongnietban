@@ -4,6 +4,7 @@ import { fail, ok } from "@/lib/api/http";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getCoursePurchaseStateForUser, enrollmentGrantsCourseAccess } from "@/lib/api/repositories";
 import { getPayos } from "@/lib/payos";
+import { validateVoucher } from "@/lib/api/vouchers";
 import { sendEmailAsync } from "@/lib/email/send";
 import { OrderConfirmationEmail } from "@/lib/email/templates/order-confirmation";
 
@@ -12,6 +13,7 @@ export const runtime = "nodejs";
 const checkoutBodySchema = z.object({
   courseId: z.string().min(1, "Thiếu courseId"),
   amount: z.number().int().positive("Số tiền phải là số nguyên dương"),
+  voucherCode: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -25,8 +27,32 @@ export async function POST(request: Request) {
       return fail("Dữ liệu không hợp lệ: thiếu courseId hoặc amount không đúng.", 400, parsed.error);
     }
 
-    const { courseId, amount } = parsed.data;
+    const { courseId, amount, voucherCode } = parsed.data;
     const client = createAdminClient();
+
+    // Validate voucher nếu có
+    let discountVnd = 0;
+    let voucherId: string | null = null;
+    let voucherCodeSnapshot: string | null = null;
+
+    if (voucherCode && voucherCode.trim()) {
+      const voucherResult = await validateVoucher(client, {
+        code: voucherCode,
+        courseId,
+        subtotalVnd: amount,
+        userId: auth.actor.id,
+      });
+
+      if (!voucherResult.ok) {
+        return fail(voucherResult.error, 400);
+      }
+
+      discountVnd = voucherResult.discountVnd;
+      voucherId = voucherResult.voucher.id;
+      voucherCodeSnapshot = voucherResult.voucher.code;
+    }
+
+    const finalVnd = amount - discountVnd;
 
     // Kiểm tra user đã có enrollment active hoặc order pending chưa
     const purchaseState = await getCoursePurchaseStateForUser(auth.actor.id, courseId);
@@ -102,11 +128,12 @@ export async function POST(request: Request) {
           customer_email: customerEmail,
           customer_phone: profile?.phone ?? null,
           subtotal_vnd: amount,
-          discount_vnd: 0,
-          total_vnd: amount,
+          discount_vnd: discountVnd,
+          total_vnd: finalVnd,
           status: "pending",
           payment_method: "payos",
           payos_order_code: orderCode,
+          ...(voucherId ? { voucher_id: voucherId, voucher_code: voucherCodeSnapshot } : {}),
         })
         .select("*")
         .single();
@@ -146,11 +173,11 @@ export async function POST(request: Request) {
       const payos = getPayos();
       const paymentResult = await payos.paymentRequests.create({
         orderCode: Number(createdOrder.payos_order_code),
-        amount,
+        amount: finalVnd,
         description,
         returnUrl: `${origin}/checkout/success?orderId=${createdOrder.id}`,
         cancelUrl: `${origin}/checkout/cancel?orderId=${createdOrder.id}`,
-        items: [{ name: String(course.title).slice(0, 99), quantity: 1, price: amount }],
+        items: [{ name: String(course.title).slice(0, 99), quantity: 1, price: finalVnd }],
       });
 
       await client

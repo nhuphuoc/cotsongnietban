@@ -85,6 +85,18 @@ export function CourseEnrollmentCheckout({
   const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<CheckoutResult | null>(null);
   const [transferConfirmed, setTransferConfirmed] = useState(false);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherLoading, setVoucherLoading] = useState(false);
+  const [voucherResult, setVoucherResult] = useState<{
+    discountVnd: number;
+    finalVnd: number;
+    description: string | null;
+    terms: string | null;
+  } | null>(null);
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+
+  const displayPrice = voucherResult?.finalVnd ?? priceVnd;
+  const hasDiscount = voucherResult && voucherResult.discountVnd > 0;
 
   const qrUrl = useMemo(() => {
     if (!ENABLE_BANK_TRANSFER_CHECKOUT || !result || result.totalVnd == null || !result.paymentReference) return null;
@@ -132,6 +144,38 @@ export function CourseEnrollmentCheckout({
     }
   }
 
+  async function applyVoucher() {
+    if (!voucherCode.trim()) return;
+    setVoucherLoading(true);
+    setVoucherError(null);
+    setVoucherResult(null);
+
+    try {
+      const res = await fetch("/api/checkout/validate-voucher", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: voucherCode.trim(),
+          courseId,
+          subtotalVnd: priceVnd,
+        }),
+      });
+
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error?.message ?? "Mã không hợp lệ.");
+      }
+
+      const json = await res.json();
+      setVoucherResult(json.data);
+    } catch (err) {
+      setVoucherError(err instanceof Error ? err.message : "Không thể kiểm tra mã.");
+    } finally {
+      setVoucherLoading(false);
+    }
+  }
+
   async function payWithPayos() {
     setPayosLoading(true);
     setError(null);
@@ -141,7 +185,7 @@ export function CourseEnrollmentCheckout({
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId, amount: priceVnd }),
+        body: JSON.stringify({ courseId, amount: priceVnd, ...(voucherCode.trim() ? { voucherCode: voucherCode.trim() } : {}) }),
       });
 
       if (res.status === 401) {
@@ -266,6 +310,47 @@ export function CourseEnrollmentCheckout({
                 ? "PayOS: thẻ hoặc QR. Thành công là kích hoạt học ngay."
                 : "Thanh toán an toàn qua PayOS (thẻ / QR). Sau khi giao dịch thành công, quyền học được kích hoạt tự động."}
           </p>
+
+          {/* Voucher input */}
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={voucherCode}
+                onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherResult(null); setVoucherError(null); }}
+                placeholder="Mã giảm giá (nếu có)"
+                className="flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#c0392b]/20"
+                disabled={payosLoading || submitting}
+              />
+              <button
+                type="button"
+                onClick={applyVoucher}
+                disabled={!voucherCode.trim() || voucherLoading || payosLoading || submitting}
+                className="rounded-md border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {voucherLoading ? "…" : "Áp dụng"}
+              </button>
+            </div>
+            {voucherError && (
+              <p className="text-xs text-red-500">{voucherError}</p>
+            )}
+            {hasDiscount && voucherResult && (
+              <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm">
+                <p className="font-semibold text-green-700">
+                  🎫 Giảm {voucherResult.discountVnd.toLocaleString("vi-VN")}₫
+                  {voucherResult.description ? ` — ${voucherResult.description}` : ""}
+                </p>
+                <p className="text-green-600">
+                  <span className="line-through text-gray-400">{priceVnd.toLocaleString("vi-VN")}₫</span>
+                  {" → "}
+                  <strong>{voucherResult.finalVnd.toLocaleString("vi-VN")}₫</strong>
+                </p>
+                {voucherResult.terms && (
+                  <p className="text-xs text-green-500 mt-1">{voucherResult.terms}</p>
+                )}
+              </div>
+            )}
+          </div>
 
           <button
             type="button"

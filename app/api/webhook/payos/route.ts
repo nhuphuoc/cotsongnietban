@@ -1,7 +1,6 @@
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getPayos } from "@/lib/payos";
-import { activateEnrollmentForOrder } from "@/lib/api/enrollments";
-import { sendEmailAsync } from "@/lib/email/send";
+import { activateEnrollmentForOrder } from "@/lib/api/enrollments";import { recordVoucherUsage } from \"@/lib/api/vouchers\";import { sendEmailAsync } from "@/lib/email/send";
 import { PaymentSuccessEmail } from "@/lib/email/templates/payment-success";
 
 export const runtime = "nodejs";
@@ -69,6 +68,16 @@ export async function POST(request: Request) {
     try {
       const result = await activateEnrollmentForOrder(admin, order.id);
       console.log(`[payos-webhook] Đã cấp enrollment cho order=${order.id}: ${result.enrollmentIds.join(", ")}`);
+
+      // Ghi nhận voucher usage nếu đơn dùng voucher
+      if (order.voucher_id && order.user_id && order.discount_vnd > 0) {
+        await recordVoucherUsage(admin, {
+          voucherId: order.voucher_id,
+          userId: order.user_id,
+          orderId: order.id,
+          discountVnd: order.discount_vnd,
+        });
+      }
 
       // Gửi email thanh toán thành công (fire-and-forget)
       if (order.customer_email) {
