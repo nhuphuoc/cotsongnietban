@@ -59,6 +59,28 @@ export type ValidateVoucherResult = ValidateVoucherOk | ValidateVoucherErr;
 // Helpers
 // ============================================================
 
+/**
+ * Chuyển datetime-local string (không timezone) sang ISO UTC.
+ * `datetime-local` input gửi giờ local VN (UTC+7), nhưng DB lưu timestamptz (UTC).
+ * Nếu không convert, cùng ngày sẽ bị lệch 7 tiếng → bug "chưa có hiệu lực".
+ *
+ * "2026-07-19T09:00" → "2026-07-19T02:00:00.000Z"
+ */
+export function toUtcIso(datetimeLocal: string | null | undefined): string | null {
+  if (!datetimeLocal) return null;
+
+  const trimmed = datetimeLocal.trim();
+  if (!trimmed) return null;
+
+  // Đã có timezone indicator (+XX:XX hoặc Z) → giữ nguyên
+  if (trimmed.includes("+") || trimmed.includes("Z")) {
+    return new Date(trimmed).toISOString();
+  }
+
+  // datetime-local value → append Vietnam timezone +07:00
+  return new Date(trimmed + "+07:00").toISOString();
+}
+
 function nowUtc(): string {
   return new Date().toISOString();
 }

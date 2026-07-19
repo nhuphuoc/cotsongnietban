@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Search, Pencil, Trash2, Eye, EyeOff, Copy } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Eye } from "lucide-react";
 import { VoucherFormDialog } from "@/components/admin/voucher-form-dialog";
 
 type VoucherItem = {
@@ -170,7 +170,7 @@ export default function AdminVouchersPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono font-semibold text-gray-900">{v.code}</span>
-                        {v.is_public && <Eye size={12} className="text-green-500" title="Hiển thị công khai" />}
+                        {v.is_public && <Eye size={12} className="text-green-500" aria-label="Hiển thị công khai" />}
                       </div>
                       {v.description && <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{v.description}</p>}
                     </td>

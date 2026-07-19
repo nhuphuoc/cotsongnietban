@@ -2,6 +2,7 @@ import { requireAdminActor } from "@/lib/api/auth";
 import { parsePageParams } from "@/lib/api/admin-query";
 import { ok, fail } from "@/lib/api/http";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { toUtcIso } from "@/lib/api/vouchers";
 
 const ALLOWED_SCOPES = ["sitewide", "specific_courses", "specific_user"];
 const ALLOWED_DISCOUNT_TYPES = ["percentage", "fixed_amount", "free"];
@@ -147,13 +148,15 @@ export async function POST(request: Request) {
     }
 
     // Validate expires_at
-    const expiresAt = typeof body.expires_at === "string" ? body.expires_at.trim() : "";
-    if (!expiresAt) {
+    const expiresAtRaw = typeof body.expires_at === "string" ? body.expires_at.trim() : "";
+    if (!expiresAtRaw) {
       return fail("Ngày hết hạn là bắt buộc.", 400);
     }
+    const expiresAt = toUtcIso(expiresAtRaw);
+    if (!expiresAt) return fail("Ngày hết hạn không hợp lệ.", 400);
 
     // Validate starts_at (optional)
-    const startsAt = typeof body.starts_at === "string" ? body.starts_at.trim() : null;
+    const startsAt = toUtcIso(typeof body.starts_at === "string" ? body.starts_at.trim() : null);
 
     // Validate status
     const status = body.status ?? "draft";

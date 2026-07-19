@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdminActor } from "@/lib/api/auth";
 import { ok, fail } from "@/lib/api/http";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { toUtcIso } from "@/lib/api/vouchers";
 
 const ALLOWED_SCOPES = ["sitewide", "specific_courses", "specific_user"];
 const ALLOWED_DISCOUNT_TYPES = ["percentage", "fixed_amount", "free"];
@@ -132,12 +133,12 @@ export async function PATCH(
       updates.status = body.status;
     }
 
-    // Dates
+    // Dates — convert datetime-local to UTC
     if (typeof body.starts_at === "string") {
-      updates.starts_at = body.starts_at.trim() || null;
+      updates.starts_at = toUtcIso(body.starts_at.trim());
     }
     if (typeof body.expires_at === "string") {
-      const val = body.expires_at.trim();
+      const val = toUtcIso(body.expires_at.trim());
       if (val) updates.expires_at = val;
     }
 

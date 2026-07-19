@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { validateVoucher, recordVoucherUsage } from "./vouchers";
+import { validateVoucher, recordVoucherUsage, toUtcIso } from "./vouchers";
 import type { ValidateVoucherInput, VoucherRow } from "./vouchers";
 
 // ============================================================
@@ -124,6 +124,40 @@ function createMockClient(
 // Tests
 // ============================================================
 
+// ============================================================
+// Tests
+// ============================================================
+
+describe("toUtcIso", () => {
+  it("converts datetime-local VN time to UTC", () => {
+    // 9:00 AM Vietnam = 2:00 AM UTC
+    const result = toUtcIso("2026-07-19T09:00");
+    expect(result).toBe("2026-07-19T02:00:00.000Z");
+  });
+
+  it("converts midnight VN to previous day 5PM UTC", () => {
+    const result = toUtcIso("2026-07-19T00:00");
+    expect(result).toBe("2026-07-18T17:00:00.000Z");
+  });
+
+  it("returns null for empty input", () => {
+    expect(toUtcIso("")).toBeNull();
+    expect(toUtcIso(null)).toBeNull();
+    expect(toUtcIso(undefined)).toBeNull();
+    expect(toUtcIso("   ")).toBeNull();
+  });
+
+  it("preserves already-UTC values", () => {
+    const result = toUtcIso("2026-07-19T09:00:00.000Z");
+    expect(result).toBe("2026-07-19T09:00:00.000Z");
+  });
+
+  it("preserves values with explicit timezone", () => {
+    const result = toUtcIso("2026-07-19T09:00+07:00");
+    expect(result).toBe("2026-07-19T02:00:00.000Z");
+  });
+});
+
 describe("validateVoucher", () => {
   it("returns error for empty code", async () => {
     const client = createMockClient();
@@ -162,6 +196,55 @@ describe("validateVoucher", () => {
 
   it("returns error when already expired", async () => {
     const v = voucherRow({ expires_at: new Date(Date.now() - 1000).toISOString() });
+    const client = createMockClient({
+      vouchers: { maybeSingle: () => Promise.resolve({ data: v, error: null }) },
+    });
+    const result = await validateVoucher(client, validInput);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("hết hạn");
+  });
+
+  it("allows when starts_at is null (no start restriction)", async () => {
+    const v = voucherRow({ starts_at: null }); // default already null, explicit test
+    const client = createMockClient({
+      vouchers: { maybeSingle: () => Promise.resolve({ data: v, error: null }) },
+    });
+    const result = await validateVoucher(client, validInput);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.discountVnd).toBe(50000);
+  });
+
+  it("allows when starts_at is in the past", async () => {
+    const v = voucherRow({ starts_at: new Date(Date.now() - 3600000).toISOString() }); // 1 hour ago
+    const client = createMockClient({
+      vouchers: { maybeSingle: () => Promise.resolve({ data: v, error: null }) },
+    });
+    const result = await validateVoucher(client, validInput);
+    expect(result.ok).toBe(true);
+  });
+
+  it("allows when expires_at is far in the future", async () => {
+    const v = voucherRow({ expires_at: new Date(Date.now() + 30 * 86400000).toISOString() }); // 30 days
+    const client = createMockClient({
+      vouchers: { maybeSingle: () => Promise.resolve({ data: v, error: null }) },
+    });
+    const result = await validateVoucher(client, validInput);
+    expect(result.ok).toBe(true);
+  });
+
+  it("blocks when starts_at is exactly now (boundary)", async () => {
+    // starts_at = now means "valid from this moment" — should be valid
+    const v = voucherRow({ starts_at: new Date(Date.now() - 1000).toISOString() }); // 1 sec ago = valid
+    const client = createMockClient({
+      vouchers: { maybeSingle: () => Promise.resolve({ data: v, error: null }) },
+    });
+    const result = await validateVoucher(client, validInput);
+    expect(result.ok).toBe(true);
+  });
+
+  it("blocks when expires_at is exactly now (boundary)", async () => {
+    // expires_at just passed
+    const v = voucherRow({ expires_at: new Date(Date.now() - 100).toISOString() }); // 100ms ago
     const client = createMockClient({
       vouchers: { maybeSingle: () => Promise.resolve({ data: v, error: null }) },
     });
